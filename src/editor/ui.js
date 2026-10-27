@@ -24,8 +24,7 @@ function input(value,label,onChange,settings={}) {
     onChange(next);});return el;
 }
 const button = (name,handler,className='button secondary') => {const el=element('button',name,className);el.type='button';el.addEventListener('click',handler);return el;};
-const leaves = (actions,delay=0) => actions.flatMap(a=>a.type==='after'?leaves(a.actions,delay+a.ticks):[{...a,delay}]);
-const pack = list => list.map(({delay,...action})=>delay>0?{type:'after',ticks:delay,actions:[action]}:action);
+const actionList = (actions,path) => {for(const index of path)actions=actions[index].actions;return actions;};
 
 /** DOM adapter only: the draft store and simulation do not depend on this interface. */
 export function createEditorUI({play,leave,pause,notify}) {
@@ -50,7 +49,10 @@ export function createEditorUI({play,leave,pause,notify}) {
     $('open-editor').textContent=active?'工坊已打开':'关卡工坊';
     if(editing)render();
   }
-  function openDocument(level,key) {pause();store.open(key,level);selection=null;tool='select';save();setMode('editing');}
+  function openDocument(level,key) {
+    try {store.open(key,level);}catch(error){notify(error.message);return false;}
+    pause();selection=null;tool='select';save();setMode('editing');return true;
+  }
   function render() {
     const d=store.document(), validation=validateLevel(d);
     $('scene-title').textContent=d.name || '还没想好名字';$('scene-tag-text').textContent='正在创作';
@@ -138,18 +140,33 @@ export function createEditorUI({play,leave,pause,notify}) {
           button('×',()=>changeRule(r=>{r.if.splice(ci,1);if(!r.if.length)delete r.if;}),'rule-remove'));card.append(row);
       });
       if((rule.if??[]).length<16)card.append(button('＋ 状态条件',()=>changeRule(r=>{r.if??=[];r.if.push({entity:d.entities[0].id,state:d.entities[0].state});}),'text-button'));
-      const actions=leaves(rule.actions);
-      actions.forEach((action,ai)=>{
-        const row=element('div',undefined,'rule-row action-row'), target=d.entities.find(e=>e.id===action.target);
-        const changeAction=fn=>changeRule(r=>{const items=leaves(r.actions);fn(items[ai],items);r.actions=pack(items);});
-        const delay=input(action.delay/60,'动作延迟秒数',value=>changeAction(a=>{a.delay=Math.round(value*60);}),{type:'number',min:0,max:60,step:1/60});delay.setAttribute('data-action-delay','');
-        row.append(element('span','延迟'),delay,element('span','秒 →'),
-          select(entities,action.target,'动作目标',value=>changeAction(a=>{a.target=value;a.state=STATES[d.entities.find(e=>e.id===value).kind][0];}),'data-action-target'),
-          select((STATES[target?.kind]??[]).map(s=>[s,stateLabel(s)]),action.state,'目标状态',value=>changeAction(a=>{a.state=value;}),'data-action-state'));
-        if(actions.length>1)row.append(button('×',()=>changeAction((a,items)=>items.splice(ai,1)),'rule-remove'));
-        card.append(row);
-      });
-      if(actions.length<32)card.append(button('＋ 一个动作',()=>changeRule(r=>{r.actions.push({type:'set',target:d.entities[0].id,state:d.entities[0].state});}),'text-button'));
+      function renderActions(actions,parent,path=[]) {
+        actions.forEach((action,ai)=>{
+          const changeAction=fn=>changeRule(r=>{const items=actionList(r.actions,path);fn(items[ai],items);});
+          const row=element('div',undefined,'rule-row action-row');
+          if(action.type==='after') {
+            const group=element('div',undefined,'delayed-actions');
+            const delay=input(action.ticks/60,'动作延迟秒数',value=>changeAction(a=>{a.ticks=Math.max(1,Math.round(value*60));}),
+              {type:'number',min:1/60,max:60,step:'any'});delay.setAttribute('data-action-delay','');
+            row.append(element('span','延迟'),delay,element('span','秒，然后'));
+            if(actions.length>1)row.append(button('删除这组',()=>changeAction((a,items)=>items.splice(ai,1)),'rule-remove'));
+            group.append(row);renderActions(action.actions,group,[...path,ai]);parent.append(group);
+          } else {
+            const target=d.entities.find(e=>e.id===action.target);
+            row.append(element('span','设为'),
+              select(entities,action.target,'动作目标',value=>changeAction(a=>{a.target=value;a.state=STATES[d.entities.find(e=>e.id===value).kind][0];}),'data-action-target'),
+              select((STATES[target?.kind]??[]).map(s=>[s,stateLabel(s)]),action.state,'目标状态',value=>changeAction(a=>{a.state=value;}),'data-action-state'));
+            if(actions.length>1)row.append(button('×',()=>changeAction((a,items)=>items.splice(ai,1)),'rule-remove'));
+            parent.append(row);
+          }
+        });
+        if(actions.length<32) {
+          const next=()=>({type:'set',target:d.entities[0].id,state:d.entities[0].state});
+          parent.append(button('＋ 一个动作',()=>changeRule(r=>{actionList(r.actions,path).push(next());}),'text-button'));
+          if(path.length<4)parent.append(button('＋ 延迟动作',()=>changeRule(r=>{actionList(r.actions,path).push({type:'after',ticks:60,actions:[next()]});}),'text-button'));
+        }
+      }
+      renderActions(rule.actions,card);
       list.append(card);
     });
   }
@@ -196,7 +213,7 @@ export function createEditorUI({play,leave,pause,notify}) {
     active:()=>mode!=='closed',isEditing:()=>mode==='editing',document:()=>store.document(),
     open(level,key){if(restored){pause();restored=false;setMode('editing');}else openDocument(level,key);},
     openDocument,
-    importDocument(level){openDocument(level,'import:'+Date.now().toString(36)+'-'+serial++);},
+    importDocument(level){if(!openDocument(level,'import:'+Date.now().toString(36)+'-'+serial++))throw new Error('无法创建导入草稿，请检查草稿数量。');},
     snapshot(){const d=store.document();return {tick:0,status:'ready',reason:null,actor:{x:d.actor.x},
       entities:Object.fromEntries(d.entities.map(e=>[e.id,{...e,width:e.width??28}])),events:[],clicks:0,timers:[]};},
   };

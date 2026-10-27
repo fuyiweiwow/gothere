@@ -1,7 +1,7 @@
-import { STATES } from '../core/schema.js';
+import { STATES, validateLevel } from '../core/schema.js';
 
 const clone = (value) => structuredClone(value);
-const shape = (level) => level && level.schemaVersion === 1 && level.world?.width === 1200 &&
+const shape = (level) => Boolean(level && level.schemaVersion === 1 && level.world?.width === 1200 &&
   level.world?.height === 640 && level.world?.groundY === 440 && typeof level.id === 'string' &&
   typeof level.name === 'string' && typeof level.description === 'string' &&
   Number.isFinite(level.actor?.x) && Number.isFinite(level.actor?.speed) && Number.isFinite(level.goal?.x) &&
@@ -10,7 +10,10 @@ const shape = (level) => level && level.schemaVersion === 1 && level.world?.widt
   Array.isArray(level.entities) && level.entities.length <= 64 && level.entities.every(e =>
     e && typeof e.id === 'string' && Object.hasOwn(STATES, e.kind) && Number.isFinite(e.x) &&
     (e.width === undefined || Number.isFinite(e.width)) && typeof e.label === 'string') &&
-  Array.isArray(level.rules) && level.rules.length <= 128 && level.rules.every(r => r?.on && Array.isArray(r.actions));
+  Array.isArray(level.rules) && level.rules.length <= 128 &&
+  // Geometry can be unfinished; references, states and action trees must remain safe to edit.
+  validateLevel({...level, actor:{x:95,speed:68}, goal:{x:1100}, platforms:[{x:0,width:1200}],
+    entities:level.entities.map(e=>({...e,x:25,width:8}))}).valid);
 
 /** Drafts may be temporarily unplayable. Each slot owns its document and bounded history. */
 export function createEditorStore(serialized) {

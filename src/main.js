@@ -43,8 +43,10 @@ function renderTabs() {
 }
 function loadLevel(next, index = -1, forTest = false) {
   if (editor.active() && !forTest) {
-    editor.openDocument(next, index >= 0 ? 'builtin:' + next.id : 'import:' + next.id);
-    selected = index; renderTabs(); return;
+    if(editor.openDocument(next, index >= 0 ? 'builtin:' + next.id : 'import:' + next.id)) {
+      selected = index; renderTabs();
+    }
+    return;
   }
   level = structuredClone(next); game = createSimulation(level); selected = index;
   replay = null; replayIndex = 0; accumulator = 0; terminalAt = null; lastHud = ''; lastEventKey = '';
