@@ -54,7 +54,7 @@ test('deleting an entity removes dependent rules and nested actions without dang
   assert.ok(!JSON.stringify(level.rules).includes('bridge'));
   deleteObject(level, {type:'entity',id:'lever'});
   assert.ok(!level.rules.some(r=>r.on.source==='lever'));
-  level.rules.push({on:{type:'click',source:'fan'},if:[{entity:'gate',state:'closed'}],actions:[{type:'set',target:'fan',state:'stopped'}]});
+  level.rules.push({on:{type:'click',source:'fan'},if:[{entity:'gate',state:'closed'}],actions:[{type:'set',target:'fan',state:'inactive'}]});
   deleteObject(level, {type:'entity',id:'gate'});
   assert.equal(validateLevel(level).valid, true);
   assert.ok(!JSON.stringify(level.rules).includes('gate'));

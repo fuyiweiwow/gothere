@@ -90,7 +90,7 @@ test('provides a headless simulation independent of the renderer', () => {
       level.entities.push({ id: 'danger', kind, x: 200, width: 30, state, label: '危险' });
       const game = createSimulation(level); game.start(); game.step(1000);
       assert.equal(game.snapshot().status, 'lost');
-      assert.equal(game.snapshot().reason, kind);
+      assert.equal(game.snapshot().reason, kind==='hazard'?'hurt':kind);
     }
   });
   test('rejects invalid references, duplicate ids, invalid states and unbounded delayed recursion', () => {

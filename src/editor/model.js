@@ -80,8 +80,8 @@ export function createBlankLevel(id) {
     actor:{x:95,speed:68}, goal:{x:1100}, platforms:[{x:0,width:1200}], entities:[], rules:[] };
 }
 
-export const KIND_NAMES = {platform:'地面',bridge:'木桥',switch:'开关',hazard:'风扇',plate:'压力板',gate:'小门',actor:'旅行者',goal:'目的地',
-  object:'物件 / 生物',ladder:'梯子',lift:'电梯'};
+export const KIND_NAMES = {platform:'地面',bridge:'木桥',switch:'开关',hazard:'旧危险物（兼容）',plate:'压力板',gate:'小门',actor:'旅行者',goal:'目的地',
+  object:'物件 / 生物',zone:'区域触发器',ladder:'梯子',lift:'电梯'};
 
 export function addObject(level, kind, x, y=440) {
   if (kind === 'platform') {
@@ -92,9 +92,9 @@ export function addObject(level, kind, x, y=440) {
   if (!Object.hasOwn(STATES,kind)) throw new Error('未知机关。');
   if (level.entities.length >= 64) throw new Error('最多放置 64 个机关。');
   let serial=1; while (level.entities.some(e=>e.id===kind+'-'+serial)) serial++;
-  const id=kind+'-'+serial, width={bridge:160,switch:28,hazard:58,plate:44,gate:24,object:48,ladder:40,lift:60}[kind];
+  const id=kind+'-'+serial, width={bridge:160,switch:28,hazard:58,plate:44,gate:24,object:48,zone:90,ladder:40,lift:60}[kind];
   level.entities.push({id,kind,x:Math.max(25,Math.min(1200-width,x)),width,state:STATES[kind][0],label:KIND_NAMES[kind]+serial,
-    ...(y!==440?{y}:{}),...(kind==='object'?{appearance:{skin:'axe'}}:{}),
+    ...(y!==440?{y}:{}),...(kind==='object'?{appearance:{skin:'orb'}}:{}),
     ...(['ladder','lift'].includes(kind)?{y:Math.max(200,y),toY:Math.max(160,y-180),speed:90}:{} )});
   return {type:'entity',id};
 }
@@ -103,8 +103,59 @@ export function deleteObject(level, ref) {
   if (ref?.type==='platform') { level.platforms.splice(ref.index,1); return; }
   if (ref?.type!=='entity') return;
   level.entities = level.entities.filter(e=>e.id!==ref.id);
-  const clean = (actions) => actions.flatMap(a => ['set','hold'].includes(a.type) ? (a.target===ref.id?[]:[a]) :
-    a.type==='after' ? ((nested) => nested.length ? [{...a,actions:nested}] : [])(clean(a.actions)) : [a]);
-  level.rules = level.rules.filter(r=>r.on.source!==ref.id && !(r.if??[]).some(c=>c.entity===ref.id || c.holding===ref.id))
-    .map(r=>({...r,actions:clean(r.actions)})).filter(r=>r.actions.length);
+  pruneReferences(level);
+}
+
+// Removing the last action can remove a behavior, which can invalidate other calls.
+function pruneReferences(level) {
+  const byId=new Map(level.entities.map(e=>[e.id,e]));
+  let changed;
+  do {
+    changed=false;
+    const clean=actions=>actions.flatMap(a=>{
+      if(a.type==='after') {const nested=clean(a.actions);if(nested.length)return [{...a,actions:nested}];}
+      else if(!a.target || (byId.has(a.target) && (a.type!=='invoke' || byId.get(a.target).behaviors?.some(b=>b.id===a.behavior))))return [a];
+      changed=true;return [];
+    });
+    for(const e of level.entities)if(e.behaviors)e.behaviors=e.behaviors.flatMap(b=>{
+      const actions=clean(b.actions);if(actions.length)return [{...b,actions}];changed=true;return [];
+    });
+    level.rules=level.rules.flatMap(r=>{
+      const source=byId.get(r.on.source);
+      if(!source || (r.on.type==='done' && !source.behaviors?.some(b=>b.id===r.on.behavior)) ||
+        (r.if??[]).some(c=>c.entity?!byId.has(c.entity):c.holding!==null&&!byId.has(c.holding)))return [];
+      const actions=clean(r.actions);return actions.length?[{...r,actions}]:[];
+    });
+  }while(changed);
+}
+
+export function addBehavior(entity) {
+  entity.behaviors??=[];
+  if(entity.behaviors.length>=16)throw new Error('每个物体最多定义 16 个行为。');
+  let serial=1;while(entity.behaviors.some(b=>b.id==='behavior-'+serial))serial++;
+  const behavior={id:'behavior-'+serial,label:'新行为',actions:[entity.kind==='object'?{type:'hold',target:entity.id}:
+    {type:'set',target:entity.id,state:STATES[entity.kind].find(s=>s!==entity.state)??entity.state}]};
+  entity.behaviors.push(behavior);return behavior;
+}
+
+export function renameBehavior(level,entityId,previous,next) {
+  level.entities.find(e=>e.id===entityId).behaviors.find(b=>b.id===previous).id=next;
+  const visit=actions=>{for(const a of actions){if(a.type==='after')visit(a.actions);else if(a.type==='invoke'&&a.target===entityId&&a.behavior===previous)a.behavior=next;}};
+  for(const e of level.entities)for(const b of e.behaviors??[])visit(b.actions);
+  for(const r of level.rules){visit(r.actions);if(r.on.type==='done'&&r.on.source===entityId&&r.on.behavior===previous)r.on.behavior=next;}
+}
+
+export function deleteBehavior(level,entityId,behaviorId) {
+  const e=level.entities.find(e=>e.id===entityId);
+  e.behaviors=e.behaviors.filter(b=>b.id!==behaviorId);pruneReferences(level);
+}
+
+/** Wires are a projection of rules, never a second source of gameplay data. */
+export function ruleWires(level) {
+  const result=[];
+  const visit=(actions,rule,delay=0)=>{for(const a of actions){
+    if(a.type==='after')visit(a.actions,rule,delay+a.ticks);
+    else result.push({rule,source:level.rules[rule].on.source,target:a.target??'actor',type:a.type,behavior:a.behavior,delay});
+  }};
+  level.rules.forEach((r,index)=>visit(r.actions,index));return result;
 }

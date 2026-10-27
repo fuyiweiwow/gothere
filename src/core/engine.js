@@ -9,7 +9,7 @@ export function createSimulation(input) {
   const validation = validateLevel(input);
   if (!validation.valid) throw new Error(validation.errors.join('\n'));
   const level = clone(input);
-  let state, pending, inputs, serial, actionBudget, contacts, connectorLock;
+  let state, pending, inputs, serial, actionBudget, contacts, connectorLock, invokeDepth;
   const emit = (message, kind = 'action') => {
     state.events.push({ tick: state.tick, message, kind });
     if (state.events.length > 24) state.events.shift();
@@ -18,12 +18,13 @@ export function createSimulation(input) {
     state = { tick: 0, status: 'ready', reason: null,
       actor: { x: level.actor.x, y:floorY(level.actor), direction:level.actor.direction??1, holding:null, mode:'walking', connector:null },
       entities: Object.fromEntries(level.entities.map((e) => [e.id, { ...e, y:floorY(e), width: e.width ?? 28,
+        ...(e.kind==='hazard'?{contact:{effect:'lethal'}}:{}),
         ...(e.kind==='lift'?{carY:e.state==='upper'?e.toY:floorY(e)}:{}), ...(e.motion?{motionDirection:1}:{}) }])),
       events: [], clicks: 0, timers: [] };
-    pending = []; inputs = []; serial = 0; contacts=new Set();connectorLock=null;
+    pending = []; inputs = []; serial = 0; contacts=new Set();connectorLock=null;invokeDepth=0;
     return api;
   };
-  const actions = (list) => {
+  const actions = (list, invocation=null) => {
     for (const action of list) {
       if (state.status !== 'running') return;
       if (--actionBudget < 0 || (action.type === 'after' && state.timers.length >= 256)) {
@@ -44,20 +45,39 @@ export function createSimulation(input) {
       } else if (action.type==='drop') {
         const a=state.actor,e=a.holding===null?null:state.entities[a.holding];
         if(e){e.x=Math.max(25,Math.min(1200-e.width,a.x-a.direction*(e.width+24)));e.y=a.y;
-          // A dropped prop stays where it was placed until its state is activated again.
-          e.state='inactive';a.holding=null;emit('放下了'+e.label);}
+          a.holding=null;emit('放下了'+e.label);}
       } else if (action.type==='hurt') {
         lose('hurt', action.message??'碰上了一个不太友好的东西。下次换个办法打招呼。');
+      } else if (action.type==='turn') {
+        state.actor.direction=action.direction;
+      } else if (action.type==='invoke') {
+        if(invokeDepth>=32 || (invocation?.depth??0)>=32){lose('limit','行为连线循环过深，请检查循环连接。');return;}
+        const b=state.entities[action.target].behaviors.find(b=>b.id===action.behavior);
+        if(invocation)invocation.remaining++;
+        invokeDepth++;
+        execute(b.actions,{source:action.target,behavior:b.id,remaining:1,parent:invocation,depth:(invocation?.depth??0)+1});
+        invokeDepth--;
       } else {
-        state.timers.push({ due: state.tick + action.ticks, order: serial++, actions: clone(action.actions) });
+        if(invocation)invocation.remaining++;
+        state.timers.push({ due: state.tick + action.ticks, order: serial++, actions: clone(action.actions), ...(invocation?{invocation}:{}) });
       }
     }
   };
-  const trigger = (type, source) => {
+  const complete=invocation=>{
+    if(invocation && --invocation.remaining===0 && state.status==='running'){
+      trigger('done',invocation.source,invocation.behavior);
+      complete(invocation.parent);
+    }
+  };
+  const execute=(list,invocation=null)=>{
+    actions(list,invocation);
+    complete(invocation);
+  };
+  const trigger = (type, source, behavior) => {
     // Each rule observes the results of earlier rules in declaration order.
     for (const rule of level.rules) {
       if (state.status !== 'running') return;
-      if (rule.on.type === type && rule.on.source === source &&
+      if (rule.on.type === type && rule.on.source === source && (type!=='done'||rule.on.behavior===behavior) &&
         (rule.if ?? []).every((condition) => Object.hasOwn(condition,'holding') ? state.actor.holding===condition.holding :
           state.entities[condition.entity].state === condition.state)) {
         actions(rule.actions);
@@ -67,6 +87,8 @@ export function createSimulation(input) {
   const supported = (from, to) => {
     const spans = [...level.platforms.filter(p=>floorY(p)===state.actor.y).map((p) => [p.x, p.x + p.width]),
       ...Object.values(state.entities).filter((e) => e.y===state.actor.y && e.kind === 'bridge' && e.state === 'extended')
+        .map((e) => [e.x, e.x + e.width]),
+      ...Object.values(state.entities).filter((e) => e.kind==='lift' && e.carY===state.actor.y)
         .map((e) => [e.x, e.x + e.width])].sort((a, b) => a[0] - b[0]);
     let covered = from;
     for (const [left, right] of spans) {
@@ -101,14 +123,15 @@ export function createSimulation(input) {
     const a=state.actor, from=a.x;
     if(a.connector) {
       const e=state.entities[a.connector];
-      if(a.mode==='waiting') {
-        if(e.carY===a.y){a.mode='riding';a.boardY=a.y;emit('搭上了'+e.label);trigger('board',e.id);}
-      } else if(a.mode==='climbing') {
+      if(a.mode==='climbing') {
         a.y=approach(a.y,a.destinationY,e.speed/60);
         if(a.y===a.destinationY){delete a.destinationY;finishConnection(e);}
       } else {
         a.y=e.carY;
-        if((a.y===e.y || a.y===e.toY) && a.y!==a.boardY){delete a.boardY;finishConnection(e);}
+        if(a.y!==a.boardY)a.departed=true;
+        if((a.y===e.y || a.y===e.toY) && (a.departed || (e.state==='upper'?e.toY:e.y)===a.y)){
+          delete a.boardY;delete a.departed;finishConnection(e);
+        }
       }
       return [from,from,false];
     }
@@ -118,14 +141,20 @@ export function createSimulation(input) {
     }
     let to=Math.round((from+a.direction*level.actor.speed/60)*1e6)/1e6;
     if(a.y===floorY(level.goal) && (level.goal.x-from)*a.direction>=0 && (level.goal.x-to)*a.direction<=0)to=level.goal.x;
-    const connector=Object.values(state.entities).filter(e=>e.id!==connectorLock && ['ladder','lift'].includes(e.kind) &&
+    const connector=Object.values(state.entities).filter(e=>e.id!==connectorLock &&
+      (e.kind==='ladder' || (e.kind==='lift' && e.carY===a.y)) &&
       (a.y===e.y || a.y===e.toY) && (e.kind!=='ladder' || e.state==='enabled') &&
       (e.x+e.width/2-from)*a.direction>=0 && (e.x+e.width/2-to)*a.direction<=0)
       .sort((a,b)=>Math.abs(a.x+a.width/2-from)-Math.abs(b.x+b.width/2-from))[0];
     if(connector) {
-      to=connector.x+connector.width/2;a.connector=connector.id;
+      to=connector.x+connector.width/2;a.x=to;a.connector=connector.id;
       if(connector.kind==='ladder'){a.mode='climbing';a.destinationY=a.y===connector.y?connector.toY:connector.y;}
-      else {a.mode='waiting';}
+      else {
+        a.mode='riding';a.boardY=a.y;emit('搭上了'+connector.label);trigger('board',connector.id);
+        if((connector.state==='upper'?connector.toY:connector.y)===a.y){
+          a.mode='walking';a.connector=null;delete a.boardY;connectorLock=connector.id;
+        }
+      }
     }
     a.x=to;return [from,to,true];
   }
@@ -135,7 +164,7 @@ export function createSimulation(input) {
     const due = state.timers.filter((timer) => timer.due <= state.tick)
       .sort((a, b) => a.due - b.due || a.order - b.order);
     state.timers = state.timers.filter((timer) => timer.due > state.tick);
-    for (const timer of due) actions(timer.actions);
+    for (const timer of due) execute(timer.actions,timer.invocation);
     if (state.status !== 'running') { pending = []; return; }
     for (const source of pending) {
       if (state.status !== 'running') break;
@@ -149,13 +178,21 @@ export function createSimulation(input) {
     syncHeld();
     const touching=new Set();
     for (const entity of Object.values(state.entities)) {
-      const sameFloor=entity.y===a.y || (['ladder','lift'].includes(entity.kind) && entity.toY===a.y);
-      if(entity.id===a.holding || !sameFloor || (entity.kind==='object' && entity.state!=='active'))continue;
+      const sameFloor=entity.y===a.y || (['ladder','lift'].includes(entity.kind) && entity.toY===a.y) ||
+        (entity.kind==='lift' && entity.carY===a.y);
+      if(entity.id===a.holding || !sameFloor || (entity.kind==='object' && entity.state!=='active') || (entity.kind==='zone' && entity.state!=='enabled'))continue;
       const left=Math.min(from,to),right=Math.max(from,to);
       if(right+10<Math.min(entity.previousX,entity.x) || left-10>Math.max(entity.previousX,entity.x)+entity.width)continue;
       touching.add(entity.id);
-      if(!contacts.has(entity.id))trigger('contact',entity.id);
+      if(!contacts.has(entity.id) && entity.kind!=='zone')trigger('contact',entity.id);
+      if(!contacts.has(entity.id) && entity.kind==='zone')trigger('enter',entity.id);
       if(state.status!=='running')return;
+      if(entity.id!==a.holding && !['inactive','disabled','stopped'].includes(entity.state) && entity.contact?.effect==='lethal'){
+        lose('hurt',entity.contact.message??'碰到了危险物。');return;
+      }
+      if(entity.kind==='zone'){
+        continue;
+      }
       if (entity.kind === 'plate' && entity.state === 'idle' && right >= entity.x && left <= entity.x + entity.width) {
         entity.state = 'pressed'; emit('踩下了' + entity.label); trigger('enter', entity.id);
       }
@@ -168,14 +205,11 @@ export function createSimulation(input) {
       if (entity.kind === 'gate' && entity.state === 'closed') {
         lose('gate', '门：此路暂时不通。先找个办法打开它。'); return;
       }
-      if (entity.kind === 'hazard' && entity.state === 'running') {
-        lose('hazard', '风太大，被吹了个措手不及。经过之前先关风扇。'); return;
-      }
     }
     syncHeld();
     if (a.mode==='walking' && a.y===floorY(level.goal) && Math.min(from,to)<=level.goal.x && Math.max(from,to)>=level.goal.x) {
       state.status = 'won'; emit('到了！就说一定能到这里。', 'won'); }
-    else if(a.x<20 || a.x>1180)lose('boundary','走得太投入，走出地图了。调整出口方向再试试。');
+    else if(a.x<=20 || a.x>=1180 || a.y<=0 || a.y>=640)lose('boundary','走得太投入，碰到了地图边界。调整路线再试试。');
     else if (state.tick >= MAX_TICKS) lose('timeout', '这段路走成了长征。歇一下，重新出发吧。');
   };
   const api = {

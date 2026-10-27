@@ -92,16 +92,7 @@ export function createRenderer(canvas) {
     line(x,y-10,x+(on?12:-12),y-37,'#788963',5);circle(x+(on?12:-12),y-37,6,on?'#b4bc85':'#bd9b78','#7d8b61');
     circle(x,y-10,4,'#d2d7af','#7c8e65');
   }
-  function fan(e,time) {
-    const x=e.x+e.width/2,y=e.y??440;
-    ellipse(x,y+3,24,5,0,'#78916245');rect(x-15,y-9,30,8,4,'#85996d');rect(x-5,y-55,10,47,2,'#95a780','#718a63');
-    const cy=y-76;circle(x,cy,33,'#dce4c0','#80956a');circle(x,cy,29,null,'#9bab80');
-    ctx.save();ctx.translate(x,cy);ctx.rotate(e.state==='running'?time*5.5:.7);
-    for(let i=0;i<4;i++){ctx.rotate(Math.PI/2);ellipse(11,-7,16,8,-.5,e.state==='running'?'#98ad80':'#afbd96');}
-    ctx.restore();circle(x,cy,7,'#c8cea0','#829767');
-    line(x-30,cy,x+30,cy,'#81996b80',1);line(x,cy-30,x,cy+30,'#81996b80',1);
-    if(e.state==='running') {for(let i=0;i<3;i++)path((p)=>{p.moveTo(x+39,cy-14+i*14);p.quadraticCurveTo(x+54,cy-19+i*14,x+61,cy-13+i*14);},null,'#94aa7d',1.5);}
-  }
+
   function gate(e) {
     const x=e.x,y=e.y??440,open=e.state==='open';
     for(const px of [x-4,x+30]){rect(px-4,y-88,8,89,2,'#85976b');circle(px,y-89,5,'#9ead80');}
@@ -208,7 +199,7 @@ export function createRenderer(canvas) {
       destination(level.goal);
       for(const e of Object.values(snapshot.entities)){
         if(e.kind==='switch')lever(e);
-        else if(e.kind==='hazard')fan(e,snapshot.tick/60);
+        else if(e.kind==='hazard')prop({...e,appearance:{skin:'crate'},state:e.state==='stopped'?'inactive':'active'});
         else if(e.kind==='gate')gate(e);
         else if(e.kind==='plate')plate(e);
         else if(e.kind==='object' && snapshot.actor.holding!==e.id)prop(e);

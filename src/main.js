@@ -121,7 +121,7 @@ function updateHud(state) {
     ready: '认准那里了。准备好就出发！', running: replay ? '再看看刚才是怎么折腾过去的。' : '轻点编号机关，帮这个倔家伙开路。',
     paused: '歇一下，倔劲儿先存着。', won: '那里到了，下一个那里呢？', lost: '问题不大，至少方向没错。',
   };
-  const mode = {climbing:'正在爬梯子，目的地换了个高度。',waiting:'等电梯来，倔劲儿先存着。',riding:'搭个便车，继续赶路。'}[state.actor.mode];
+  const mode = {climbing:'正在爬梯子，目的地换了个高度。',riding:'搭个便车，继续赶路。'}[state.actor.mode];
   const held = state.actor.holding === null ? null : state.entities[state.actor.holding];
   $('stage-note').textContent = '✦  ' + (running && !replay && mode ? mode : notes[state.status]) + (held ? ' 手持：' + held.label : '');
   for (const [id, buttons] of mechanismButtons) {

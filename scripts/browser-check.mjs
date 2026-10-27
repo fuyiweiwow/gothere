@@ -58,14 +58,14 @@ try {
 
   await page.getByRole('button',{name:'关卡 2：借过一下',exact:true}).click();
   await page.locator('#play').click(); await settle(page, 1250);
-  await page.getByRole('button',{name:'操作：旧风扇',exact:true}).click();
+  await page.getByRole('button',{name:'操作：爱挡路的箱子',exact:true}).click();
   await settle(page, 3000);
   check(await status(page) === '终于到了', 'timed hazard and pressure plate work');
   await page.getByRole('button',{name:'关卡 3：赶个巧',exact:true}).click();
   await page.locator('#play').click(); await settle(page, 750);
   await page.getByRole('button',{name:'操作：限时桥开关',exact:true}).click();
   await settle(page, 1333);
-  await page.getByRole('button',{name:'操作：旧风扇',exact:true}).click();
+  await page.getByRole('button',{name:'操作：爱挡路的箱子',exact:true}).click();
   await settle(page, 2100);
   check(await status(page) === '终于到了', 'combined timed level can be completed');
   console.log('PASS desktop: second and third level solutions');
@@ -133,7 +133,7 @@ try {
   await settle(file,4200);
   check(await status(file)==='终于到了','single HTML works offline without a server');
   await file.locator('#open-project').tap();
-  await file.locator('#project-content').filter({hasText:'项目愿景'}).waitFor();
+  await file.locator('#project-content').filter({hasText:'怎么玩'}).waitFor();
   await file.locator('#close-project').tap();
   await file.screenshot({path:artifact('portable-mobile.png'),fullPage:true});
   await portable.close();

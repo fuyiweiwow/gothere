@@ -44,8 +44,8 @@ try {
     }
     if(demo.id==='example-floors') {
       await page.locator('#play').click();await page.clock.runFor(4500);
-      assert.equal(await status(),'赶路中');assert.match(await page.locator('#stage-note').textContent(),/等电梯/);
-      await page.locator('[data-action="call"]').click();await page.clock.runFor(2500);assert.equal(await status(),'终于到了');
+      assert.equal(await status(),'暂时没到');
+      await page.locator('#reset').click();await win(()=>page.locator('[data-action="call"]').click());
     } else await win(demo.id==='example-creature'?()=>page.locator('[data-action="croco"]').click():null);
     await page.locator('#replay').click();await page.clock.runFor(9000);assert.equal(await status(),'终于到了');
     await page.locator('#reset').click();assert.equal(await status(),'准备出发');
@@ -107,5 +107,5 @@ try {
   assert.equal(await offline.locator('#status-text').textContent(),'终于到了');
   assert.equal(await offline.locator('[data-example]').count(),3);
   assert.deepEqual(errors,[]);
-  console.log('PASS content: examples, creature failure/click, lift waiting/call, UI multi-floor authoring, upload, pickup/hurt swap, drafts, replay, offline');
+  console.log('PASS content: examples, creature failure/click, absent lift fall/call, UI multi-floor authoring, upload, pickup/hurt swap, drafts, replay, offline');
 } finally {await browser.close();await new Promise(r=>server.close(r));}

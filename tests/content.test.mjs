@@ -65,12 +65,18 @@ for(const kind of ['ladder','lift']) {
     const game=createSimulation(level);game.start().step(2000);assert.equal(game.snapshot().status,'won');
   });
 }
-test('a lift waits for a call, boards at the landing, and only departs when instructed',()=>{
-  const level=journey('lift');level.entities[0].state='upper';level.rules=[];
-  const game=createSimulation(level);game.start().step(250);
-  assert.equal(game.snapshot().actor.x,300);assert.equal(game.snapshot().actor.y,440);
-  assert.equal(game.snapshot().actor.mode,'waiting');
+test('an absent or idle lift never makes the actor wait',()=>{
+  for(const state of ['upper','lower']) {
+    const level=journey('lift');level.entities[0].state=state;level.rules=[];
+    const game=createSimulation(level);game.start().step(150);
+    assert.equal(game.snapshot().actor.x,380);assert.equal(game.snapshot().actor.mode,'walking');
+    assert.equal(game.snapshot().actor.y,440);
+  }
+  const gap=journey('lift');gap.platforms[0].width=280;gap.entities[0].state='upper';gap.rules=[];
+  const game=createSimulation(gap);game.start().step(500);
+  assert.equal(game.snapshot().reason,'fall');assert.equal(game.snapshot().actor.mode,'walking');
 });
+
 test('new capabilities validate and survive draft persistence; deletion cleans held references',()=>{
   const level=fixture();level.rules[0].if=[{holding:null}];
   const store=createEditorStore();store.open('x',level);store.change(d=>{d.rules[0].if=[{holding:'tool'}];});
@@ -93,7 +99,7 @@ test('editable demonstrations solve and exactly replay, with creature and lift r
     assert.deepEqual(replayRecording(level,game.recording()).snapshot(),game.snapshot());
   }
   const croco=createSimulation(examples[1]);croco.start().step(3000);assert.equal(croco.snapshot().reason,'hurt');
-  const lift=createSimulation(examples[2]);lift.start().step(3000);assert.equal(lift.snapshot().actor.mode,'waiting');
+  const lift=createSimulation(examples[2]);lift.start().step(3000);assert.equal(lift.snapshot().reason,'fall');
 });
 
 test('patrol reversal, deactivation, empty-hand conditions, and reactivation after a drop are stable',()=>{

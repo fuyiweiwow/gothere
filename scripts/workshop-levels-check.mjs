@@ -31,6 +31,7 @@ async function actionsUI(parent,actions,ids) {
       await actionsUI(group,action.actions,ids);
     } else {
       const row=parent.locator(':scope > .action-row').last();
+      await row.locator('[data-action-type]').selectOption('set');
       await row.locator('[data-action-target]').selectOption(ids[action.target]);
       await row.locator('[data-action-state]').selectOption(action.state);
     }
@@ -49,11 +50,13 @@ try {
     for(const entity of level.entities) {
       ids[entity.id]=entity.kind+'-'+(counts[entity.kind]=(counts[entity.kind]??0)+1);
       await place(entity.kind);await change('object-x',entity.x);await change('object-width',entity.width);
+      if(entity.contact)await page.locator('#object-contact').selectOption('lethal');
       await change('object-label',entity.label);await page.locator('#object-state').selectOption(entity.state);
     }
     for(const rule of level.rules) {
       await page.locator('#add-rule').click();const card=page.locator('.rule-card').last();
       await card.locator('[data-rule-source]').selectOption(ids[rule.on.source]);
+      await card.locator('[data-rule-event]').selectOption(rule.on.type);
       for(const condition of rule.if??[]) {
         await card.getByRole('button',{name:'＋ 状态条件',exact:true}).click();
         await card.getByLabel('条件机关',{exact:true}).last().selectOption(ids[condition.entity]);
