@@ -2,7 +2,7 @@
 
 一个轻松诙谐、以关卡数据驱动的 2D 环境解谜游戏。主角是一个认准目的地就往前走的倔家伙；点击场景中的编号机关，或下方同名按钮，帮助他越过麻烦、到达目的地。
 
-最终目标是在 Steam 发行原创解谜游戏与关卡创作工具。当前 **v0.3** 包含十张关卡、可视化工坊、JSON 规则、确定性回放，以及 Windows x64 离线开发测试包。文本 DSL 语法和程序生成地图尚未实现。完整路线与待验收事项见 [project.md](project.md)。
+最终目标是在 Steam 发行原创解谜游戏与关卡创作工具。当前 **v0.4** 包含十张关卡、三个新机制示例、可视化工坊、JSON 规则、确定性回放，以及 Windows x64 离线开发测试包。新增通用物件/生物、独立贴图、携带/伤害/巡逻、多层平台、梯子和电梯。文本 DSL 语法和程序生成地图尚未实现。完整路线与待验收事项见 [project.md](project.md)。
 
 ![游戏原型：旅行者、伸缩木桥和目的地旗帜](docs/images/gameplay.png)
 
@@ -25,6 +25,9 @@ node server.mjs
 - 「关卡工坊」可以从空白地图放置、拖动、删除地面与机关，调整起点、终点、角色速度、位置、宽度和初始状态。
 - 通过规则控件选择事件源、状态条件、目标状态和延迟动作；延迟组支持嵌套，保持原始动作树的执行顺序。
 - 工坊支持撤销/重做、多个草稿、自动保存与重新加载。「试玩草稿」使用独立模拟，返回编辑后保留作者的草稿。
+- 「新机制试验场」包含拿物过门、巡逻鳄鱼、梯子接电梯的三层路线。选择后可直接试玩，也能打开工坊修改。
+- 「物件 / 生物」将外观与规则分开，支持内置图和自定义 PNG/JPEG/WebP；接触可拿起或伤害，手持物可作为开门条件，巡逻可通过状态停用。
+- 放置高度 Y、平台/角色/终点的脚底 Y、起始朝向，以及梯子/电梯的上下出口与方向均可编辑。Y 数值越小越高；电梯 board 规则命令目标层，开关可以呼叫电梯。
 - 「关卡数据」支持 JSON 编辑、文件导入、校验、加载和导出。无效数据会显示错误；建议定期导出 JSON 备份。浏览器草稿保存在当前浏览器的本地存储中。
 
 ## 十张关卡
@@ -50,7 +53,7 @@ node server.mjs
 npm run build
 ```
 
-生成 `dist/gothere-play.html` 和 `dist/index.html`，约 108 KiB，包含画面、样式、逻辑、工坊和十张地图。现代桌面浏览器可以直接打开 HTML 离线试玩，也可将 `dist/index.html` 放到静态网站托管服务。手机优先使用 HTTPS 链接，不同系统的文件预览器对本地 HTML 执行的支持不同。
+生成 `dist/gothere-play.html` 和 `dist/index.html`，包含画面、样式、逻辑、工坊、十关和三个新机制示例。现代桌面浏览器可以直接打开 HTML 离线试玩，也可将 `dist/index.html` 放到静态网站托管服务。手机优先使用 HTTPS 链接，不同系统的文件预览器对本地 HTML 执行的支持不同。
 
 ## Windows 离线测试包
 
@@ -62,7 +65,7 @@ npx --no-install install-electron
 npm run build:windows
 ```
 
-生成 `dist/windows/Gothere-v0.3.0-win-x64.zip`、SHA-256 校验文件及 `latest.json` 构建记录。ZIP 约 151 MiB，解压整个 `Gothere` 目录后运行 `Gothere.exe`，玩家无需安装 Node.js，也无需联网。F11 切换全屏；桌面草稿保存在 `%APPDATA%\Gothere`，升级时沿用此目录，可在「关卡数据」中导出 JSON 备份。
+生成 `dist/windows/Gothere-v0.4.0-win-x64.zip`、SHA-256 校验文件及 `latest.json` 构建记录。ZIP 约 151 MiB，解压整个 `Gothere` 目录后运行 `Gothere.exe`，玩家无需安装 Node.js，也无需联网。F11 切换全屏；桌面草稿保存在 `%APPDATA%\Gothere`，升级时沿用此目录，可在「关卡数据」中导出 JSON 备份。
 
 这是未签名的开发测试包。本机已验证解压运行、断网游玩及重启恢复草稿；第二台未安装 Node.js 的干净 Windows 机器和外部玩家验收仍待完成。尚未上传 Steam 或发布正式安装包。
 
@@ -84,13 +87,13 @@ npm run share
 
 ## DSL 语义
 
-当前使用带 `schemaVersion` 的 JSON 关卡模型。空间为 1200×640，地面高度 440；角色只向右自动行走，`speed` 单位为世界单位/秒。地面由水平区间组成，桥延伸时补足地面。渲染器可以替换。
+当前使用带 `schemaVersion` 的 JSON 关卡模型。空间为 1200×640，脚底 y 默认 440，可设置多层平台；主角可向左/右自动行走，`speed` 单位为世界单位/秒。桥补足同层地面，梯子和电梯连接不同高度。渲染器可以替换。
 
-实体类型：`switch`（off/on）、`bridge`（folded/extended）、`hazard`（running/stopped）、`gate`（closed/open）、`plate`（idle/pressed）。
+实体类型：`switch`（off/on）、`bridge`（folded/extended）、`hazard`（running/stopped）、`gate`（closed/open）、`plate`（idle/pressed）、`object`（active/inactive）、`ladder`（enabled/disabled）、`lift`（lower/upper）。
 
-规则含 `on: { type: "click" | "enter", source: "entity-id" }`、可选 `if: [{entity, state}]` 和 `actions`。click 只接受开关或危险物；enter 只接受压力板。动作支持 `{type:"set",target,state}` 和 `{type:"after",ticks,actions}`。未知能力、非法引用、重复 ID 和错误状态会在加载前拒绝，不执行关卡中的 JavaScript。
+规则含 `on: { type, source }`、可选 `if` 和 `actions`。支持 click/contact/enter/board/arrive，条件支持状态与持有物件，动作支持 set/after/hold/drop/hurt。未知能力、非法引用、重复 ID 和错误状态会在加载前拒绝，不执行关卡中的 JavaScript。字段、例子和限制见 [内容模型说明](docs/content-model.md)。
 
-每个 tick：推进时钟 → 到期动作按 due/order 执行 → 点击按记录顺序执行 → 角色前进 → 触发首次踩下的压力板 → 检查连续地面支撑、门和危险物 → 检查终点。规则按声明顺序执行，后续规则可以观察前面规则的状态变化。延迟相对动作实际执行的 tick 计算；after 不支持取消，同一目标的到期写入依次生效。条件在规则触发时检查，延迟动作不重新判断条件。
+每个 tick：时钟 → 到期动作按 due/order 执行 → 点击按记录顺序执行 → 巡逻与电梯 → 主角行走/通行及登车/抵达事件 → 接触/踩板 → 支撑、门和危险物 → 终点。规则按声明顺序执行，后续规则可以观察前面规则的状态变化。延迟相对动作实际执行的 tick 计算；after 不支持取消，同一目标的到期写入依次生效。条件在规则触发时检查，延迟动作不重新判断条件。
 
 输入只在 running 状态接收，并在下一个 tick 处理。暂停不处理输入；单步可从 ready/paused 执行一个 tick。每局上限 36,000 tick；暂停、切关、重置和倍速均不改变模拟规则。确定性面向同一份关卡数据和兼容的 JS 运行时。
 
@@ -104,6 +107,7 @@ npm run share
 - `src/editor/model.js`：编辑文档、撤销重做、草稿持久化和动作树操作。
 - `src/editor/ui.js`：可视化工坊、属性与规则控件。
 - `src/levels.js`：十张共用模型的关卡。
+- `src/examples.js`：物件、生物和多层通行的三个可编辑示例。
 - `src/scene.js`：Canvas 场景与原创程序绘制角色。
 - `src/main.js`：界面、输入、固定步长驱动和关卡数据面板。
 - `desktop/main.cjs`：Electron 桌面入口、存档目录与沙箱配置。
@@ -126,6 +130,9 @@ npm ci
 npx --no-install playwright install chromium
 npm run test:e2e
 npm run test:editor
+npm run test:content
 ```
 
 浏览器测试默认无头运行，截图与报告保存在 `artifacts/`。`test:e2e` 覆盖十关解法、失败/重置/回放、JSON 导入导出、手机触控布局、离线 HTML 和公开预览。`test:editor` 覆盖创作、规则、草稿隔离、保存恢复、历史、错误几何、嵌套动作与十关重建。内核覆盖率阈值针对 `src/core/`；界面交互由浏览器流程验证。
+
+`test:content` 从空白使用工坊控件搭建携物、梯子、电梯的三层路线，覆盖图片上传、持有条件、拿起/伤害切换、草稿恢复和离线回放，同时验证巡逻生物、呼叫/等待电梯和三个示例。

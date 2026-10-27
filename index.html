@@ -16,7 +16,7 @@
       <span>一定要到达那里<span class="brand-cn">GOTHERE</span></span>
     </a>
     <nav aria-label="主导航"><span class="nav-active">游玩实验室</span><button class="nav-link" id="open-editor">关卡工坊</button><button class="nav-link" id="open-data">关卡数据 <span aria-hidden="true">↗</span></button></nav>
-    <span class="version"><i></i> MAKE A LITTLE TROUBLE <span>v0.3</span></span>
+    <span class="version"><i></i> MAKE A LITTLE TROUBLE <span>v0.4</span></span>
   </header>
 
   <main class="page">
@@ -30,6 +30,7 @@
     </section>
 
     <section aria-label="选择关卡" class="level-tabs" id="level-tabs"></section>
+    <section class="example-strip" aria-label="物件与多层示例"><span>新机制试验场</span><div id="content-examples"></div><p>可直接试玩，也可打开工坊修改外观、行为和楼层。</p></section>
     <section id="editor-toolbar" class="editor-toolbar" aria-label="创作工具" hidden></section>
 
     <section class="game-shell" aria-label="赶路关卡">
@@ -78,7 +79,7 @@
     <div class="dialog-heading"><div><p class="eyebrow">UNDER THE LITTLE WORLD</p><h2 id="data-title">关卡数据</h2></div><button class="icon-button" id="close-data" aria-label="关闭关卡数据">×</button></div>
     <p class="dialog-intro">每段旅程都由一份 JSON 描述。调整机关、规则或时序，加载后就能试玩。</p>
     <label class="editor-label" for="level-json">关卡 JSON <span>schemaVersion 1</span></label>
-    <textarea id="level-json" spellcheck="false" maxlength="131072" aria-describedby="data-error"></textarea>
+    <textarea id="level-json" spellcheck="false" maxlength="262144" aria-describedby="data-error"></textarea>
     <p id="data-error" class="data-error" role="alert" hidden></p>
     <div class="dialog-actions"><div><button class="button secondary" id="import-level">导入文件</button><button class="button secondary" id="export-level">导出关卡</button></div><button class="button primary" id="apply-level">加载并试玩 <span aria-hidden="true">→</span></button></div>
     <input type="file" id="level-file" accept=".json,application/json" hidden>

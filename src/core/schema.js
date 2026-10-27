@@ -1,7 +1,13 @@
 export const STATES = Object.freeze({
   switch: ['off', 'on'], bridge: ['folded', 'extended'], gate: ['closed', 'open'],
   hazard: ['running', 'stopped'], plate: ['idle', 'pressed'],
+  object: ['active', 'inactive'], ladder: ['enabled', 'disabled'], lift: ['lower', 'upper'],
 });
+export const SKINS = Object.freeze({axe:'斧子',crate:'箱子',crocodile:'鳄鱼',orb:'小圆球'});
+export const floorY = (value) => value?.y ?? 440;
+export const eventTypes = (kind) => [...(['switch','hazard'].includes(kind)?['click']:[]),
+  ...(kind==='plate'?['enter']:[]), 'contact', ...(kind==='object'?['click']:[]),
+  ...(kind==='lift'?['board','arrive']:[]), ...(kind==='ladder'?['arrive']:[])];
 const object = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 const number = (value, min, max) => Number.isFinite(value) && value >= min && value <= max;
 const text = (value, max) => typeof value === 'string' && value.length > 0 && value.length <= max;
@@ -22,17 +28,21 @@ export function validateLevel(input) {
     '当前版本 world 必须为 {width:1200,height:640,groundY:440}。');
   check(object(input.actor) && number(input.actor.x, 20, 1150) && number(input.actor.speed, 15, 180),
     'actor 需要合法的 x（20～1150）和 speed（15～180，单位/秒）。');
-  check(object(input.goal) && number(input.goal.x, 40, 1180) && input.goal.x > input.actor?.x,
-    'goal.x 必须在角色起点右侧且不超过 1180。');
+  check(object(input.goal) && number(input.goal.x, 40, 1180), 'goal.x 必须为 40～1180。');
+  for (const [name, value] of [['actor',input.actor],['goal',input.goal]]) {
+    check(object(value) && (value.y===undefined || number(value.y,160,560)), name + '.y 必须为 160～560 的脚底高度（默认 440）。');
+  }
+  check(input.actor?.direction === undefined || [-1,1].includes(input.actor.direction), 'actor.direction 必须为 -1 或 1。');
   const platforms = input.platforms;
   check(Array.isArray(platforms) && platforms.length > 0 && platforms.length <= 64, 'platforms 必须包含 1～64 段地面。');
   if (Array.isArray(platforms)) {
     platforms.slice(0, 65).forEach((p, index) => check(object(p) && number(p.x, 0, 1200) &&
-      number(p.width, 1, 1200) && p.x + p.width <= 1200, 'platforms[' + index + '] 的范围不合法。'));
+      number(p.width, 1, 1200) && p.x + p.width <= 1200 && (p.y===undefined || number(p.y,160,560)), 'platforms[' + index + '] 的范围不合法。'));
   }
   const entities = input.entities;
   check(Array.isArray(entities) && entities.length <= 64, 'entities 必须为最多 64 项的数组。');
   const byId = new Map();
+  let imageBytes=0;
   if (Array.isArray(entities)) {
     entities.slice(0, 65).forEach((entity, index) => {
       if (!object(entity)) { errors.push('entities[' + index + '] 必须是对象。'); return; }
@@ -42,15 +52,37 @@ export function validateLevel(input) {
       check(number(entity.x, 25, 1175) && (entity.width === undefined || number(entity.width, 8, 600)) &&
         entity.x + (entity.width ?? 28) <= 1200, '实体位置或宽度无效：' + String(entity.id));
       check(text(entity.label, 30), '实体需要 1～30 字的 label：' + String(entity.id));
+      check(entity.y===undefined || number(entity.y,160,560), '实体 y 必须为 160～560：' + String(entity.id));
+      if (['ladder','lift'].includes(entity.kind)) {
+        check(number(entity.toY,160,540) && entity.toY <= floorY(entity)-40, '连接设施的 toY 必须比 y 至少高 40：' + entity.id);
+        check(number(entity.speed,15,180), '连接设施 speed 必须为 15～180：' + entity.id);
+        for (const key of ['upperDirection','lowerDirection']) check(entity[key] === undefined || [-1,1].includes(entity[key]), key + ' 必须为 -1 或 1。');
+      }
+      if (entity.appearance !== undefined) {
+        const a=entity.appearance;
+        if(typeof a?.image==='string')imageBytes+=a.image.length;
+        check(object(a) && Object.hasOwn(SKINS,a.skin), '未知外观：' + entity.id);
+        if (object(a) && a.image !== undefined) check(typeof a.image==='string' && a.image.length<=32768 &&
+          /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(a.image), '自定义贴图只接受最多 32 KiB 的内嵌 PNG/JPEG/WebP。');
+      }
+      if (entity.motion !== undefined) {
+        const m=entity.motion;
+        check(entity.kind==='object' && object(m) && m.type==='patrol' && number(m.minX,25,1175) &&
+          number(m.maxX,m.minX+10,1200-(entity.width??28)) && number(entity.x,m.minX,m.maxX) &&
+          number(m.speed,15,180), '巡逻范围、速度或物件位置无效：' + entity.id);
+      }
       byId.set(entity.id, entity);
     });
   }
+  check(imageBytes<=98304, '一张地图的内嵌贴图总计不能超过 96 KiB。');
   const conditionsValid = (conditions, where) => {
     check(Array.isArray(conditions) && conditions.length <= 16, where + ' 的 if 必须是最多 16 项的数组。');
     if (!Array.isArray(conditions)) return;
     for (const condition of conditions.slice(0, 17)) {
       const entity = object(condition) ? byId.get(condition.entity) : null;
-      check(Boolean(entity && Object.hasOwn(STATES, entity.kind) && STATES[entity.kind].includes(condition.state)),
+      const held=object(condition) && Object.hasOwn(condition,'holding');
+      check(Boolean(held ? (condition.holding===null || byId.get(condition.holding)?.kind==='object') :
+        entity && Object.hasOwn(STATES, entity.kind) && STATES[entity.kind].includes(condition.state)),
         where + ' 的条件引用或状态无效。');
     }
   };
@@ -70,6 +102,12 @@ export function validateLevel(input) {
       } else if (action.type === 'after') {
         check(Number.isInteger(action.ticks) && number(action.ticks, 1, 3600), 'after.ticks 必须是 1～3600 的整数。');
         actionsValid(action.actions, depth + 1);
+      } else if (action.type === 'hold') {
+        check(byId.get(action.target)?.kind==='object', 'hold 目标必须是物件。');
+      } else if (action.type === 'drop') {
+        // One hand slot. Dropping an empty slot is harmless.
+      } else if (action.type === 'hurt') {
+        check(action.message===undefined || text(action.message,120), 'hurt.message 最多 120 字。');
       } else errors.push('未知动作类型：' + String(action.type));
     }
   };
@@ -78,16 +116,19 @@ export function validateLevel(input) {
     input.rules.slice(0, 129).forEach((rule, index) => {
       if (!object(rule)) { errors.push('rules[' + index + '] 必须是对象。'); return; }
       const source = object(rule.on) ? byId.get(rule.on.source) : null;
-      check(Boolean(source && ((rule.on.type === 'click' && ['switch', 'hazard'].includes(source.kind)) ||
-        (rule.on.type === 'enter' && source.kind === 'plate'))), 'rules[' + index + '] 的事件源或事件类型无效。');
+      check(Boolean(source && eventTypes(source.kind).includes(rule.on.type)), 'rules[' + index + '] 的事件源或事件类型无效。');
       if (rule.if !== undefined) conditionsValid(rule.if, 'rules[' + index + ']');
       actionsValid(rule.actions);
     });
   }
   if (errors.length === 0) {
-    const supported = (x) => platforms.some((p) => x >= p.x && x <= p.x + p.width);
-    check(supported(input.actor.x), '角色起点需要位于地面上。');
-    check(supported(input.goal.x), '终点需要位于地面上。');
+    const supported = (x,y) => platforms.some((p) => floorY(p)===y && x >= p.x && x <= p.x + p.width);
+    check(supported(input.actor.x,floorY(input.actor)), '角色起点需要位于对应高度的地面上。');
+    check(supported(input.goal.x,floorY(input.goal)), '终点需要位于对应高度的地面上。');
+    for (const e of entities.filter(e=>['ladder','lift'].includes(e.kind))) {
+      const x=e.x+(e.width??28)/2;
+      check(supported(x,floorY(e)) && supported(x,e.toY), '梯子/电梯的上下出口都需要地面：' + e.id);
+    }
   }
   return { valid: errors.length === 0, errors };
 }

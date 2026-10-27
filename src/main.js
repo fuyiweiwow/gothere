@@ -1,5 +1,7 @@
 import { createSimulation, replayRecording, stateLabel, validateLevel } from './core/engine.js';
 import { levels } from './levels.js';
+import { examples } from './examples.js';
+import { floorY, eventTypes } from './core/schema.js';
 import { createRenderer } from './scene.js';
 import { createEditorUI } from './editor/ui.js';
 
@@ -40,6 +42,13 @@ function renderTabs() {
     button.querySelector('.tab-subtitle').textContent = subtitles[index] ?? 'A LITTLE MORE TROUBLE';
     button.addEventListener('click', () => loadLevel(item, index)); $('level-tabs').append(button);
   });
+  $('content-examples').replaceChildren();
+  examples.forEach(item => {
+    const button = document.createElement('button');
+    button.className = 'button secondary example-button'; button.dataset.example = item.id;
+    button.textContent = item.name; button.setAttribute('aria-pressed', String(level.id === item.id));
+    button.addEventListener('click', () => loadLevel(item)); $('content-examples').append(button);
+  });
 }
 function loadLevel(next, index = -1, forTest = false) {
   if (editor.active() && !forTest) {
@@ -56,12 +65,11 @@ function loadLevel(next, index = -1, forTest = false) {
   $('hint-text').hidden = true; $('hint').setAttribute('aria-expanded', 'false');
   $('hint').textContent = '需要一点提示？ ↗';
   $('hotspots').replaceChildren(); $('mechanism-actions').replaceChildren(); mechanismButtons.clear();
-  level.entities.filter((e) => ['switch', 'hazard'].includes(e.kind)).forEach((entity, index) => {
+  level.entities.filter((e) => eventTypes(e.kind).includes('click') &&
+    (e.kind !== 'object' || level.rules.some(r => r.on.source === e.id && r.on.type === 'click'))).forEach((entity, index) => {
     const hotspot = document.createElement('button');
     hotspot.className = 'hotspot'; hotspot.dataset.entity = entity.id;
     hotspot.setAttribute('aria-label', '操作：' + entity.label);
-    hotspot.style.left = ((entity.x + (entity.width ?? 28) / 2) / 1200 * 100) + '%';
-    hotspot.style.top = ((440 - (entity.kind === 'hazard' ? 135 : 91)) / 640 * 100) + '%';
     const number = document.createElement('span'); number.textContent = String(index + 1); hotspot.append(number);
     const label = document.createElement('span'); label.className = 'hotspot-label'; label.textContent = entity.label; hotspot.append(label);
     const action = document.createElement('button'); action.className = 'mechanism-action'; action.dataset.action = entity.id;
@@ -104,18 +112,25 @@ function updateHud(state) {
   $('replay').disabled = state.tick === 0 || Boolean(replay);
   $('replay').textContent = replay ? '↶ 回放中…' : '↶ 回放本次';
   $('scene-tag-text').textContent = state.status === 'won' ? '就说能到吧' : state.status === 'lost' ? '再来一次' : selected === 2 ? '把握时机' : '前方有点情况';
-  const percent = Math.max(0, Math.min(100, Math.round((state.actor.x - level.actor.x) / (level.goal.x - level.actor.x) * 100)));
+  const initialDistance = Math.hypot(level.goal.x - level.actor.x, floorY(level.goal) - floorY(level.actor));
+  const distance = Math.hypot(level.goal.x - state.actor.x, floorY(level.goal) - state.actor.y);
+  const percent = state.status === 'won' ? 100 : Math.max(0, Math.min(99, Math.round((1 - distance / Math.max(1, initialDistance)) * 100)));
   $('progress-fill').style.width = percent + '%'; $('progress-label').textContent = percent + '%';
   $('progress-track').setAttribute('aria-valuenow', String(percent));
   const notes = {
     ready: '认准那里了。准备好就出发！', running: replay ? '再看看刚才是怎么折腾过去的。' : '轻点编号机关，帮这个倔家伙开路。',
     paused: '歇一下，倔劲儿先存着。', won: '那里到了，下一个那里呢？', lost: '问题不大，至少方向没错。',
   };
-  $('stage-note').textContent = '✦  ' + notes[state.status];
+  const mode = {climbing:'正在爬梯子，目的地换了个高度。',waiting:'等电梯来，倔劲儿先存着。',riding:'搭个便车，继续赶路。'}[state.actor.mode];
+  const held = state.actor.holding === null ? null : state.entities[state.actor.holding];
+  $('stage-note').textContent = '✦  ' + (running && !replay && mode ? mode : notes[state.status]) + (held ? ' 手持：' + held.label : '');
   for (const [id, buttons] of mechanismButtons) {
     const entity = state.entities[id];
     const enabled = running && !replay;
     buttons.hotspot.disabled = !enabled; buttons.action.disabled = !enabled;
+    buttons.hotspot.hidden = state.actor.holding === id;
+    buttons.hotspot.style.left = ((entity.x + entity.width / 2) / 12) + '%';
+    buttons.hotspot.style.top = ((entity.y - (entity.kind === 'hazard' ? 135 : entity.kind === 'object' ? 74 : 91)) / 6.4) + '%';
     buttons.hotspot.classList.toggle('active', ['on', 'stopped'].includes(entity.state));
     let label = entity.label + ' · ' + stateLabel(entity.state);
     const timer = state.timers.find((t) => t.actions.some((a) => a.type === 'set' && a.target === id));
@@ -181,7 +196,7 @@ $('close-data').addEventListener('click', () => $('data-dialog').close());
 function showDataError(message) { $('data-error').textContent = message; $('data-error').hidden = false; }
 $('apply-level').addEventListener('click', () => {
   try {
-    if ($('level-json').value.length > 131072) throw new Error('关卡文件不能超过 128 KiB。');
+    if ($('level-json').value.length > 262144) throw new Error('关卡文件不能超过 256 KiB。');
     const input = JSON.parse($('level-json').value);
     const result = validateLevel(input); if (!result.valid) throw new Error(result.errors.join('\n'));
     if (editor.active()) editor.importDocument(input); else loadLevel(input);
@@ -192,7 +207,7 @@ $('import-level').addEventListener('click', () => $('level-file').click());
 $('level-file').addEventListener('change', async (event) => {
   const file = event.target.files[0]; if (!file) return;
   try {
-    if (file.size > 131072) throw new Error('关卡文件不能超过 128 KiB。');
+    if (file.size > 262144) throw new Error('关卡文件不能超过 256 KiB。');
     $('level-json').value = await file.text(); $('data-error').hidden = true;
   } catch (error) { showDataError('无法导入：' + error.message); }
   event.target.value = '';

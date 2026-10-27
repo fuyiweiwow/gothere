@@ -39,6 +39,7 @@ async function preparePage(application) {
 }
 async function waitForWin(page) {
   if(!visiblePerformance)await page.clock.runFor(15000);
+  else await page.waitForFunction(()=>document.getElementById('status-text').textContent==='终于到了',{},{timeout:20000});
   assert.equal(await page.locator('#status-text').textContent(),'终于到了');
 }
 let desktop;
@@ -105,6 +106,13 @@ try {
   await click(reopened,'[data-action="lever"]');
   if(visiblePerformance)await reopened.waitForFunction(()=>document.getElementById('status-text').textContent==='终于到了',{},{timeout:20000});
   await waitForWin(reopened);
+  // New content also runs in the packaged sandbox, with no visible native window.
+  await click(reopened,'#editor-exit');
+  await click(reopened,'[data-example="example-floors"]');await click(reopened,'#play');
+  await click(reopened,'[data-action="call"]');await waitForWin(reopened);
+  await click(reopened,'#replay');if(!visiblePerformance)await reopened.clock.runFor(15000);
+  if(visiblePerformance)await reopened.waitForFunction(()=>document.getElementById('status-text').textContent==='终于到了');
+  assert.equal(await reopened.locator('#status-text').textContent(),'终于到了');
   assert.equal(await desktop.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].isVisible()),visiblePerformance);
   // A cancelled native navigation can leave Playwright waiting for a document
   // commit. Run this last, with no further locator actions on the page.
@@ -126,7 +134,8 @@ try {
   const report={...build,mode:visiblePerformance?'visible-performance':'hidden-smoke-test',launchMs,fps,frameSamples,workingSetMiB,privateMiB,memory,gpuFeatures,runtime,checks:[
     'extracted ZIP launches with system-only PATH','offline gameplay wins','sandbox and context isolation',
     'new windows, external navigation and network access blocked',
-    'draft saved and restored across application restart','restored draft playable offline'],
+    'draft saved and restored across application restart','restored draft playable offline',
+    'three-floor carry, ladder, lift call and replay in packaged sandbox'],
     measurement:visiblePerformance?'Three 2-second visible gameplay samples after 2-second warmup; median rAF rate. Summed working sets include shared pages; private bytes reported separately. Single-machine observation, not a performance guarantee.':'Hidden functional smoke test with a controlled browser clock and forced clicks; pointer interaction is covered by separate headless browser tests. Visible framerate not measured; working sets include shared pages, private bytes reported separately.',
     limitations:['same Windows machine; not a clean machine','unsigned development build','external playtest pending']};
   await writeFile(join(root,'artifacts/windows-report.json'),JSON.stringify(report,null,2));
