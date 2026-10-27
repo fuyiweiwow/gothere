@@ -1,18 +1,27 @@
 {
   "name": "gothere",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "A lighthearted, data-driven puzzle about getting there, no matter what",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "dev": "node server.mjs",
     "build": "node scripts/build.mjs",
+    "build:windows": "node scripts/package-windows.mjs",
     "share": "node scripts/share.mjs",
     "test:share": "node scripts/check-shared.mjs",
     "start": "node server.mjs",
     "test": "node --test tests/*.test.mjs",
     "test:coverage": "node --experimental-test-coverage --test --test-coverage-include=src/core/*.js --test-coverage-lines=80 --test-coverage-functions=80 --test-coverage-branches=80 tests/*.test.mjs",
-    "test:e2e": "node scripts/browser-check.mjs"
+    "test:e2e": "node scripts/browser-check.mjs",
+    "test:editor": "node scripts/editor-check.mjs && node scripts/workshop-levels-check.mjs",
+    "test:windows": "node scripts/windows-check.mjs"
+  },
+  "devDependencies": {
+    "electron": "45.0.0",
+    "playwright": "1.64.1"
   }
 }

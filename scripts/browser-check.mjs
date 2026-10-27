@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { chromium } from 'playwright';
 import { makeServer } from '../server.mjs';
 import { levels } from '../src/levels.js';
+import { solutions } from '../tests/solutions.mjs';
 import { buildPortable } from './build.mjs';
 
 await mkdir(new URL('../artifacts/', import.meta.url), { recursive: true });
@@ -23,6 +24,7 @@ async function open(context, url = base) {
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   await page.clock.install({ time: new Date('2026-10-26T12:00:00Z') });
+  await page.clock.pauseAt(new Date('2026-10-26T12:00:01Z'));
   await page.goto(url, { waitUntil:'networkidle' });
   await page.locator('.hotspot').first().waitFor();
   await settle(page, 100);
@@ -38,7 +40,7 @@ try {
   check(!/梦游|梦醒|晚安/.test(await page.locator('body').innerText()), 'sleepwalking setting is removed');
   await page.screenshot({ path:artifact('desktop.png'),fullPage:true });
   check(await status(page) === '准备出发', 'initial scene is ready');
-  check(await page.locator('.level-tab').count() === 3, 'three levels available');
+  check(await page.locator('.level-tab').count() === levels.length, 'all ten levels available');
   await page.locator('#speed').click(); await page.locator('#speed').click();
   await page.getByRole('button',{name:'出发！',exact:true}).click();
   await page.getByRole('button',{name:'操作：木桥开关',exact:true}).click();
@@ -67,6 +69,19 @@ try {
   await settle(page, 2100);
   check(await status(page) === '终于到了', 'combined timed level can be completed');
   console.log('PASS desktop: second and third level solutions');
+  for (const [index,item] of levels.entries()) {
+    if(index<3)continue;
+    await page.locator('.level-tab').nth(index).click();await page.locator('#play').click();
+    let time=0;
+    for(const event of solutions[item.id]) {
+      const target=(event.tick-1)*1000/60/4;
+      await settle(page,Math.max(0,target-time));time=target;
+      await page.locator('[data-action="'+event.source+'"]').click();
+    }
+    await settle(page,4500-time);
+    check(await status(page)==='终于到了','browser solution: '+item.id);
+  }
+  console.log('PASS desktop: all ten level solutions');
 
   await page.locator('#reset').click(); await page.locator('#play').click(); await settle(page, 250);
   await page.locator('#play').click();
