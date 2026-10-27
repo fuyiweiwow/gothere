@@ -1,3 +1,4 @@
+import { openPanel } from './editor-controls.mjs';
 import assert from 'node:assert/strict';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
@@ -94,7 +95,7 @@ try {
   assert.equal(await page.evaluate(()=>fetch('https://example.com').then(()=>false,()=>true)),true,'network access is denied');
   await page.context().setOffline(true);
   await click(page,'#open-editor');
-  await page.locator('#edit-name').fill('离线桌面草稿');await page.locator('#edit-name').press('Tab');
+  await openPanel(page,'map',{force:!visiblePerformance});await page.locator('#edit-name').fill('离线桌面草稿');await page.locator('#edit-name').press('Tab');
   await click(page,'#editor-save');
   await page.screenshot({path:join(root,'artifacts/windows-editor.png'),fullPage:true});
   await desktop.close();desktop=await launch();

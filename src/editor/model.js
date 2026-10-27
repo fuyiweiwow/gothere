@@ -153,9 +153,10 @@ export function deleteBehavior(level,entityId,behaviorId) {
 /** Wires are a projection of rules, never a second source of gameplay data. */
 export function ruleWires(level) {
   const result=[];
-  const visit=(actions,rule,delay=0)=>{for(const a of actions){
-    if(a.type==='after')visit(a.actions,rule,delay+a.ticks);
-    else result.push({rule,source:level.rules[rule].on.source,target:a.target??'actor',type:a.type,behavior:a.behavior,delay});
-  }};
+  const visit=(actions,rule,delay=0,path=[])=>{actions.forEach((a,index)=>{
+    const next=[...path,index];
+    if(a.type==='after')visit(a.actions,rule,delay+a.ticks,next);
+    else result.push({rule,path:next,source:level.rules[rule].on.source,target:a.target??'actor',type:a.type,behavior:a.behavior,delay,points:a.editor?.waypoints??[]});
+  });};
   level.rules.forEach((r,index)=>visit(r.actions,index));return result;
 }

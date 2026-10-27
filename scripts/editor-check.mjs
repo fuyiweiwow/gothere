@@ -1,3 +1,4 @@
+import { openPanel, choosePlacement } from './editor-controls.mjs';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
@@ -11,9 +12,9 @@ const context=await browser.newContext({viewport:{width:1440,height:1100},reduce
 const page=await context.newPage(), errors=[];
 page.on('pageerror',e=>errors.push(e.message));
 const base='http://127.0.0.1:'+server.address().port;
-const change=async(id,value)=>{await page.locator('#'+id).fill(String(value));await page.locator('#'+id).press('Tab');};
+const change=async(id,value)=>{if(id.startsWith('edit-'))await openPanel(page,'map');await page.locator('#'+id).fill(String(value));await page.locator('#'+id).press('Tab');};
 async function place(kind,x,y) {
-  await page.locator('[data-tool="'+kind+'"]').click();
+  await choosePlacement(page,kind);
   const box=await page.locator('#editor-overlay').boundingBox();
   await page.locator('#editor-overlay').click({position:{x:box.width*x/1200,y:box.height*y/640}});
 }
@@ -24,7 +25,7 @@ try {
   await place('platform',620,535); await change('object-x',620); await change('object-width',580);
   await place('bridge',440,380); await change('object-x',440); await change('object-width',180);
   await place('switch',300,365); await change('object-label','测试开关');
-  await page.locator('#add-rule').click();
+  await openPanel(page,'logic');await page.locator('#add-rule').click();
   await page.locator('[data-rule-source]').selectOption('switch-1');
   await page.locator('[data-action-target]').selectOption('bridge-1');
   await page.locator('[data-action-state]').selectOption('extended');
@@ -59,7 +60,7 @@ try {
     {type:'after',ticks:3600,actions:[{type:'set',target:'bridge',state:'folded'}]},
   ]}];
   await page.locator('#open-data').click();await page.locator('#level-json').fill(JSON.stringify(nested));
-  await page.locator('#apply-level').click();
+  await page.locator('#apply-level').click();await openPanel(page,'logic');
   await page.locator('[data-action-state]').first().selectOption('folded');
   const saved=await page.evaluate(()=>{const s=JSON.parse(localStorage.getItem('gothere.editor.v1'));return s.documents.find(d=>d.key===s.activeKey).level;});
   nested.rules[0].actions[0].actions[0].state='folded';
@@ -70,7 +71,7 @@ try {
   const phone=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
   const mobile=await phone.newPage();await mobile.goto(base);await mobile.locator('#open-editor').tap();
   assert.ok(await mobile.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-  await mobile.locator('[data-tool="switch"]').tap();
+  await choosePlacement(mobile,'switch');
   await mobile.locator('#editor-overlay').tap({position:{x:130,y:100}});
   assert.equal(await mobile.locator('#object-label').isVisible(),true);
   await phone.close();

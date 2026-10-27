@@ -1,6 +1,6 @@
 {
   "name": "gothere",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
   "description": "A lighthearted, data-driven puzzle about getting there, no matter what",
@@ -20,6 +20,7 @@
     "test:editor": "node scripts/editor-check.mjs && node scripts/workshop-levels-check.mjs",
     "test:content": "node scripts/content-check.mjs",
     "test:wires": "node scripts/wires-check.mjs",
+    "test:workspace": "node scripts/workspace-check.mjs",
     "test:windows": "node scripts/windows-check.mjs"
   },
   "devDependencies": {

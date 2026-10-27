@@ -1,3 +1,4 @@
+import { openPanel, choosePlacement } from './editor-controls.mjs';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
@@ -14,16 +15,16 @@ const page=await context.newPage(),errors=[];
 page.on('pageerror',e=>errors.push(e.message));
 await page.clock.install({time:new Date('2026-10-27T00:00:00Z')});
 await page.clock.pauseAt(new Date('2026-10-27T00:00:01Z'));
-const change=async(id,value)=>{await page.locator('#'+id).fill(String(value));await page.locator('#'+id).press('Tab');};
+const change=async(id,value)=>{if(id.startsWith('edit-'))await openPanel(page,'map');await page.locator('#'+id).fill(String(value));await page.locator('#'+id).press('Tab');};
 const status=()=>page.locator('#status-text').textContent();
 async function place(kind,x,y=440) {
-  await change('placement-y',y);await page.locator('[data-tool="'+kind+'"]').click();
+  await change('placement-y',y);await choosePlacement(page,kind);
   const box=await page.locator('#editor-overlay').boundingBox();
   await page.locator('#editor-overlay').click({position:{x:box.width*x/1200,y:box.height*580/640}});
   await change('object-x',x);
 }
 async function newRule(source,event,type='set') {
-  await page.locator('#add-rule').click();const card=page.locator('.rule-card').last();
+  await openPanel(page,'logic');await page.locator('#add-rule').click();const card=page.locator('.rule-card').last();
   await card.locator('[data-rule-source]').selectOption(source);
   await card.locator('[data-rule-event]').selectOption(event);
   await card.locator('[data-action-type]').selectOption(type);return card;
@@ -88,11 +89,11 @@ try {
   await page.locator('[data-ref="entity:object-1"]').click();await page.locator('#object-skin').selectOption('crocodile');
   await page.getByRole('checkbox',{name:'启用巡逻',exact:true}).check();
   await page.getByRole('checkbox',{name:'启用巡逻',exact:true}).uncheck();
-  await page.locator('.rule-card').first().locator('[data-action-type]').selectOption('hurt');
+  await openPanel(page,'logic');await page.locator('.rule-card').first().locator('[data-action-type]').selectOption('hurt');
   await page.locator('#editor-test').click();await page.locator('#play').click();await page.clock.runFor(800);
   assert.equal(await status(),'暂时没到');
   await page.locator('#editor-return').click();
-  await page.locator('.rule-card').first().locator('[data-action-type]').selectOption('hold');
+  await openPanel(page,'logic');await page.locator('.rule-card').first().locator('[data-action-type]').selectOption('hold');
   await page.locator('#editor-test').click();await win();
   await mkdir(new URL('../artifacts/',import.meta.url),{recursive:true});
   await page.screenshot({path:new URL('../artifacts/content-floors.png',import.meta.url).pathname.replace(/^\/([A-Z]:)/,'$1'),fullPage:true});

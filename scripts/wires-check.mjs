@@ -1,3 +1,4 @@
+import { openPanel, choosePlacement } from './editor-controls.mjs';
 ﻿import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
@@ -10,10 +11,10 @@ const browser=await chromium.launch({headless:true,...(!existsSync(chromium.exec
 const context=await browser.newContext({viewport:{width:1500,height:1100},reducedMotion:'reduce'});
 const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
 await page.clock.install();await page.clock.pauseAt(new Date(Date.now()+1000));
-const change=async(id,value)=>{await page.locator('#'+id).fill(String(value));await page.locator('#'+id).press('Tab');};
+const change=async(id,value)=>{if(id.startsWith('edit-'))await openPanel(page,'map');await page.locator('#'+id).fill(String(value));await page.locator('#'+id).press('Tab');};
 const draft=()=>page.evaluate(()=>{const s=JSON.parse(localStorage.getItem('gothere.editor.v1'));return s.documents.find(d=>d.key===s.activeKey).level;});
 async function place(kind,x){
-  await page.locator('[data-tool="'+kind+'"]').click();const b=await page.locator('#editor-overlay').boundingBox();
+  await choosePlacement(page,kind);const b=await page.locator('#editor-overlay').boundingBox();
   await page.locator('#editor-overlay').click({position:{x:b.width*x/1200,y:b.height*580/640}});await change('object-x',x);
 }
 async function behavior(id,name,type){

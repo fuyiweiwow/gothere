@@ -1,6 +1,8 @@
 import { createEditorStore, createBlankLevel, addObject, deleteObject, addBehavior, renameBehavior, deleteBehavior, ruleWires, KIND_NAMES } from './model.js';
 import { STATES, SKINS, eventTypes, floorY, validateLevel } from '../core/schema.js';
 import { stateLabel } from '../core/engine.js';
+import { CATALOG, CATEGORIES, filterCatalog } from './catalog.js';
+import { snapPoint, setWirePoints, routeWire, nearestInsertion } from './routing.js';
 
 const $ = id => document.getElementById(id);
 const STORAGE = 'gothere.editor.v1';
@@ -30,14 +32,57 @@ const actionList = (actions,path) => {for(const index of path)actions=actions[in
 export function createEditorUI({play,leave,pause,notify}) {
   let store=createEditorStore(), restored=false, mode='closed', selection=null, tool='select', drag=null, serial=0,placementY=440;
   let wireSource=null,wireTarget=null,wireEvent=null,wireBehavior=null,wireSourceBehavior=null;
+  let tab='library',category='all',query='',wireView='all',selectedWire=null,routeDrag=null;
+  const wireKey=w=>w.rule+':'+w.path.join('.');
   try {const saved=localStorage.getItem(STORAGE);if(saved){store=createEditorStore(saved);restored=true;}}
   catch {notify('旧草稿无法读取。可以通过关卡数据重新导入备份。');}
-  $('editor-toolbar').innerHTML=`<div class="workshop-heading"><div><p class="eyebrow">A LITTLE PLACE FOR BIG IDEAS</p><h2>给旅途添点小麻烦。</h2></div><span id="draft-status" role="status">草稿保存在此浏览器</span></div>
-    <div class="editor-commands"><label class="draft-picker">我的草稿 <select id="draft-select" aria-label="切换草稿"></select></label><button id="editor-new" class="button secondary">＋ 空白地图</button><button id="editor-undo" class="button secondary" title="Ctrl+Z">↶ 撤销</button><button id="editor-redo" class="button secondary" title="Ctrl+Shift+Z">↷ 重做</button><button id="editor-save" class="button secondary">保存草稿</button><button id="editor-test" class="button primary">▷ 试玩草稿</button><button id="editor-return" class="button primary" hidden>← 返回编辑</button><button id="editor-exit" class="text-button">收起工坊</button></div>
-      <div id="editor-tools" class="editor-tools" role="group" aria-label="选择放置工具"></div><div id="wire-controls" class="wire-controls"></div><p id="editor-help" class="editor-help">点击画面放置；选中后拖动或编辑坐标。方向键可微调，Delete 删除。</p>`;
-  $('editor-panel').innerHTML=`<div class="edit-sidebar"><div class="section-heading"><h2>这段旅程</h2><span class="journal-label">THE PLAN</span></div><div id="level-fields"></div><div class="section-heading object-heading"><h2 id="object-title">选中一个东西</h2><span class="journal-label">INSPECT</span></div><div id="object-fields"></div><p class="editor-help">地面高度是脚底 Y。梯子改变楼层；电梯到位才能登上，不会自动等车。出口方向可单独设置。</p></div><div class="edit-rules"><div class="section-heading"><h2>然后，会发生什么？</h2><button id="add-rule" class="button secondary">＋ 新增规则</button></div><p class="editor-help">用连线工具选择起点、目标和行为。一个事件可连到多个物体；行为完成也能接出下一条线。规则面板支持条件与延迟。</p><div id="rule-list"></div></div><div id="editor-errors" class="data-error" role="alert" hidden></div>`;
+  $('editor-toolbar').innerHTML=`<div class="editor-commands"><label class="draft-picker"><select id="draft-select" aria-label="切换草稿"></select></label><button id="editor-new" class="button secondary">＋ 新建</button><button id="editor-undo" class="button secondary" title="Ctrl+Z">↶ 撤销</button><button id="editor-redo" class="button secondary" title="Ctrl+Shift+Z">↷ 重做</button><button id="editor-save" class="button secondary">保存</button><span id="draft-status" role="status">已保存</span><button id="editor-test" class="button primary">▷ 试玩</button><button id="editor-return" class="button primary" hidden>← 返回编辑</button><button id="editor-exit" class="text-button">退出</button></div>
+    <div id="editor-tools" class="editor-tools" role="group" aria-label="地图工具"></div><p id="editor-help" class="editor-help"></p><div id="wire-selection"></div>`;
+  $('editor-panel').innerHTML=`<div class="editor-tabs" role="tablist" aria-label="编辑面板"></div>
+    <div id="panel-library" class="editor-tab-panel" role="tabpanel" aria-label="仓库"><div class="library-search"><input id="library-search" type="search" placeholder="搜索物件、机关…" aria-label="搜索仓库"></div><div id="library-categories" class="library-categories"></div><div id="library-items" class="library-items"></div><div id="library-preview"></div><div class="section-heading scene-list-heading"><h2>场景物体</h2><span id="scene-count"></span></div><div id="scene-items"></div></div>
+    <div id="panel-object" class="editor-tab-panel" role="tabpanel" aria-label="物体"><div class="section-heading"><h2 id="object-title">未选中物体</h2></div><div id="object-fields"></div></div>
+    <div id="panel-logic" class="editor-tab-panel edit-rules" role="tabpanel" aria-label="逻辑"><div id="wire-controls" class="wire-controls"></div><div class="section-heading"><h2>逻辑规则</h2><button id="add-rule" class="text-button">＋ 规则</button></div><div id="rule-list"></div></div>
+    <div id="panel-map" class="editor-tab-panel" role="tabpanel" aria-label="地图"><div class="section-heading"><h2>地图设置</h2></div><div id="level-fields"></div></div><div id="editor-errors" class="data-error" role="alert" hidden></div>`;
+  function showTab(next) {
+    tab=next;
+    for(const [id,label] of [['library','仓库'],['object','物体'],['logic','逻辑'],['map','地图']]){
+      $('panel-'+id).hidden=id!==tab;
+      const trigger=$('editor-tab-'+id);trigger.setAttribute('aria-selected',String(id===tab));trigger.tabIndex=id===tab?0:-1;
+    }
+  }
+  for(const [id,label] of [['library','仓库'],['object','物体'],['logic','逻辑'],['map','地图']]){
+    const trigger=button(label,()=>showTab(id),'editor-tab');trigger.id='editor-tab-'+id;trigger.setAttribute('role','tab');trigger.setAttribute('aria-controls','panel-'+id);
+    $('panel-'+id).setAttribute('aria-labelledby',trigger.id);$('editor-panel').querySelector('.editor-tabs').append(trigger);
+    trigger.addEventListener('keydown',event=>{const ids=['library','object','logic','map'];if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+      event.preventDefault();event.stopPropagation();const index=event.key==='Home'?0:event.key==='End'?3:(ids.indexOf(id)+(event.key==='ArrowRight'?1:3))%4;showTab(ids[index]);$('editor-tab-'+ids[index]).focus();});
+  }
+  $('library-search').addEventListener('input',()=>{query=$('library-search').value;renderLibrary(store.document());});
+  function chooseObject(ref) {selection=ref;selectedWire=null;tool='select';showTab('object');render();}
+  function beginWire(source,type,behavior) {
+    tool='wire';wireSource=source;wireEvent=type;wireSourceBehavior=behavior??null;wireTarget=null;wireBehavior=null;
+    showTab('logic');render();
+  }
+  function renderLibrary(d) {
+    const filters=$('library-categories');filters.replaceChildren();
+    for(const [id,label] of CATEGORIES){const b=button(label,()=>{category=id;renderLibrary(store.document());},'library-filter');b.dataset.category=id;b.setAttribute('aria-pressed',String(id===category));filters.append(b);}
+    const list=$('library-items');list.replaceChildren();
+    for(const item of filterCatalog(query,category)){
+      const b=button('',()=>{tool=item.kind;renderTools();renderLibrary(store.document());},'library-item');b.dataset.tool=item.kind;b.setAttribute('aria-label','放置'+item.name);b.setAttribute('aria-pressed',String(tool===item.kind));
+      b.append(element('span',item.icon,'library-icon'),element('strong',item.name));b.title=item.description;list.append(b);
+    }
+    if(!list.children.length)list.append(element('p','没有匹配的物件','empty-state'));
+    const preview=$('library-preview');preview.replaceChildren();const item=CATALOG.find(i=>i.kind===tool);
+    if(item){preview.append(element('strong',item.name),element('p',item.description),element('small','点击地图放置 · Esc 取消'));
+      if(item.kind!=='platform')preview.append(element('small','事件：'+eventTypes(item.kind).filter(e=>e!=='done').map(e=>eventNames[e]).join('、')));}
+    const scene=$('scene-items');scene.replaceChildren();
+    const terms=query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const matches=d.entities.filter(e=>(category==='all'||CATALOG.find(i=>i.kind===e.kind)?.group===category)&&terms.every(t=>(e.label+' '+e.id+' '+KIND_NAMES[e.kind]).toLowerCase().includes(t)));
+    $('scene-count').textContent=matches.length+'/'+d.entities.length;
+    for(const e of matches){const b=button('',()=>chooseObject({type:'entity',id:e.id}),'scene-item');b.append(element('span',e.label),element('small',KIND_NAMES[e.kind]));scene.append(b);}
+    if(!matches.length)scene.append(element('p',d.entities.length?'没有匹配的场景物体':'场景中还没有物体','empty-state'));
+  }
   function save(explicit=false) {
-    try {localStorage.setItem(STORAGE,store.serialize());$('draft-status').textContent='已保存在此浏览器 · 导出 JSON 可备份';if(explicit)notify('草稿已保存。');}
+    try {localStorage.setItem(STORAGE,store.serialize());$('draft-status').textContent='已保存';if(explicit)notify('草稿已保存。');}
     catch {$('draft-status').textContent='浏览器无法保存 · 请使用关卡数据导出备份';if(explicit)notify('无法保存到浏览器，请导出 JSON 备份。');}
   }
   function edit(fn) {try{store.change(fn);save();render();}catch(error){notify(error.message);}}
@@ -46,6 +91,7 @@ export function createEditorUI({play,leave,pause,notify}) {
     document.body.classList.toggle('editing',editing);document.body.classList.toggle('workshop',active);
     $('editor-toolbar').hidden=!active;$('editor-panel').hidden=!editing;$('editor-overlay').hidden=!editing;
     $('editor-tools').hidden=!editing;$('editor-help').hidden=!editing;$('editor-return').hidden=mode!=='testing';
+    $('wire-selection').hidden=!editing;
     $('wire-controls').hidden=!editing || tool!=='wire';
     for(const id of ['draft-select','editor-new','editor-undo','editor-redo','editor-save','editor-test'])$(id).disabled=!editing;
     $('open-editor').textContent=active?'工坊已打开':'关卡工坊';
@@ -53,27 +99,29 @@ export function createEditorUI({play,leave,pause,notify}) {
   }
   function openDocument(level,key) {
     try {store.open(key,level);}catch(error){notify(error.message);return false;}
-    pause();selection=null;tool='select';save();setMode('editing');return true;
+    pause();selection=null;selectedWire=null;wireSource=null;wireTarget=null;tool='select';tab='library';save();setMode('editing');return true;
   }
   function render() {
     const d=store.document(), validation=validateLevel(d);
     $('scene-title').textContent=d.name || '还没想好名字';$('scene-tag-text').textContent='正在创作';
-    $('stage-note').textContent='✦ 给他安排一点麻烦，再帮他解决。';
+    $('stage-note').textContent='';
     $('editor-errors').hidden=validation.valid;$('editor-errors').textContent='暂时还不能试玩：\n'+validation.errors.join('\n');
     $('editor-test').disabled=!validation.valid;
     const history=store.history();$('editor-undo').disabled=!history.undo;$('editor-redo').disabled=!history.redo;
     const picker=$('draft-select');picker.replaceChildren();
     for(const entry of store.entries()){const option=element('option',entry.name);option.value=entry.key;picker.append(option);}picker.value=store.key();
-    renderTools();renderWireControls(d);renderOverlay(d);renderFields(d);renderRules(d);
+    renderTools();renderLibrary(d);renderWireControls(d);renderOverlay(d);renderFields(d);renderRules(d);renderWireSelection(d);showTab(tab);
   }
   function renderTools() {
     $('editor-overlay').dataset.mode=tool;
     $('editor-tools').replaceChildren();
-    for(const [kind,name] of [['select','↖ 选择 / 拖动'],['wire','↗ 连线'],...['platform','bridge','switch','plate','gate','object','zone','ladder','lift'].map(k=>[k,KIND_NAMES[k]])]) {
-      const el=button(name,()=>{tool=kind;renderTools();renderWireControls(store.document());},'tool-button');el.dataset.tool=kind;el.setAttribute('aria-pressed',String(kind===tool));$('editor-tools').append(el);
+    for(const [kind,name] of [['select','↖ 选择'],['wire','↗ 连线']]) {
+      const el=button(name,()=>{tool=kind;if(kind==='wire')showTab('logic');render();},'tool-button');el.dataset.tool=kind;el.setAttribute('aria-pressed',String(kind===tool));$('editor-tools').append(el);
     }
     const placement=input(placementY,'放置高度 Y',value=>{placementY=value;},{id:'placement-y',type:'number',min:160,max:560,step:10});
     $('editor-tools').append(field('放置在 Y',placement));
+    const view=select([['all','全部连线'],['related','选中物体的连线'],['none','隐藏连线']],wireView,'连线显示',value=>{wireView=value;renderOverlay(store.document());});view.id='wire-view';$('editor-tools').append(view);
+    $('editor-help').textContent=tool==='select'?'拖动物体 · 双击连线添加转接点':tool==='wire'?'选择事件起点，再选择目标行为':(CATALOG.find(i=>i.kind===tool)?.name??'物体')+'：点击地图放置 · Esc 取消';
   }
   function renderWireControls(d) {
     const box=$('wire-controls');box.replaceChildren();box.hidden=tool!=='wire';
@@ -88,7 +136,7 @@ export function createEditorUI({play,leave,pause,notify}) {
     box.append(field('何时触发',select(events.map(t=>[t,eventNames[t]]),wireEvent,'连线事件',value=>{wireEvent=value;refresh();})));
     if(wireEvent==='done'){
       if(!source.behaviors.some(b=>b.id===wireSourceBehavior))wireSourceBehavior=source.behaviors[0].id;
-      box.append(field('完成行为',select(source.behaviors.map(b=>[b.id,b.label]),wireSourceBehavior,'连线完成行为',value=>{wireSourceBehavior=value;})));
+      box.append(field('完成行为',select(source.behaviors.map(b=>[b.id,b.label]),wireSourceBehavior,'连线完成行为',value=>{wireSourceBehavior=value;refresh();})));
     }
     box.append(field('调用目标',select([['','点击目标物体'],...d.entities.map(e=>[e.id,e.label])],target?.id??'','连线目标',value=>{wireTarget=value||null;wireBehavior=null;refresh();})));
     if(!target)return;
@@ -96,40 +144,71 @@ export function createEditorUI({play,leave,pause,notify}) {
       box.append(button('给目标添加行为',()=>edit(doc=>addBehavior(doc.entities.find(e=>e.id===target.id)))));return;
     }
     if(!target.behaviors.some(b=>b.id===wireBehavior))wireBehavior=target.behaviors[0].id;
-    box.append(field('调用行为',select(target.behaviors.map(b=>[b.id,b.label]),wireBehavior,'连线调用行为',value=>{wireBehavior=value;})));
-    const connect=button('连接',()=>edit(doc=>{
+    box.append(field('调用行为',select(target.behaviors.map(b=>[b.id,b.label]),wireBehavior,'连线调用行为',value=>{wireBehavior=value;refresh();})));
+    const exists=d.rules.some(r=>r.on.source===wireSource&&r.on.type===wireEvent&&(wireEvent!=='done'||r.on.behavior===wireSourceBehavior)&&
+      !r.if?.length&&r.actions.length===1&&r.actions[0].type==='invoke'&&r.actions[0].target===wireTarget&&r.actions[0].behavior===wireBehavior);
+    const connect=button(exists?'已连接':'连接',()=>edit(doc=>{
       doc.rules.push({on:{type:wireEvent,source:wireSource,...(wireEvent==='done'?{behavior:wireSourceBehavior}:{})},
         actions:[{type:'invoke',target:wireTarget,behavior:wireBehavior}]});
-    }),'button primary');connect.id='wire-connect';connect.disabled=d.rules.length>=128;box.append(connect);
+    }),'button primary');connect.id='wire-connect';connect.disabled=exists||d.rules.length>=128;box.append(connect);
     box.append(button('更换起点',()=>{wireSource=null;wireTarget=null;refresh();},'text-button'));
   }
+  function overlayPoint(event) {
+    const box=$('editor-overlay').getBoundingClientRect();
+    return snapPoint({x:(event.clientX-box.left)/box.width*1200,y:(event.clientY-box.top)/box.height*640});
+  }
+  function currentWire(d) {return ruleWires(d).find(w=>wireKey(w)===selectedWire);}
+  function renderWireSelection(d) {
+    const box=$('wire-selection');box.replaceChildren();const wire=currentWire(d);if(!wire)return;
+    box.append(element('span','连线 '+(wire.rule+1)));
+    box.append(button('＋ 转接点',()=>{const points=[...wire.points];points.push(snapPoint({x:600,y:100+points.length*20}));edit(doc=>setWirePoints(doc,wire,points));},'text-button'));
+    box.append(button('自动布线',()=>edit(doc=>setWirePoints(doc,wire,[])),'text-button'));
+    box.append(button('查看规则',()=>focusRule(wire.rule),'text-button'));
+    box.append(element('small','拖动节点调整 · 双击节点删除'));
+  }
+  function focusRule(index) {
+    showTab('logic');$('rule-list').querySelectorAll('.wire-focus').forEach(e=>e.classList.remove('wire-focus'));
+    const card=$('rule-list').querySelector('[data-rule="'+index+'"]');card?.scrollIntoView({block:'nearest'});card?.classList.add('wire-focus');
+  }
   function renderWires(d) {
+    const old=$('editor-overlay').querySelector('.wire-layer');old?.remove();
     const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');
+    const svgNode=(tag,attributes={})=>{const e=document.createElementNS(ns,tag);for(const [key,value] of Object.entries(attributes))e.setAttribute(key,String(value));return e;};
     svg.setAttribute('viewBox','0 0 1200 640');svg.classList.add('wire-layer');svg.setAttribute('aria-label','事件连线');
-    const defs=document.createElementNS(ns,'defs'),marker=document.createElementNS(ns,'marker');
-    for(const [key,value] of Object.entries({id:'wire-arrow',viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:7,markerHeight:7,orient:'auto-start-reverse'}))marker.setAttribute(key,value);
-    const arrow=document.createElementNS(ns,'path');arrow.setAttribute('d','M 0 0 L 10 5 L 0 10 z');arrow.setAttribute('fill','#6b588d');marker.append(arrow);defs.append(marker);svg.append(defs);
-    const point=id=>{const e=d.entities.find(e=>e.id===id);return e?{x:e.x+(e.width??28)/2,y:(['lift','ladder'].includes(e.kind)?e.toY:floorY(e))-40}:{x:d.actor.x,y:floorY(d.actor)-45};};
-    const duplicates=new Map();
-    for(const wire of ruleWires(d)){
-      const from=point(wire.source),to=point(wire.target),key=wire.source+':'+wire.target,count=duplicates.get(key)??0;
-      duplicates.set(key,count+1);
-      const height=Math.min(from.y,to.y)-45-(wire.rule%4)*20-count*16;
-      const path=document.createElementNS(ns,'path');
-      path.setAttribute('d',wire.source===wire.target?
-        `M ${from.x-6} ${from.y} C ${from.x-100} ${height-80}, ${from.x+100} ${height-80}, ${from.x+6} ${from.y}`:
-        `M ${from.x} ${from.y} C ${from.x} ${height}, ${to.x} ${height}, ${to.x} ${to.y}`);
-      path.setAttribute('marker-end','url(#wire-arrow)');path.classList.add('event-wire');path.dataset.rule=String(wire.rule);
-      if(wire.delay)path.classList.add('has-delay');
-      const title=document.createElementNS(ns,'title');
-      title.textContent=`规则 ${wire.rule+1}：${eventNames[d.rules[wire.rule].on.type]} → ${wire.behavior??wire.type}${wire.delay?'（延迟 '+wire.delay/60+' 秒）':''}`;path.append(title);
-      const focus=event=>{event.stopPropagation();const card=$('rule-list').querySelector('[data-rule="'+wire.rule+'"]');card?.scrollIntoView({block:'center'});card?.classList.add('wire-focus');};
-      path.addEventListener('click',focus);svg.append(path);
-      const label=document.createElementNS(ns,'text');label.setAttribute('x',String(wire.source===wire.target?from.x:(from.x+to.x)/2));
-      label.setAttribute('y',String(wire.source===wire.target?height-45:(from.y+to.y)/8+height*.75-6));label.textContent=String(wire.rule+1);label.classList.add('wire-number');
-      label.addEventListener('click',focus);svg.append(label);
+    const defs=svgNode('defs'),marker=svgNode('marker',{id:'wire-arrow',viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:6,markerHeight:6,orient:'auto-start-reverse'});
+    marker.append(svgNode('path',{d:'M 0 0 L 10 5 L 0 10 z',fill:'#637c70'}));defs.append(marker);svg.append(defs);
+    const point=(id,output)=>{const e=d.entities.find(e=>e.id===id);return e?{x:Math.max(6,Math.min(1194,output?e.x+(e.width??28)+6:e.x-6)),y:(['lift','ladder'].includes(e.kind)?e.toY:floorY(e))-32}:{x:d.actor.x,y:floorY(d.actor)-32};};
+    const duplicates=new Map(),wires=ruleWires(d).map(w=>{const key=w.source+':'+w.target,count=duplicates.get(key)??0;duplicates.set(key,count+1);return {...w,lane:w.rule%5+count};});
+    if(wireView!=='none')for(const wire of wires.sort((a,b)=>Number(wireKey(a)===selectedWire)-Number(wireKey(b)===selectedWire))){
+      if(wireView==='related' && (selection?.type!=='entity'||(wire.source!==selection.id&&wire.target!==selection.id)))continue;
+      const from=point(wire.source,true),to=point(wire.target,false),selected=wireKey(wire)===selectedWire;
+      const route=routeWire(from,to,wire.points,wire.lane),path=svgNode('path',{d:route.path,'marker-end':'url(#wire-arrow)'});
+      path.classList.add('event-wire');path.dataset.rule=String(wire.rule);path.dataset.wire=wireKey(wire);
+      if(selected)path.classList.add('selected');if(wire.delay)path.classList.add('has-delay');
+      const title=svgNode('title');title.textContent=`规则 ${wire.rule+1}：${eventNames[d.rules[wire.rule].on.type]} → ${wire.behavior??wire.type}`;path.append(title);
+      const choose=event=>{event.stopPropagation();selectedWire=wireKey(wire);renderWires(d);renderWireSelection(d);};
+      const insert=event=>{event.preventDefault();event.stopPropagation();selectedWire=wireKey(wire);
+        const points=[...wire.points],p=overlayPoint(event);points.splice(nearestInsertion(route,p),0,p);edit(doc=>setWirePoints(doc,wire,points));};
+      const hit=svgNode('path',{d:route.path,class:'event-wire-hit'});
+      for(const line of [hit,path]){line.addEventListener('click',choose);line.addEventListener('dblclick',insert);}
+      path.setAttribute('tabindex','0');path.setAttribute('role','button');path.setAttribute('aria-label',title.textContent);
+      path.addEventListener('keydown',event=>{if(['Enter',' '].includes(event.key)){event.preventDefault();choose(event);}});
+      svg.append(hit,path);
+      for(const [p,kind] of [[from,'output'],[to,'input']])svg.append(svgNode('circle',{cx:p.x,cy:p.y,r:4,class:'wire-port '+kind}));
+      const label=svgNode('text',{x:route.vertices[2]?.x??from.x,y:(route.vertices[2]?.y??from.y)-8,class:'wire-number'});label.textContent=String(wire.rule+1);label.addEventListener('click',choose);svg.append(label);
+      if(selected)wire.points.forEach((p,index)=>{
+        const handle=svgNode('circle',{cx:p.x,cy:p.y,r:7,class:'wire-waypoint',tabindex:0,role:'button','aria-label':'转接点 '+(index+1)});
+        handle.dataset.point=String(index);
+        handle.addEventListener('pointerdown',event=>{event.preventDefault();event.stopPropagation();routeDrag={wire,index,points:structuredClone(wire.points),pointerId:event.pointerId};});
+        const remove=()=>edit(doc=>setWirePoints(doc,wire,wire.points.filter((_,i)=>i!==index)));
+        handle.addEventListener('dblclick',event=>{event.preventDefault();event.stopPropagation();remove();});
+        handle.addEventListener('click',event=>event.stopPropagation());
+        handle.addEventListener('keydown',event=>{if(event.key==='Delete'||event.key==='Backspace'){event.preventDefault();event.stopPropagation();remove();}
+          else if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)){event.preventDefault();event.stopPropagation();const points=structuredClone(wire.points);points[index].x+=event.key==='ArrowRight'?10:event.key==='ArrowLeft'?-10:0;points[index].y+=event.key==='ArrowDown'?10:event.key==='ArrowUp'?-10:0;edit(doc=>setWirePoints(doc,wire,points));$('editor-overlay').querySelector('[data-point="'+index+'"]')?.focus();}});
+        svg.append(handle);
+      });
     }
-    $('editor-overlay').append(svg);
+    $('editor-overlay').prepend(svg);
   }
   function renderOverlay(d) {
     $('editor-overlay').replaceChildren();
@@ -148,12 +227,12 @@ export function createEditorUI({play,leave,pause,notify}) {
       const label=element('span',name);el.replaceChildren(label);
       el.addEventListener('pointerdown',event=>{
         if(tool!=='select')return;
-        event.preventDefault();event.stopPropagation();selection=ref;
+        event.preventDefault();event.stopPropagation();selection=ref;selectedWire=null;showTab('object');
         for(const sibling of $('editor-overlay').children)sibling.setAttribute('aria-pressed',String(sibling===el));
         renderFields(d);
         drag={ref,el,start:event.clientX,x:p.x,left:p.x-offset,dx:0,pointerId:event.pointerId};
       });
-      el.addEventListener('click',event=>{if(tool==='wire'){event.stopPropagation();if(ref.type==='entity'){if(!wireSource){wireSource=p.id;wireEvent=null;}else{wireTarget=p.id;wireBehavior=null;}renderWireControls(store.document());}return;}if(tool==='select'){event.stopPropagation();selection=ref;renderOverlay(store.document());renderFields(store.document());}});
+      el.addEventListener('click',event=>{if(tool==='wire'){event.stopPropagation();if(ref.type==='entity'){if(!wireSource){wireSource=p.id;wireEvent=null;}else{wireTarget=p.id;wireBehavior=null;}showTab('logic');renderWireControls(store.document());}return;}if(tool==='select'){event.stopPropagation();chooseObject(ref);}});
       $('editor-overlay').append(el);
     }
   }
@@ -164,8 +243,11 @@ export function createEditorUI({play,leave,pause,notify}) {
     }
     fields.append(field('行走速度（单位 / 秒）',input(d.actor.speed,'行走速度',value=>edit(doc=>{doc.actor.speed=value;}),{id:'edit-speed',type:'number',min:15,max:180,step:1})));
     const target=resolveObject(d,selection), box=$('object-fields');box.replaceChildren();
-    $('object-title').textContent=target ? (target.label??KIND_NAMES[selection.type]) : '选中一个东西';
-    if(!target){box.append(element('p','点击画面中的物件，或选择工具添加机关。','editor-help'));return;}
+    $('object-title').textContent=target ? (target.label??KIND_NAMES[selection.type]) : '未选中物体';
+    if(!target){box.append(element('p','在地图或仓库的场景列表中选择物体。','empty-state'));return;}
+    const definition=element('div',undefined,'object-definition');definition.append(element('strong',KIND_NAMES[target.kind??selection.type]),element('code',target.id??selection.type));box.append(definition);
+    if(selection.type==='entity')renderSlots(d,target,box);
+    box.append(element('h3','属性','inspector-heading'));
     const update=(key,value)=>edit(doc=>{resolveObject(doc,selection)[key]=value;});
     const geometry={platform:[0,1199],actor:[20,1150],goal:[40,1180],entity:[25,1175]}[selection.type];
     box.append(field('位置 X',input(target.x,'位置 X',value=>update('x',value),{id:'object-x',type:'number',min:geometry[0],max:geometry[1],step:1})));
@@ -178,7 +260,6 @@ export function createEditorUI({play,leave,pause,notify}) {
     if(selection.type==='entity') {
       box.append(field('显示名称',input(target.label,'显示名称',value=>update('label',value),{id:'object-label',maxLength:30})));
       const state=select(STATES[target.kind].map(s=>[s,stateLabel(s)]),target.state,'初始状态',value=>update('state',value));state.id='object-state';box.append(field('初始状态',state));
-      box.append(element('p','标识：'+target.id,'editor-help'));
       if(target.kind==='object') {
         const skin=select(Object.entries(SKINS),target.appearance?.skin??'axe','外观',value=>edit(doc=>{resolveObject(doc,selection).appearance={skin:value};}));
         skin.id='object-skin';box.append(field('贴图外观',skin));
@@ -206,7 +287,7 @@ export function createEditorUI({play,leave,pause,notify}) {
       }));collision.id='object-contact';box.append(field('接触效果',collision));
       if(target.contact)box.append(field('伤害说明',input(target.contact.message??'','伤害说明',value=>edit(doc=>{resolveObject(doc,selection).contact.message=value||undefined;}),{maxLength:120})));
       const behaviorBox=element('div',undefined,'behavior-editor');
-      behaviorBox.append(element('strong','命名行为'),element('p','行为是一组可复用的动作。连线选择要调用的行为；完成后还能继续触发连线。','editor-help'));
+      behaviorBox.append(element('h3','行为定义','inspector-heading'));
       (target.behaviors??[]).forEach((behavior,bi)=>{
         const card=element('div',undefined,'behavior-card');card.dataset.behavior=behavior.id;
         card.append(field('行为 ID',input(behavior.id,'行为 ID',value=>edit(doc=>renameBehavior(doc,target.id,behavior.id,value)),{maxLength:48})));
@@ -219,8 +300,33 @@ export function createEditorUI({play,leave,pause,notify}) {
     }
     if(['platform','entity'].includes(selection.type)) {
       const remove=button('删除物件',()=>edit(doc=>{deleteObject(doc,selection);selection=null;}),'button danger');remove.id='object-delete';box.append(remove);
-      box.append(element('p','删除机关时，同时移除以它为事件源或条件的规则，并清理指向它的动作。','editor-help'));
     }
+  }
+  function renderSlots(d,target,parent) {
+    const box=element('section',undefined,'item-slots'),wires=ruleWires(d);
+    box.append(element('h3','事件输出','inspector-heading'));
+    const events=availableEvents(target).flatMap(type=>type==='done'?(target.behaviors??[]).map(b=>({type,behavior:b.id,label:b.label+'完成'})):[{type,label:eventNames[type]}]);
+    for(const event of events){
+      const rules=d.rules.map((r,index)=>({r,index})).filter(({r})=>r.on.source===target.id&&r.on.type===event.type&&(event.type!=='done'||r.on.behavior===event.behavior));
+      const row=element('div',undefined,'slot-row event-slot');row.dataset.event=event.type;
+      row.append(element('span','●','slot-output'),element('span',event.label,'slot-name'),element('small',rules.length+' 条'));
+      row.append(button('接线',()=>beginWire(target.id,event.type,event.behavior),'slot-connect'));
+      box.append(row);appendConnections(box,rules.map(({index})=>index));
+    }
+    box.append(element('h3','行为输入','inspector-heading'));
+    for(const behavior of target.behaviors??[]){
+      const inbound=wires.filter(w=>w.target===target.id&&w.type==='invoke'&&w.behavior===behavior.id);
+      const row=element('div',undefined,'slot-row behavior-slot');row.dataset.behaviorSlot=behavior.id;
+      row.append(element('span','◇','slot-input'),element('span',behavior.label,'slot-name'),element('small',inbound.length+' 条'));
+      row.append(button('接入',()=>{tool='wire';wireTarget=target.id;wireBehavior=behavior.id;showTab('logic');render();},'slot-connect'));box.append(row);
+      appendConnections(box,[...new Set(inbound.map(w=>w.rule))]);
+    }
+    if(!target.behaviors?.length)box.append(element('p','尚未定义行为','empty-state'));
+    parent.append(box);
+  }
+  function appendConnections(parent,indices) {
+    if(!indices.length)return;const links=element('div',undefined,'slot-links');
+    for(const index of indices)links.append(button('规则 '+(index+1),()=>focusRule(index),'text-button'));parent.append(links);
   }
   function renderActions(d,actions,parent,changeRule,path=[]) {
     const entities=d.entities.map(e=>[e.id,e.label]);
@@ -304,25 +410,28 @@ export function createEditorUI({play,leave,pause,notify}) {
     });
   }
   $('editor-overlay').addEventListener('click',event=>{
-    if(tool==='select'||tool==='wire')return;const box=$('editor-overlay').getBoundingClientRect();
+    if(tool==='select'){selection=null;selectedWire=null;render();return;}
+    if(tool==='wire')return;const box=$('editor-overlay').getBoundingClientRect();
     const x=Math.round((event.clientX-box.left)/box.width*1200/10)*10;
-    edit(doc=>{selection=addObject(doc,tool,x,placementY);});tool='select';renderTools();
+    const kind=tool;tool='select';tab='object';selectedWire=null;edit(doc=>{selection=addObject(doc,kind,x,placementY);});
   });
   window.addEventListener('pointermove',event=>{
+    if(routeDrag && event.pointerId===routeDrag.pointerId){routeDrag.points[routeDrag.index]=overlayPoint(event);const d=store.document();setWirePoints(d,routeDrag.wire,routeDrag.points);renderWires(d);return;}
     if(!drag || event.pointerId!==drag.pointerId)return;const width=$('editor-overlay').getBoundingClientRect().width;
     drag.dx=Math.round((event.clientX-drag.start)/width*1200/10)*10;
     drag.el.style.left=(drag.left+drag.dx)/12+'%';
   });
   window.addEventListener('pointerup',event=>{
+    if(routeDrag && event.pointerId===routeDrag.pointerId){const moved=routeDrag;routeDrag=null;if(JSON.stringify(moved.points)!==JSON.stringify(moved.wire.points))edit(doc=>setWirePoints(doc,moved.wire,moved.points));return;}
     if(!drag || event.pointerId!==drag.pointerId)return;const moved=drag;drag=null;
     if(!moved.dx)return;
     edit(doc=>{const obj=resolveObject(doc,moved.ref), min=moved.ref.type==='platform'?0:moved.ref.type==='goal'?40:moved.ref.type==='actor'?20:25;
       const max=moved.ref.type==='actor'?1150:moved.ref.type==='goal'?1180:Math.min(moved.ref.type==='entity'?1175:1199,1200-(obj.width??28));
     obj.x=Math.max(min,Math.min(max,moved.x+moved.dx));});
   });
-  window.addEventListener('pointercancel',()=>{drag=null;if(mode==='editing')renderOverlay(store.document());});
+  window.addEventListener('pointercancel',()=>{drag=null;routeDrag=null;if(mode==='editing')renderOverlay(store.document());});
   $('editor-new').addEventListener('click',()=>{const id='map-'+Date.now().toString(36)+'-'+serial++;openDocument(createBlankLevel(id),'custom:'+id);});
-  $('draft-select').addEventListener('change',()=>{store.open($('draft-select').value);selection=null;save();render();});
+  $('draft-select').addEventListener('change',()=>{store.open($('draft-select').value);selection=null;selectedWire=null;wireSource=null;wireTarget=null;tool='select';save();render();});
   $('editor-save').addEventListener('click',()=>save(true));
   const history=(redo)=>{if(redo?store.redo():store.undo()){save();render();}};
   $('editor-undo').addEventListener('click',()=>history(false));$('editor-redo').addEventListener('click',()=>history(true));
@@ -345,7 +454,7 @@ export function createEditorUI({play,leave,pause,notify}) {
     else if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key) && selection){event.preventDefault();edit(doc=>{const obj=resolveObject(doc,selection);
       if(['ArrowUp','ArrowDown'].includes(event.key))obj.y=Math.max(160,Math.min(560,floorY(obj)+(event.key==='ArrowDown'?10:-10)));
       else obj.x+=event.key==='ArrowRight'?10:-10;});}
-    else if(event.key==='Escape'){tool='select';wireSource=null;wireTarget=null;renderTools();renderWireControls(store.document());}
+    else if(event.key==='Escape'){tool='select';wireSource=null;wireTarget=null;selectedWire=null;render();}
   });
   return {
     active:()=>mode!=='closed',isEditing:()=>mode==='editing',document:()=>store.document(),

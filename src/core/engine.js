@@ -9,6 +9,9 @@ export function createSimulation(input) {
   const validation = validateLevel(input);
   if (!validation.valid) throw new Error(validation.errors.join('\n'));
   const level = clone(input);
+  const stripLayout=list=>{for(const a of list){delete a.editor;if(a.type==='after')stripLayout(a.actions);}};
+  for(const rule of level.rules)stripLayout(rule.actions);
+  for(const entity of level.entities)for(const behavior of entity.behaviors??[])stripLayout(behavior.actions);
   let state, pending, inputs, serial, actionBudget, contacts, connectorLock, invokeDepth;
   const emit = (message, kind = 'action') => {
     state.events.push({ tick: state.tick, message, kind });

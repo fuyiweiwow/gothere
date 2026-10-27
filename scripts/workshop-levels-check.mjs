@@ -1,3 +1,4 @@
+import { openPanel, choosePlacement } from './editor-controls.mjs';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -11,10 +12,10 @@ const server=makeServer();await new Promise(done=>server.listen(0,'127.0.0.1',do
 const browser=await chromium.launch({headless:true,...(!existsSync(chromium.executablePath())?{channel:'msedge'}:{})});
 const page=await browser.newPage({viewport:{width:1440,height:1100},reducedMotion:'reduce'});
 const errors=[],authored=[];page.on('pageerror',error=>errors.push(error.message));
-const change=async(id,value)=>{const input=page.locator('#'+id);await input.fill(String(value));await input.press('Tab');};
+const change=async(id,value)=>{if(id.startsWith('edit-'))await openPanel(page,'map');const input=page.locator('#'+id);await input.fill(String(value));await input.press('Tab');};
 const draft=()=>page.evaluate(()=>{const saved=JSON.parse(localStorage.getItem('gothere.editor.v1'));return saved.documents.find(d=>d.key===saved.activeKey).level;});
 async function place(kind) {
-  await page.locator('[data-tool="'+kind+'"]').click();
+  await choosePlacement(page,kind);
   await page.locator('#editor-overlay').click({position:{x:150,y:140}});
 }
 async function actionsUI(parent,actions,ids) {
@@ -54,7 +55,7 @@ try {
       await change('object-label',entity.label);await page.locator('#object-state').selectOption(entity.state);
     }
     for(const rule of level.rules) {
-      await page.locator('#add-rule').click();const card=page.locator('.rule-card').last();
+      await openPanel(page,'logic');await page.locator('#add-rule').click();const card=page.locator('.rule-card').last();
       await card.locator('[data-rule-source]').selectOption(ids[rule.on.source]);
       await card.locator('[data-rule-event]').selectOption(rule.on.type);
       for(const condition of rule.if??[]) {
