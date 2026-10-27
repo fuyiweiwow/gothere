@@ -1,6 +1,7 @@
 import { createSimulation, replayRecording, stateLabel, validateLevel } from './core/engine.js';
 import { levels } from './levels.js';
 import { createRenderer } from './scene.js';
+import { createEditorUI } from './editor/ui.js';
 
 const $ = (id) => document.getElementById(id);
 const renderer = createRenderer($('scene'));
@@ -11,6 +12,12 @@ let selected = 0, level = structuredClone(levels[0]), game = createSimulation(le
 let speed = 1, accumulator = 0, lastFrame = performance.now(), lastHud = '', lastEventKey = '';
 let replay = null, replayIndex = 0, terminalAt = null, toastTimer;
 const mechanismButtons = new Map();
+const editor = createEditorUI({
+  play: next => loadLevel(next, -1, true),
+  leave: next => loadLevel(next ?? levels[0], next ? -1 : 0, true),
+  pause: () => { game.pause(); accumulator = 0; },
+  notify: message => toast(message),
+});
 const timeLabel = (tick) => {
   const total = Math.floor(tick / 60);
   return String(Math.floor(total / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
@@ -30,11 +37,15 @@ function renderTabs() {
     button.innerHTML = '<span class="tab-number"></span><span class="tab-copy"><span class="tab-title"></span><span class="tab-subtitle"></span></span>';
     button.querySelector('.tab-number').textContent = String(index + 1).padStart(2, '0');
     button.querySelector('.tab-title').textContent = item.name + (completed.has(item.id) ? ' ✓' : '');
-    button.querySelector('.tab-subtitle').textContent = subtitles[index];
+    button.querySelector('.tab-subtitle').textContent = subtitles[index] ?? 'A LITTLE MORE TROUBLE';
     button.addEventListener('click', () => loadLevel(item, index)); $('level-tabs').append(button);
   });
 }
-function loadLevel(next, index = -1) {
+function loadLevel(next, index = -1, forTest = false) {
+  if (editor.active() && !forTest) {
+    editor.openDocument(next, index >= 0 ? 'builtin:' + next.id : 'import:' + next.id);
+    selected = index; renderTabs(); return;
+  }
   level = structuredClone(next); game = createSimulation(level); selected = index;
   replay = null; replayIndex = 0; accumulator = 0; terminalAt = null; lastHud = ''; lastEventKey = '';
   $('scene-title').textContent = level.name;
@@ -160,7 +171,7 @@ function tickReplay() {
 }
 function openData() {
   if (game.snapshot().status === 'running') game.pause();
-  $('level-json').value = JSON.stringify(level, null, 2); $('data-error').hidden = true;
+  $('level-json').value = JSON.stringify(editor.active() ? editor.document() : level, null, 2); $('data-error').hidden = true;
   $('data-dialog').showModal(); lastHud = ''; updateHud(game.snapshot());
 }
 $('open-data').addEventListener('click', openData);
@@ -171,7 +182,8 @@ $('apply-level').addEventListener('click', () => {
     if ($('level-json').value.length > 131072) throw new Error('关卡文件不能超过 128 KiB。');
     const input = JSON.parse($('level-json').value);
     const result = validateLevel(input); if (!result.valid) throw new Error(result.errors.join('\n'));
-    loadLevel(input); $('data-dialog').close(); toast('关卡已加载，可以开始新的旅程。');
+    if (editor.active()) editor.importDocument(input); else loadLevel(input);
+    $('data-dialog').close(); toast('关卡已加载，可以开始新的旅程。');
   } catch (error) { showDataError(error instanceof SyntaxError ? 'JSON 格式有误，请检查引号、逗号和括号。\n' + error.message : error.message); }
 });
 $('import-level').addEventListener('click', () => $('level-file').click());
@@ -203,7 +215,12 @@ $('open-project').addEventListener('click', async () => {
   catch (error) { $('project-content').textContent = '项目路线读取失败：' + error.message; }
 });
 $('close-project').addEventListener('click', () => $('project-dialog').close());
+$('open-editor').addEventListener('click', () => {
+  editor.open(level, selected >= 0 ? 'builtin:' + level.id : 'custom:' + level.id);
+  $('editor-toolbar').scrollIntoView({block:'start',behavior:'instant'});
+});
 document.addEventListener('keydown', (event) => {
+  if (editor.isEditing()) return;
   if ($('data-dialog').open || $('project-dialog').open || ['INPUT','TEXTAREA','SELECT','BUTTON','A'].includes(event.target.tagName) || event.repeat || event.ctrlKey || event.metaKey || event.altKey) return;
   if (event.code === 'Space') { event.preventDefault(); togglePlay(); }
   if (event.key.toLowerCase() === 'r') resetGame();
@@ -215,6 +232,11 @@ document.addEventListener('visibilitychange', () => {
 });
 function frame(now) {
   const dt = Math.min(100, Math.max(0, now - lastFrame)); lastFrame = now;
+  if (editor.isEditing()) {
+    accumulator = 0;
+    renderer.draw(editor.document(), editor.snapshot(), { time:0, reducedMotion:true });
+    requestAnimationFrame(frame); return;
+  }
   if (game.snapshot().status === 'running') {
     accumulator += dt * speed;
     const count = Math.min(24, Math.floor(accumulator / (1000 / 60)));
