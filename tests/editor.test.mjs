@@ -59,3 +59,17 @@ test('deleting an entity removes dependent rules and nested actions without dang
   assert.equal(validateLevel(level).valid, true);
   assert.ok(!JSON.stringify(level.rules).includes('gate'));
 });
+
+test('restoring corrupt rules rejects the whole workspace before the UI sees it', () => {
+  const corruptions = [
+    d => { d.rules[0].actions = [null]; },
+    d => { d.rules[0].actions = [{type:'after',ticks:1,actions:'broken'}]; },
+    d => { d.rules[0].if = {}; },
+    d => { d.rules[0].on.source = 'missing'; },
+    d => { d.entities[0].state = 'missing'; },
+  ];
+  for (const corrupt of corruptions) {
+    const level = structuredClone(levels[0]); corrupt(level);
+    assert.throws(() => createEditorStore(JSON.stringify({version:1,activeKey:'x',documents:[{key:'x',level}]})));
+  }
+});

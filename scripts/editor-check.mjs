@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { makeServer } from '../server.mjs';
+import { levels } from '../src/levels.js';
 
 const server=makeServer(); await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const browser=await chromium.launch({headless:true,...(!existsSync(chromium.executablePath())?{channel:'msedge'}:{})});
@@ -50,6 +51,20 @@ try {
   assert.equal(await page.locator('#editor-test').isDisabled(),true);
   assert.equal(await page.locator('#editor-errors').isVisible(),true);
   await page.locator('#editor-undo').click();assert.equal(await page.locator('#editor-test').isDisabled(),false);
+
+  // Import a shared, nested timer. Editing one state must preserve its scheduling tree.
+  const nested=structuredClone(levels[0]);nested.id='nested-timing';nested.name='时间树';
+  nested.rules[0].actions=[{type:'after',ticks:3600,actions:[
+    {type:'set',target:'bridge',state:'extended'},
+    {type:'after',ticks:3600,actions:[{type:'set',target:'bridge',state:'folded'}]},
+  ]}];
+  await page.locator('#open-data').click();await page.locator('#level-json').fill(JSON.stringify(nested));
+  await page.locator('#apply-level').click();
+  await page.locator('[data-action-state]').first().selectOption('folded');
+  const saved=await page.evaluate(()=>{const s=JSON.parse(localStorage.getItem('gothere.editor.v1'));return s.documents.find(d=>d.key===s.activeKey).level;});
+  nested.rules[0].actions[0].actions[0].state='folded';
+  assert.deepEqual(saved.rules,nested.rules,'changing a state preserves shared timers, nesting, and ordering');
+  assert.equal(await page.locator('#editor-test').isDisabled(),false);
   await mkdir(new URL('../artifacts/',import.meta.url),{recursive:true});
   await page.screenshot({path:new URL('../artifacts/editor.png',import.meta.url).pathname.replace(/^\/([A-Z]:)/,'$1'),fullPage:true});
   const phone=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
