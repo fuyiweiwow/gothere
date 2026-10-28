@@ -1,6 +1,6 @@
 # 一定要到达那里
 
-轻松诙谐的 2D 环境解谜与关卡编辑器。主角认准目的地就往前走，玩家改变环境，帮他到达那里。最终目标为 Steam；当前 v0.8.0 以独立纯逻辑编辑器验证创作模型，暂不投入正式美术和动画。
+轻松诙谐的 2D 环境解谜与关卡编辑器。主角认准目的地就往前走，玩家改变环境，帮他到达那里。最终目标为 Steam；当前 v0.8.1 以独立纯逻辑编辑器验证创作模型，暂不投入正式美术和动画。
 
 ## 运行与试玩
 
@@ -11,6 +11,8 @@
 路面支持多层高度，默认按点击高度放置，可上下左右拖动或切换固定高度。示例「生物行为与伤害」演示通用物体的接触事件调用攻击行为，再执行伤害动作；可编辑巡逻、唤醒、休息及攻击，无需专用敌人类型。
 
 选中物体后拖动选框节点调整大小；路面用左右节点调整长度。仓库「高度通道」创建带 `transport` 能力的普通物体，任何普通物体也可在属性中启用「高度移动能力」。上下端可单独拖动，在 24 单位内吸附同范围的路面；整个宽度都可连接路面，无需中心对齐。
+
+拖动前自动提交属性输入，松手后保留调整结果；鼠标移出画布也能结束操作，Esc 可取消预览。按 F1 查看 [Windows 编辑快捷键](docs/editor-shortcuts.md)，支持保存、撤销/重做、复制/剪切/粘贴、副本和重命名；方向键微调 1 单位，Shift+方向键调整 10 单位。输入框保留原生文字编辑操作。
 
 [原型游戏](https://fuyiweiwow.github.io/gothere/) · [离线游戏 HTML](https://fuyiweiwow.github.io/gothere/gothere-play.html)
 
@@ -71,6 +73,7 @@ npm run test:content
 npm run test:wires
 npm run test:workspace
 npm run test:logic-editor
+npm run test:interaction
 ```
 
 浏览器验证需安装开发依赖，可使用本机 Edge 或 `npx --no-install playwright install chromium`。测试产物写入不提交的 `artifacts/`。

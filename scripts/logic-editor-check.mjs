@@ -79,7 +79,7 @@ try{
   assert.equal((await draft()).platforms[1].y,240);assert.equal((await draft()).platforms[1].x,520);
   await page.locator('#editor-undo').click();assert.equal((await draft()).platforms[1].y,300);
   await page.locator('#editor-redo').click();assert.equal((await draft()).platforms[1].y,240);
-  await page.locator('[data-ref="platform:1"]').focus();await page.keyboard.press('ArrowDown');assert.equal((await draft()).platforms[1].y,250);
+  await page.locator('[data-ref="platform:1"]').focus();await page.keyboard.press('Shift+ArrowDown');assert.equal((await draft()).platforms[1].y,250);
   await page.locator('#object-y').fill('300');await page.locator('#object-y').press('Tab');assert.equal((await draft()).platforms[1].y,300);
   await page.locator('#placement-mode').selectOption('fixed');await page.locator('#placement-y').fill('360');await page.locator('#placement-y').press('Tab');
   await placeRoad(760,200);assert.equal((await draft()).platforms[2].y,360);

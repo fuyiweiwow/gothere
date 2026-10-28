@@ -110,6 +110,28 @@ export function deleteObject(level, ref) {
   pruneReferences(level);
 }
 
+/** Clipboard copies object definitions; scene wires are authored separately. */
+export function copyObject(level,ref) {
+  const value=ref?.type==='entity'?level.entities.find(e=>e.id===ref.id):ref?.type==='platform'?level.platforms[ref.index]:null;
+  return value?{type:ref.type,value:clone(value)}:null;
+}
+
+export function pasteObject(level,clipboard,offset=20) {
+  if(!clipboard||!['entity','platform'].includes(clipboard.type))throw new Error('请先复制一个物体或路面。');
+  const source=clone(clipboard.value);
+  const ref=addObject(level,clipboard.type==='platform'?'platform':source.kind,source.x,floorY(source));
+  if(clipboard.type==='platform')level.platforms[ref.index]=source;
+  else{
+    const oldId=source.id;source.id=ref.id;source.label=source.label.slice(0,27)+' 副本';
+    const rewrite=actions=>{for(const a of actions){if(a.type==='after')rewrite(a.actions);else if(a.target===oldId)a.target=ref.id;}};
+    for(const b of source.behaviors??[])rewrite(b.actions);
+    level.entities[level.entities.length-1]=source;
+  }
+  moveObject(level,ref,offset);
+  if(!shape(level))throw new Error('无法粘贴：物体引用的目标或行为在当前草稿中已不存在。');
+  return ref;
+}
+
 const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
 const channelConfig=e=>verticalTransport(e)??(e.kind==='lift'?e:null);
 
@@ -238,4 +260,15 @@ export function ruleWires(level) {
     else result.push({rule,path:next,source:level.rules[rule].on.source,target:a.target??'actor',type:a.type,behavior:a.behavior,delay,points:a.editor?.waypoints??[]});
   });};
   level.rules.forEach((r,index)=>visit(r.actions,index));return result;
+}
+
+/** Delete only the selected action branch; keep sibling wires and remove empty delays. */
+export function deleteWire(level,wire) {
+  const rule=level.rules[wire.rule];if(!rule)return;
+  const remove=(actions,depth)=>{
+    const index=wire.path[depth];if(!actions[index])return;
+    if(depth===wire.path.length-1)actions.splice(index,1);
+    else{remove(actions[index].actions,depth+1);if(!actions[index].actions.length)actions.splice(index,1);}
+  };
+  remove(rule.actions,0);if(!rule.actions.length)level.rules.splice(wire.rule,1);
 }
