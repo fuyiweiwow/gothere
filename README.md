@@ -1,105 +1,77 @@
 # 一定要到达那里
 
-一个轻松诙谐、以关卡数据驱动的 2D 环境解谜原型。主角是一个认准目的地就往前走的倔家伙；点击场景中的编号机关，或下方同名按钮，帮助他越过麻烦、到达目的地。
+轻松诙谐的 2D 环境解谜与关卡编辑器。主角认准目的地就往前走，玩家改变环境，帮他到达那里。最终目标为 Steam；当前 v0.6 专注极简玩法与创作模型，暂不投入正式美术和动画。
 
-最终目标：制作在 Steam 发行的原创解谜游戏与关卡创作工具。目前已完成三关可玩原型、JSON 规则、确定性回放和手机浏览器试玩。
+## 运行与试玩
 
-![游戏原型：旅行者、伸缩木桥和目的地旗帜](docs/images/gameplay.png)
+[在线试玩](https://fuyiweiwow.github.io/gothere/) · [下载离线 HTML](https://fuyiweiwow.github.io/gothere/gothere-play.html)
 
-下一里程碑为 **v0.3：关卡编辑器与十关验证**。先完成拖放、属性、事件配置、保存和立即试玩的创作闭环，用编辑器制作累计十张关卡，同时验证 Windows 独立包的发行路径。详细范围与验收标准见 [project.md](project.md)。
-
-## 启动
-
-需要 Node.js 22 或更新版本，无需安装依赖。
+开发需要 Node.js 22.12.0 或更新版本：
 
 ```sh
 node server.mjs
 ```
 
-浏览器打开 http://localhost:4173。也可以运行 `npm run dev`。
-
-服务器会显示局域网地址。局域网访问受网络隔离、防火墙和客户端影响；手机优先使用下面的公网试玩方式。
-
-## 手机与异地试玩
-
-```sh
-npm run share
-```
-
-命令会构建单文件版本，并用系统自带的 SSH 通过 [localhost.run](https://localhost.run/docs/) 提供临时 HTTPS 地址，不需要账号。手机在浏览器里打开输出的地址即可，不需要与电脑连接同一 Wi-Fi。试玩期间需要保持电脑、网络和这个命令运行；重新运行可能得到不同地址。
-
-分享服务器只提供游戏页面和 `/play.html` 下载，不开放源码目录、测试产物或内部项目文档。地址记录在 artifacts/share.json；单文件内置的是公开试玩说明。
-
-## 保存或分发单文件版本
+桌面浏览器打开 http://localhost:4173 。点击「出发！」操作机关，可暂停、单步、重置及回放。十张关卡用于时序回归，另有三个可编辑示例：拿物过门、区域触发巡逻、三层梯子与电梯。
 
 ```sh
 npm run build
 ```
 
-生成 dist/gothere-play.html 和 dist/index.html，包含所有画面、样式、逻辑和三张地图。现代桌面浏览器可以直接打开 HTML 离线试玩，也可以将 dist/index.html 放到静态网站托管服务。手机优先使用 HTTPS 链接；不同系统的文件预览器对本地 HTML 执行的支持不同。
+生成 `dist/gothere-play.html` 和 `dist/index.html`，可直接用桌面浏览器离线打开，也可静态托管。移动端暂不作为交付前提。临时分享可用 `npm run share`，再用 `npm run test:share` 验证实际地址；隧道不保证持续有效。
 
-## 操作
+`main` 为发布分支。推送后，GitHub Actions 先运行内核与数据测试，再构建单文件 HTML 并发布到 GitHub Pages；站点只包含试玩首页与离线 HTML。工坊草稿保存在当前浏览器中，可导出 JSON 备份。
 
-- 点击「出发！」，然后轻点编号机关。机关按钮也可用键盘聚焦后操作。
-- 「暂停一下」停止时间；暂停时可单步前进。点击 1× 可切换 2×、4×。
-- 空格：开始/暂停；R：重置；1、2、3：切换关卡。焦点在按钮、输入框或对话框时保留原生键盘行为。
-- 「回放本次」从头播放当前关卡已执行的操作。回放期间机关交互锁定。
-- 「需要一点提示？」显示本关的时序提示。
-- 「关卡数据」支持 JSON 编辑、文件导入、校验、加载、导出。加载无效数据不会替换当前关卡。
+## 创作模型
 
-## 三张关卡
+- 每个物体可定义多个命名行为，每个行为由一组动作组成，支持嵌套延迟。
+- 工坊左侧地图，右侧「仓库 / 物体 / 逻辑 / 地图」四个页签；仓库支持类别和关键词筛选，并可选中场景已有物体。
+- 选中物体查看类型、标识、属性、事件输出与行为输入，每个槽显示已有连接并可发起接线。
+- 「连线」工具依次选择事件起点、目标物体和目标行为。支持一对多、多对一、物体连接自身；同一起点可以继续连到其他目标。
+- 行为完成也能成为下一条线的起点。连线默认直角折线；双击线添加转接点，拖动或用方向键整理，双击节点或 Delete 删除。选中线可恢复自动布线、查看规则，也可显示全部 / 选中物体相关 / 隐藏连线。虚线表示延迟。规则面板可设置条件、动作和声明顺序，删除规则即删除对应连线。
+- 外观、巡逻、接触效果、行为分别定义。斧子、鳄鱼或方块不决定玩法；危险来自通用接触致命效果或伤害动作。
+- 「拿起」改变主角与物体的持有关系。持有时暂停巡逻和对主角的接触；行为仍可调用。只有一个手持槽；放下保留物体状态。空手/持有指定物体可作为条件。
+- 主角持续行走。梯子显式改变高度；电梯到位才能登车，没有车不会等待，闲置车不会让主角停住。缺少支撑立即掉落失败，非终点边界失败。
+- 工坊支持放置、拖动、坐标和楼层编辑、撤销重做、多个草稿、保存恢复、JSON 导入导出。试玩与编辑文档隔离。
+- 通用物件可挂载 PNG/JPEG/WebP 图片，随 JSON 和离线文件携带；动画绑定后置。
 
-1. 桥呢？桥呢！：开关改变木桥状态，验证点击和因果。
-2. 借过一下：风扇仅停 4 秒；踩下压力板后自动开门。
-3. 赶个巧：木桥保持 5 秒，风扇保持 4 秒，需要分时操作。
+完整字段与执行语义见 [内容模型](docs/content-model.md)，方向与下一步见 [project.md](project.md)。JSON 是当前 DSL 的数据表达；文本语法、可复用预设和程序生成尚待实现。旧 `hazard` 数据仅保留导入兼容，新创作使用通用物件。
 
-每张地图都可以不依赖画面运行，没有单独的关卡专用代码。
+## Windows 开发测试包
 
-## 目录
+```sh
+npm ci
+npx --no-install install-electron
+npm run build:windows
+npm run test:windows
+```
 
-- `project.md`：项目愿景、架构与后续路线。
-- `src/core/schema.js`：第一版 JSON DSL 的结构、状态和引用校验。
-- `src/core/engine.js`：独立模拟、60 tick/秒、延迟动作、胜负、重置和确定性回放。
-- `src/levels.js`：三张手工关卡，全部使用相同的实体与动作。
-- `src/scene.js`：Canvas 场景与原创程序绘制角色。
-- `src/main.js`：界面、输入、固定步长驱动和关卡数据面板。
-- `tests/`：核心行为、关卡解法、验证错误与 HTTP 测试。
-- `scripts/build.mjs`：无第三方构建依赖的单文件打包。
-- `scripts/share.mjs`：只转发单文件游戏的临时 HTTPS 试玩。
+生成 `dist/windows/Gothere-v0.6.0-win-x64.zip`、SHA-256 和 `latest.json`。解压整个目录后运行 `Gothere.exe`，无需 Node.js 或联网。F11 全屏，草稿保存在 `%APPDATA%\Gothere`。包尚未签名，第二台干净 Windows 机器和 Steamworks 发行验证仍待完成。
 
-## DSL 语义
+自动测试默认隐藏运行，使用隔离存档；浏览器测试无头运行，不弹出桌面窗口。只有主动指定 `npm run test:windows -- --visible-performance` 才会进行可见窗口测试。
 
-当前空间为 1200×640，地面高度 440；角色只向右自动行走，speed 单位为世界单位/秒。地面由水平区间组成，桥延伸时补足地面。渲染器可以完全替换。
+## 开发与验证
 
-实体类型：switch（off/on）、bridge（folded/extended）、hazard（running/stopped）、gate（closed/open）、plate（idle/pressed）。
-
-规则含 `on: { type: "click" | "enter", source: "entity-id" }`，可选 `if: [{entity, state}]`，和 `actions`。click 只接受开关或危险物；enter 只接受压力板。动作支持 `{type:"set",target,state}` 和 `{type:"after",ticks,actions}`。未知能力、非法引用、重复 ID 和错误状态会在加载前拒绝。
-
-每个 tick：推进时钟 → 到期动作按 due/order 执行 → 点击按记录顺序执行 → 角色前进 → 触发首次踩下的压力板 → 检查连续地面支撑、门和危险物 → 检查终点。规则按声明顺序执行，后续规则可以观察前面规则的状态变化。延迟相对动作实际执行的 tick 计算；after 不支持取消，同一目标的到期写入按上述顺序依次生效。条件在规则触发时检查，延迟动作不重新判断条件。
-
-输入只在 running 状态接收，并在下一个 tick 处理。暂停不处理输入；单步可从 ready/paused 执行一个 tick。每局上限 36,000 tick；暂停、切关、重置和倍速均不改变模拟规则。这里的确定性面向同一份关卡数据和兼容的 JS 运行时，不是跨版本物理引擎的承诺。
-
-运行时最多执行 1,024 个动作/tick，并最多保留 256 个待执行计时器。超过预算会结束当前局并显示原因，重置后可以继续测试，避免重复触发的导入规则堆积任务。
-
-## 验证
+原生 JavaScript ES modules + Canvas；模拟与渲染分离，固定 60 tick/秒。编辑器、JSON 与未来生成器读写同一数据，连线只是规则的可视化，没有第二份图数据。关卡不执行任意 JavaScript。
 
 ```sh
 npm test
 npm run test:coverage
-```
-
-核心测试使用 Node 内置 test，无需安装依赖。覆盖率阈值针对可复用的 `src/core/`，画面和交互通过浏览器流程测试验证。
-
-浏览器测试脚本使用 Playwright（本次验证版本 1.64.1）。若环境没有提供，可单独安装开发测试工具并下载 Chromium：
-
-```sh
-npm install --no-save playwright@1.64.1
-npx playwright install chromium
 npm run test:e2e
+npm run test:editor
+npm run test:content
+npm run test:wires
+npm run test:workspace
 ```
 
-Windows 已安装标准位置的 Edge 时，测试脚本可以直接使用它；这种情况下可以跳过 Chromium 下载。测试截图保存在 artifacts/。
+浏览器验证需安装开发依赖，可使用本机 Edge 或 `npx --no-install playwright install chromium`。测试产物写入不提交的 `artifacts/`。
 
-分享命令运行期间，可用 `npm run test:share` 检查真实公网 HTTPS 链接，并通过手机视口的触控操作实际通关。`npm run test:e2e` 也覆盖断网后从本地 HTML 直接试玩，以及公开预览服务器的内容安全策略。
+- `src/core/`：DSL 校验、动作、确定性模拟与回放。
+- `src/editor/`：草稿历史、引用维护、属性/行为/连线编辑。
+- `src/examples.js` / `src/levels.js`：三张创作示例与十张时序关卡。
+- `src/scene.js` / `src/main.js`：表现、输入及固定步长驱动。
+- `desktop/` / `scripts/`：桌面容器、单文件打包及后台验收。
 
-原型不包含拖放编辑器和随机地图生成；后续阶段见 project.md。
+`test:editor` 从空白重建十关并验证解法；`test:content` 验证资源挂载和多层路线；`test:wires` 从控件创作行为和连线，验证多路连接、完成事件、持有/放下、改名/删除/撤销、重载、回放及离线运行。
+
+`test:workspace` 验证左右布局、仓库过滤、物体槽接线、转接点拖动/删除/历史、保存重载与 JSON/离线一致性。

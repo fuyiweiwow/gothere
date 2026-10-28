@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { chromium } from 'playwright';
 import { makeServer } from '../server.mjs';
 import { levels } from '../src/levels.js';
+import { solutions } from '../tests/solutions.mjs';
 import { buildPortable } from './build.mjs';
 
 await mkdir(new URL('../artifacts/', import.meta.url), { recursive: true });
@@ -23,6 +24,7 @@ async function open(context, url = base) {
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   await page.clock.install({ time: new Date('2026-10-26T12:00:00Z') });
+  await page.clock.pauseAt(new Date('2026-10-26T12:00:01Z'));
   await page.goto(url, { waitUntil:'networkidle' });
   await page.locator('.hotspot').first().waitFor();
   await settle(page, 100);
@@ -38,7 +40,7 @@ try {
   check(!/梦游|梦醒|晚安/.test(await page.locator('body').innerText()), 'sleepwalking setting is removed');
   await page.screenshot({ path:artifact('desktop.png'),fullPage:true });
   check(await status(page) === '准备出发', 'initial scene is ready');
-  check(await page.locator('.level-tab').count() === 3, 'three levels available');
+  check(await page.locator('.level-tab').count() === levels.length, 'all ten levels available');
   await page.locator('#speed').click(); await page.locator('#speed').click();
   await page.getByRole('button',{name:'出发！',exact:true}).click();
   await page.getByRole('button',{name:'操作：木桥开关',exact:true}).click();
@@ -56,17 +58,30 @@ try {
 
   await page.getByRole('button',{name:'关卡 2：借过一下',exact:true}).click();
   await page.locator('#play').click(); await settle(page, 1250);
-  await page.getByRole('button',{name:'操作：旧风扇',exact:true}).click();
+  await page.getByRole('button',{name:'操作：爱挡路的箱子',exact:true}).click();
   await settle(page, 3000);
   check(await status(page) === '终于到了', 'timed hazard and pressure plate work');
   await page.getByRole('button',{name:'关卡 3：赶个巧',exact:true}).click();
   await page.locator('#play').click(); await settle(page, 750);
   await page.getByRole('button',{name:'操作：限时桥开关',exact:true}).click();
   await settle(page, 1333);
-  await page.getByRole('button',{name:'操作：旧风扇',exact:true}).click();
+  await page.getByRole('button',{name:'操作：爱挡路的箱子',exact:true}).click();
   await settle(page, 2100);
   check(await status(page) === '终于到了', 'combined timed level can be completed');
   console.log('PASS desktop: second and third level solutions');
+  for (const [index,item] of levels.entries()) {
+    if(index<3)continue;
+    await page.locator('.level-tab').nth(index).click();await page.locator('#play').click();
+    let time=0;
+    for(const event of solutions[item.id]) {
+      const target=(event.tick-1)*1000/60/4;
+      await settle(page,Math.max(0,target-time));time=target;
+      await page.locator('[data-action="'+event.source+'"]').click();
+    }
+    await settle(page,4500-time);
+    check(await status(page)==='终于到了','browser solution: '+item.id);
+  }
+  console.log('PASS desktop: all ten level solutions');
 
   await page.locator('#reset').click(); await page.locator('#play').click(); await settle(page, 250);
   await page.locator('#play').click();
@@ -118,7 +133,7 @@ try {
   await settle(file,4200);
   check(await status(file)==='终于到了','single HTML works offline without a server');
   await file.locator('#open-project').tap();
-  await file.locator('#project-content').filter({hasText:'项目愿景'}).waitFor();
+  await file.locator('#project-content').filter({hasText:'怎么玩'}).waitFor();
   await file.locator('#close-project').tap();
   await file.screenshot({path:artifact('portable-mobile.png'),fullPage:true});
   await portable.close();

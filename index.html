@@ -15,8 +15,8 @@
       <svg viewBox="0 0 40 40" fill="none" aria-hidden="true"><path d="M10 34V6m1 2c9-7 12 8 23 0v16c-11 8-14-7-23 0" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="35" r="3" fill="currentColor"/></svg>
       <span>一定要到达那里<span class="brand-cn">GOTHERE</span></span>
     </a>
-    <nav aria-label="主导航"><span class="nav-active">游玩实验室</span><button class="nav-link" id="open-data">关卡数据 <span aria-hidden="true">↗</span></button></nav>
-    <span class="version"><i></i> FIRST LITTLE STEPS <span>v0.2</span></span>
+    <nav aria-label="主导航"><span class="nav-active">游玩实验室</span><button class="nav-link" id="open-editor">关卡工坊</button><button class="nav-link" id="open-data">关卡数据 <span aria-hidden="true">↗</span></button></nav>
+    <span class="version"><i></i> MAKE A LITTLE TROUBLE <span>v0.6</span></span>
   </header>
 
   <main class="page">
@@ -24,12 +24,15 @@
       <div><p class="eyebrow"><span></span> A SMALL QUEST. A BIG DETERMINATION.</p><h1 id="page-title">一定要<br>到达<span class="title-mark">那里。</span></h1></div>
       <div class="intro-note">
         <svg class="note-star" viewBox="0 0 70 70" fill="none" aria-hidden="true"><path d="M35 4c2 23 8 29 30 31-22 2-28 8-30 31C33 43 27 37 5 35 27 33 33 27 35 4Z" stroke="currentColor" stroke-width="1.4"/><path d="m58 4 1.5 5.5L65 11l-5.5 1.5L58 18l-1.5-5.5L51 11l5.5-1.5Z" fill="currentColor"/></svg>
-        <p>他认准了一个地方，谁也劝不住。</p><p>桥没了？门关了？风又起来了？<br>搭把手，让这个倔家伙一路到达。</p>
+        <p>他认准了一个地方，谁也劝不住。</p><p>桥没了？门关了？路又断了？<br>搭把手，让这个倔家伙一路到达。</p>
         <span class="handwritten">A little stubborn. A lot of adventure.</span>
       </div>
     </section>
 
     <section aria-label="选择关卡" class="level-tabs" id="level-tabs"></section>
+    <section class="example-strip" aria-label="物件与多层示例"><span>新机制试验场</span><div id="content-examples"></div><p>可直接试玩，也可打开工坊修改外观、行为和楼层。</p></section>
+    <div id="editor-workspace">
+    <section id="editor-toolbar" class="editor-toolbar" aria-label="创作工具" hidden></section>
 
     <section class="game-shell" aria-label="赶路关卡">
       <div class="viewport" id="viewport">
@@ -37,6 +40,7 @@
         <div class="scene-heading"><span class="scene-kicker">ONE VERY DETERMINED LITTLE JOURNEY</span><h2 id="scene-title">桥呢？桥呢！</h2></div>
         <div class="scene-tag"><span class="scene-dot"></span><span id="scene-tag-text">前方有点情况</span></div>
         <div class="hotspots" id="hotspots"></div>
+        <div id="editor-overlay" class="editor-overlay" aria-label="点击放置或拖动机关" hidden></div>
         <p class="stage-note" id="stage-note"><span aria-hidden="true">✦</span> 认准那里了。准备好就出发！</p>
         <div class="result-panel" id="result-panel" hidden>
           <span class="result-symbol" id="result-symbol" aria-hidden="true">⚑</span>
@@ -58,6 +62,8 @@
       <div class="progress-row"><span>到达进度</span><div class="progress-track" role="progressbar" aria-label="到达进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress-track"><div id="progress-fill"></div></div><span id="progress-label">0%</span></div>
     </section>
 
+    <section id="editor-panel" class="editor-panel" aria-label="关卡编辑器" hidden></section>
+    </div>
     <section class="below-game">
       <div class="guide-panel">
         <div class="section-heading"><h2>搭把手，别让他白忙活。</h2><button class="text-button" id="hint" aria-expanded="false">需要一点提示？ <span aria-hidden="true">↗</span></button></div>
@@ -75,7 +81,7 @@
     <div class="dialog-heading"><div><p class="eyebrow">UNDER THE LITTLE WORLD</p><h2 id="data-title">关卡数据</h2></div><button class="icon-button" id="close-data" aria-label="关闭关卡数据">×</button></div>
     <p class="dialog-intro">每段旅程都由一份 JSON 描述。调整机关、规则或时序，加载后就能试玩。</p>
     <label class="editor-label" for="level-json">关卡 JSON <span>schemaVersion 1</span></label>
-    <textarea id="level-json" spellcheck="false" maxlength="131072" aria-describedby="data-error"></textarea>
+    <textarea id="level-json" spellcheck="false" maxlength="262144" aria-describedby="data-error"></textarea>
     <p id="data-error" class="data-error" role="alert" hidden></p>
     <div class="dialog-actions"><div><button class="button secondary" id="import-level">导入文件</button><button class="button secondary" id="export-level">导出关卡</button></div><button class="button primary" id="apply-level">加载并试玩 <span aria-hidden="true">→</span></button></div>
     <input type="file" id="level-file" accept=".json,application/json" hidden>

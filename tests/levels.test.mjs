@@ -2,12 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { levels } from '../src/levels.js';
 import { createSimulation, replayRecording, validateLevel } from '../src/core/engine.js';
+import { solutions } from './solutions.mjs';
 
-const solutions = [
-  [{ tick: 1, source: 'lever' }],
-  [{ tick: 301, source: 'fan' }],
-  [{ tick: 181, source: 'lever' }, { tick: 501, source: 'fan' }],
-];
+test('ten authored levels each have a known recording',()=>{
+  assert.equal(levels.length,10);assert.deepEqual(new Set(levels.map(l=>l.id)),new Set(Object.keys(solutions)));
+});
 for (const [index, level] of levels.entries()) {
   test(level.name + ': validates and cannot be won without intervention', () => {
     assert.equal(validateLevel(level).valid, true);
@@ -17,13 +16,30 @@ for (const [index, level] of levels.entries()) {
   test(level.name + ': known solution wins and exactly replays', () => {
     const game = createSimulation(level); game.start();
     for (let tick = 1; tick <= 2000 && game.snapshot().status === 'running'; tick++) {
-      for (const input of solutions[index].filter((item) => item.tick === tick)) assert.equal(game.click(input.source), true);
+      for (const input of solutions[level.id].filter((item) => item.tick === tick)) assert.equal(game.click(input.source), true);
       game.step();
     }
     assert.equal(game.snapshot().status, 'won');
     assert.deepEqual(replayRecording(level, game.recording()).snapshot(), game.snapshot());
   });
 }
+test('new causal combinations require ordering, preparation, repeated timing and state-dependent input',()=>{
+  const attempts={
+    paperwork:[{tick:1,source:'doorbell'},{tick:31,source:'permit'}],
+    'slow-service':[{tick:260,source:'lever'}],
+    'borrow-the-bridge':[{tick:1,source:'west'},{tick:120,source:'east'}],
+    'another-minute':[{tick:360,source:'lever'}],
+    'while-it-is-quiet':[{tick:1,source:'lever'},{tick:121,source:'fan'}],
+  };
+  for(const [id,inputs] of Object.entries(attempts)){
+    const level=levels.find(l=>l.id===id);assert.ok(level,id);
+    const game=createSimulation(level);game.start();
+    for(let tick=1;tick<=2000 && game.snapshot().status==='running';tick++){
+      for(const input of inputs.filter(i=>i.tick===tick))game.click(input.source);game.step();
+    }
+    assert.equal(game.snapshot().status,'lost',id+' rejects the shortcut');
+  }
+});
 test('activating both timed mechanisms at the beginning is not a solution', () => {
   const game = createSimulation(levels[2]); game.start(); game.click('lever'); game.click('fan'); game.step(2000);
   assert.equal(game.snapshot().status, 'lost');
