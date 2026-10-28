@@ -1,3 +1,5 @@
+import { verticalTransport } from './core/transport.js';
+
 const C = { ink:'#405c43', grass:'#9bac7b', land:'#a6b48b', dark:'#667f59', cream:'#faf4da', wood:'#b9a077', rust:'#b9846e' };
 const noise = (i) => { const value = Math.sin(i * 127.1 + 311.7) * 43758.5453; return value - Math.floor(value); };
 
@@ -174,8 +176,13 @@ export function createRenderer(canvas) {
     ctx.restore();
   }
   function connector(e) {
-    const x=e.x,y=e.y,top=e.toY,w=e.width;
-    if(e.kind==='ladder') {
+    const t=verticalTransport(e),x=e.x,y=e.y,top=(t??e).toY,w=e.width;
+    if(t&&e.kind==='object'){
+      ctx.save();if(e.state!=='active')ctx.globalAlpha=.35;
+      for(const px of [x,x+w])line(px,top,px,y,'#829378',2);
+      for(const py of [top,y])line(x,py,x+w,py,'#829378',4);
+      ctx.fillStyle='#59734c';ctx.font='22px sans-serif';ctx.fillText('↕',x+w/2-8,(top+y)/2);ctx.restore();
+    }else if(e.kind==='ladder') {
       ctx.save();if(e.state==='disabled')ctx.globalAlpha=.35;
       for(const px of [x+5,x+w-5])line(px,top-8,px,y,'#9c8562',5);
       for(let py=top+10;py<y;py+=22)line(x+5,py,x+w-5,py,'#c0aa7b',5);
@@ -194,7 +201,7 @@ export function createRenderer(canvas) {
       background(time);
       tree(47,433,.9);tree(1170,435,.8);
       for(const p of level.platforms)platform(p);
-      for(const e of Object.values(snapshot.entities))if(['ladder','lift'].includes(e.kind))connector(e);
+      for(const e of Object.values(snapshot.entities))if(verticalTransport(e)||e.kind==='lift')connector(e);
       for(const e of Object.values(snapshot.entities))if(e.kind==='bridge')bridge(e);
       destination(level.goal);
       for(const e of Object.values(snapshot.entities)){
@@ -202,7 +209,7 @@ export function createRenderer(canvas) {
         else if(e.kind==='hazard')prop({...e,appearance:{skin:'crate'},state:e.state==='stopped'?'inactive':'active'});
         else if(e.kind==='gate')gate(e);
         else if(e.kind==='plate')plate(e);
-        else if(e.kind==='object' && snapshot.actor.holding!==e.id)prop(e);
+        else if(e.kind==='object' && !verticalTransport(e) && snapshot.actor.holding!==e.id)prop(e);
       }
       walker(snapshot,time,fallAge,reducedMotion);
       if(snapshot.actor.holding)prop(snapshot.entities[snapshot.actor.holding],true);

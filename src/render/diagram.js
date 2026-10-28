@@ -1,5 +1,6 @@
 import { floorY } from '../core/schema.js';
 import { diagramBounds } from '../core/geometry.js';
+import { verticalTransport, landingX } from '../core/transport.js';
 
 const colors = { actor:'#39c3bd', goal:'#e3b454', switch:'#a6a0f0', object:'#8baad1', zone:'#83998b',
   gate:'#d7ad75', bridge:'#d7ad75', ladder:'#9cacc1', lift:'#9cacc1', plate:'#a6a0f0', hazard:'#d88080' };
@@ -20,7 +21,12 @@ export function drawDiagram(ctx, level, snapshot) {
     const b=diagramBounds(e.kind,e), inactive=['inactive','disabled','stopped','folded','open'].includes(e.state);
     const color=colors[e.kind]??'#9cacc1';ctx.save();ctx.strokeStyle=color;ctx.fillStyle=color+'25';ctx.lineWidth=2;
     if(inactive)ctx.setLineDash([6,4]);ctx.fillRect(b.x,b.y,b.width,b.height);ctx.strokeRect(b.x,b.y,b.width,b.height);
-    if(e.kind==='ladder')for(let y=e.toY;y<floorY(e);y+=16){ctx.beginPath();ctx.moveTo(b.x,y);ctx.lineTo(b.x+b.width,y);ctx.stroke();}
+    const transport=verticalTransport(e);
+    if(transport){
+      const cx=b.x+b.width/2,cy=(transport.toY+floorY(e))/2;ctx.setLineDash([5,5]);ctx.beginPath();ctx.moveTo(cx,transport.toY);ctx.lineTo(cx,floorY(e));ctx.stroke();ctx.setLineDash([]);
+      ctx.font='22px sans-serif';ctx.fillStyle=color;ctx.fillText('↕',cx-9,cy+7);
+      for(const y of [transport.toY,floorY(e)]){ctx.fillStyle=landingX(level,e,y)===null?'#e58b88':'#60d1c7';ctx.fillRect(b.x-2,y-3,b.width+4,6);}
+    }
     if(e.kind==='lift'){ctx.setLineDash([]);ctx.fillStyle=color;ctx.fillRect(e.x,(e.carY??(e.state==='upper'?e.toY:floorY(e)))-5,b.width,10);}
     if(e.contact?.effect==='lethal'&&!inactive){ctx.fillStyle='#e58b88';ctx.font='bold 16px sans-serif';ctx.fillText('!',b.x+b.width/2-3,b.y+20);}
     ctx.setLineDash([]);ctx.fillStyle=color;ctx.font='12px ui-monospace, Consolas, monospace';ctx.fillText(e.label,b.x,b.y-10);

@@ -1,4 +1,5 @@
 import { validateLevel, floorY, eventTypes } from './schema.js';
+import { verticalTransport, transportEnabled, landingX } from './transport.js';
 export { validateLevel } from './schema.js';
 export const TICKS_PER_SECOND = 60;
 const clone = (value) => structuredClone(value);
@@ -42,7 +43,7 @@ export function createSimulation(input) {
         }
       } else if (action.type==='hold') {
         const e=state.entities[action.target], a=state.actor;
-        if (a.holding===null && e.state==='active' && a.y===e.y && a.x+24>=e.x && a.x-24<=e.x+e.width) {
+        if (a.holding===null && a.connector!==e.id && e.state==='active' && a.y===e.y && a.x+24>=e.x && a.x-24<=e.x+e.width) {
           a.holding=e.id;emit('拿上了'+e.label);
         }
       } else if (action.type==='drop') {
@@ -104,7 +105,7 @@ export function createSimulation(input) {
   };
   const lose = (reason, message) => { state.status = 'lost'; state.reason = reason; emit(message, 'lost'); };
   const approach=(from,to,amount)=>from<to?Math.min(to,from+amount):Math.max(to,from-amount);
-  const syncHeld=()=>{const a=state.actor,e=a.holding===null?null:state.entities[a.holding];if(e){e.x=a.x+a.direction*18-e.width/2;e.y=a.y;}};
+  const syncHeld=()=>{const a=state.actor,e=a.holding===null?null:state.entities[a.holding];if(e){e.x=a.x+a.direction*18-e.width/2;const t=verticalTransport(e);if(t)t.toY+=a.y-e.y;e.y=a.y;}};
   function updateMotion() {
     for(const e of Object.values(state.entities)) {
       e.previousX=e.x;
@@ -118,8 +119,9 @@ export function createSimulation(input) {
     }
   }
   function finishConnection(e) {
-    const a=state.actor;
-    a.direction=a.y===e.toY?(e.upperDirection??a.direction):(e.lowerDirection??a.direction);
+    const a=state.actor,t=verticalTransport(e)??e;
+    if(verticalTransport(e))a.x=landingX(level,e,a.y,a.x)??a.x;
+    a.direction=a.y===t.toY?(t.upperDirection??a.direction):(t.lowerDirection??a.direction);
     a.mode='walking';a.connector=null;connectorLock=e.id;emit('经过了'+e.label);trigger('arrive',e.id);
   }
   function moveActor() {
@@ -127,7 +129,7 @@ export function createSimulation(input) {
     if(a.connector) {
       const e=state.entities[a.connector];
       if(a.mode==='climbing') {
-        a.y=approach(a.y,a.destinationY,e.speed/60);
+        a.y=approach(a.y,a.destinationY,verticalTransport(e).speed/60);
         if(a.y===a.destinationY){delete a.destinationY;finishConnection(e);}
       } else {
         a.y=e.carY;
@@ -136,7 +138,7 @@ export function createSimulation(input) {
           delete a.boardY;delete a.departed;finishConnection(e);
         }
       }
-      return [from,from,false];
+      return [a.x,a.x,false];
     }
     if(connectorLock) {
       const e=state.entities[connectorLock];
@@ -144,14 +146,15 @@ export function createSimulation(input) {
     }
     let to=Math.round((from+a.direction*level.actor.speed/60)*1e6)/1e6;
     if(a.y===floorY(level.goal) && (level.goal.x-from)*a.direction>=0 && (level.goal.x-to)*a.direction<=0)to=level.goal.x;
-    const connector=Object.values(state.entities).filter(e=>e.id!==connectorLock &&
-      (e.kind==='ladder' || (e.kind==='lift' && e.carY===a.y)) &&
-      (a.y===e.y || a.y===e.toY) && (e.kind!=='ladder' || e.state==='enabled') &&
-      (e.x+e.width/2-from)*a.direction>=0 && (e.x+e.width/2-to)*a.direction<=0)
-      .sort((a,b)=>Math.abs(a.x+a.width/2-from)-Math.abs(b.x+b.width/2-from))[0];
-    if(connector) {
-      to=connector.x+connector.width/2;a.x=to;a.connector=connector.id;
-      if(connector.kind==='ladder'){a.mode='climbing';a.destinationY=a.y===connector.y?connector.toY:connector.y;}
+    const candidate=Object.values(state.entities).filter(e=>e.id!==connectorLock&&e.id!==a.holding&&
+      (transportEnabled(e)||(e.kind==='lift'&&e.carY===a.y))&&(a.y===e.y||a.y===(verticalTransport(e)??e).toY))
+      .map(e=>({entity:e,x:verticalTransport(e)?landingX(level,e,a.y,e.kind==='object'?from:e.x+e.width/2):e.x+e.width/2}))
+      .filter(c=>c.x!==null&&(c.x-from)*a.direction>=0&&(c.x-to)*a.direction<=0)
+      .sort((a,b)=>Math.abs(a.x-from)-Math.abs(b.x-from))[0];
+    if(candidate) {
+      const connector=candidate.entity,t=verticalTransport(connector);
+      to=candidate.x;a.x=to;a.connector=connector.id;
+      if(t){a.mode='climbing';a.destinationY=a.y===connector.y?t.toY:connector.y;}
       else {
         a.mode='riding';a.boardY=a.y;emit('搭上了'+connector.label);trigger('board',connector.id);
         if((connector.state==='upper'?connector.toY:connector.y)===a.y){
@@ -181,7 +184,7 @@ export function createSimulation(input) {
     syncHeld();
     const touching=new Set();
     for (const entity of Object.values(state.entities)) {
-      const sameFloor=entity.y===a.y || (['ladder','lift'].includes(entity.kind) && entity.toY===a.y) ||
+      const sameFloor=entity.y===a.y || ((verticalTransport(entity)||entity.kind==='lift')&&(verticalTransport(entity)??entity).toY===a.y) ||
         (entity.kind==='lift' && entity.carY===a.y);
       if(entity.id===a.holding || !sameFloor || (entity.kind==='object' && entity.state!=='active') || (entity.kind==='zone' && entity.state!=='enabled'))continue;
       const left=Math.min(from,to),right=Math.max(from,to);
@@ -221,7 +224,7 @@ export function createSimulation(input) {
     click(source) {
       if (state.status !== 'running' || pending.length >= 32) return false;
       const entity = state.entities[source];
-      if (!entity || !eventTypes(entity.kind).includes('click')) return false;
+      if (!entity || !eventTypes(entity).includes('click')) return false;
       pending.push(source); return true;
     },
     step(count = 1) {

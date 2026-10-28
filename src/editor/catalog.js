@@ -6,7 +6,7 @@ export const CATALOG = [
   {kind:'plate',name:'压力板',group:'interaction',icon:'▱',description:'踩下时发出事件。',keywords:'踩踏 plate'},
   {kind:'gate',name:'小门',group:'traversal',icon:'Π',description:'关闭时阻挡，开启后可通过。',keywords:'门 gate'},
   {kind:'bridge',name:'木桥',group:'traversal',icon:'═',description:'展开时提供支撑。',keywords:'桥 bridge'},
-  {kind:'ladder',name:'梯子',group:'traversal',icon:'≡',description:'连接上下两层。',keywords:'爬梯 ladder'},
+  {kind:'ladder',name:'高度通道',group:'traversal',icon:'↕',description:'带高度移动能力的通用物体。连接上下路面，端点可拖动吸附。',keywords:'梯子 爬梯 ladder z 上下 移动 通道'},
   {kind:'lift',name:'电梯',group:'traversal',icon:'↕',description:'到位才能登车，登车事件可启动运输。',keywords:'升降 lift'},
 ];
 export const CATEGORIES = [['all','全部'],['basic','基础'],['objects','物件'],['interaction','交互'],['traversal','通行']];

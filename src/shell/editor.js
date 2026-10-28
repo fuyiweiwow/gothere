@@ -30,7 +30,7 @@ function runPreview(level,{run=true}={}){
   previewLevel=level;preview=createPreview(level);accumulator=0;
   if(run)preview.start();
   const inputs=$('runtime-inputs');inputs.replaceChildren();
-  for(const e of level.entities.filter(e=>eventTypes(e.kind).includes('click'))){const b=document.createElement('button');b.className='button secondary';b.textContent='点击：'+e.label;b.dataset.source=e.id;b.addEventListener('click',()=>{if(preview.click(e.id)){notify('点击已排队：'+e.label);updateDebug();}});inputs.append(b);}
+  for(const e of level.entities.filter(e=>eventTypes(e).includes('click'))){const b=document.createElement('button');b.className='button secondary';b.textContent='点击：'+e.label;b.dataset.source=e.id;b.addEventListener('click',()=>{if(preview.click(e.id)){notify('点击已排队：'+e.label);updateDebug();}});inputs.append(b);}
   if(!inputs.children.length)inputs.textContent='没有点击事件源。';
   drawDiagram(ctx,level,preview.snapshot());updateDebug();
 }
@@ -52,7 +52,7 @@ $('preview-reset').addEventListener('click',()=>{preview.reset();accumulator=0;d
 canvas.addEventListener('click',event=>{
   if(editor.isEditing()||!preview)return;
   const box=canvas.getBoundingClientRect(),x=(event.clientX-box.left)/box.width*1200,y=(event.clientY-box.top)/box.height*640;
-  const entity=Object.values(preview.snapshot().entities).reverse().find(e=>eventTypes(e.kind).includes('click')&&x>=e.x-8&&x<=e.x+e.width+8&&Math.abs(y-e.y)<64);
+  const entity=Object.values(preview.snapshot().entities).reverse().find(e=>eventTypes(e).includes('click')&&x>=e.x-8&&x<=e.x+e.width+8&&Math.abs(y-e.y)<64);
   if(entity&&preview.click(entity.id))updateDebug();
 });
 function frame(now){

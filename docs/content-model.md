@@ -42,7 +42,7 @@ appearance 只负责表现。可选内置 skin：axe、crate、crocodile、orb�
 | contact | 除 zone 外的实体，进入同层接触范围时一次 |
 | enter | plate 首次 idle→pressed；zone 每次进入，disabled 时不触发 |
 | board | lift，主角跨过到位轿厢中心时 |
-| arrive | ladder、lift，到达出口并离开运输状态 |
+| arrive | 带 vertical transport 的 object、旧 ladder、lift，到达出口并离开运输状态 |
 | done | 指定实体的指定命名行为完成，on 还需 behavior 字段 |
 
 zone 为无实体碰撞的区域标记，状态 enabled/disabled，只在编辑画面显示框，可用来触发生物行动。主角接触半径为 10，检测该 tick 移动扫过的范围；楼层由脚底 y 隔离。手持物不对持有者触发接触。离开再进入可重新触发。
@@ -84,9 +84,22 @@ zone 为无实体碰撞的区域标记，状态 enabled/disabled，只在编辑�
 
 世界固定 1200×640。actor、goal、platform、entity 的脚底 y 默认为 440，可设 160～560，越小越高。actor.direction 为 1 或 -1，speed 为世界单位/秒。不同高度支撑、接触、终点隔离。
 
-梯子与电梯使用 y（下层）、toY（上层，至少相差 40）、speed、可选 upperDirection/lowerDirection。梯子两端中心需要平台；电梯井范围两端需接壤平台，轿厢在当前高度提供支撑，可让井口留空。
+通用物体可附加高度移动能力：
 
-主角始终行走，不自动等车。enabled 梯子在跨过中心时开始攀爬；disabled 不接受新进入，当前攀爬会完成。电梯仅在轿厢到位时接受登车，board 规则可以调用上楼/下楼行为。未命令离开本层则继续水平行走；空井缺少支撑立即掉落。运行途中可改变目标，抵达端点后按出口朝向继续，离开设施范围后才能重新进入。
+```json
+{"id":"channel","kind":"object","x":280,"width":60,"y":440,
+ "state":"active","label":"高度通道",
+ "transport":{"type":"vertical","toY":260,"speed":90,
+              "upperDirection":1,"lowerDirection":-1}}
+```
+
+`y` 为下端，`transport.toY` 为上端，至少相差 40；速度为单位/秒。`active` 接受进入，`inactive` 停止新进入；已开始的运输完成。高度移动与左右巡逻暂不同时启用。物体可有多个行为和接触效果，支持 `arrive` 连线，外观独立。运输物被持有时不接受进入，主角正在使用的通道不能被他拿起。
+
+旧 ladder 和 lift 沿用根字段 y、toY、speed、upperDirection/lowerDirection。上下端只要求宽度范围与对应高度的路面相交，不要求中心对齐；高度通道在入口/出口对接实际接壤位置。编辑时在 24 单位内吸附，保存为精确高度，内核运行时不模糊匹配楼层。电梯轿厢在当前高度提供支撑，可让井口留空。
+
+主角始终行走，不自动等车。通用高度通道在走入有效接壤范围时开始运输，起点已在范围内也可进入。旧 enabled 梯子沿用跨过中心的进入方式，支持宽度内的偏移路面。电梯仅在轿厢到位时接受登车，board 规则可以调用上楼/下楼行为。未命令离开本层则继续水平行走；空井缺少支撑立即掉落。运行途中可改变电梯目标，抵达端点后按出口朝向继续，离开设施范围后才能重新进入。
+
+实体可选 `height`（8～240）描述几何显示/选择范围；未设置时沿用类型默认高度。`width` 同时影响水平接触范围。高度通道的高度由上下端点决定，路面的厚度仅为显示。普通物体的 height 不改变按脚底楼层隔离的接触语义。
 
 ```json
 {"on":{"type":"board","source":"elevator"},

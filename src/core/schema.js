@@ -1,3 +1,5 @@
+import { verticalTransport, landingX } from './transport.js';
+
 export const STATES = Object.freeze({
   switch: ['off', 'on'], bridge: ['folded', 'extended'], gate: ['closed', 'open'],
   hazard: ['running', 'stopped'], plate: ['idle', 'pressed'],
@@ -5,9 +7,9 @@ export const STATES = Object.freeze({
 });
 export const SKINS = Object.freeze({axe:'斧子',crate:'箱子',crocodile:'鳄鱼',orb:'小圆球'});
 export const floorY = (value) => value?.y ?? 440;
-export const eventTypes = (kind) => [...(kind==='object'?['contact','click']:['switch','hazard'].includes(kind)?['click']:[]),
+export const eventTypes = (source) => {const kind=typeof source==='string'?source:source?.kind;return [...(kind==='object'?['contact','click']:['switch','hazard'].includes(kind)?['click']:[]),
   ...(kind==='plate'||kind==='zone'?['enter']:[]), ...(['zone','object'].includes(kind)?[]:['contact']),
-  ...(kind==='lift'?['board','arrive']:[]), ...(kind==='ladder'?['arrive']:[]), 'done'];
+  ...(kind==='lift'?['board','arrive']:[]), ...(kind==='ladder'||(kind==='object'&&verticalTransport(source))?['arrive']:[]), 'done'];};
 const object = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 const number = (value, min, max) => Number.isFinite(value) && value >= min && value <= max;
 const text = (value, max) => typeof value === 'string' && value.length > 0 && value.length <= max;
@@ -53,6 +55,15 @@ export function validateLevel(input) {
         entity.x + (entity.width ?? 28) <= 1200, '实体位置或宽度无效：' + String(entity.id));
       check(text(entity.label, 30), '实体需要 1～30 字的 label：' + String(entity.id));
       check(entity.y===undefined || number(entity.y,160,560), '实体 y 必须为 160～560：' + String(entity.id));
+      check(entity.height===undefined||number(entity.height,8,240),'实体 height 必须为 8～240：'+entity.id);
+      if(entity.transport!==undefined){
+        const t=entity.transport;
+        check(entity.kind==='object'&&object(t)&&t.type==='vertical','transport 只能是通用物体的 vertical 高度移动能力：'+entity.id);
+        check(object(t)&&number(t.toY,160,520)&&t.toY<=floorY(entity)-40,'高度通道的上端 Y 必须比下端至少高 40：'+entity.id);
+        check(object(t)&&number(t.speed,15,180),'高度通道 speed 必须为 15～180：'+entity.id);
+        for(const key of ['upperDirection','lowerDirection'])check(object(t)&&(t[key]===undefined||[-1,1].includes(t[key])),'高度通道 '+key+' 必须为 -1 或 1。');
+        check(entity.motion===undefined,'高度通道不能同时左右巡逻；先关闭巡逻再启用高度移动。');
+      }
       if(entity.contact!==undefined){
         check(object(entity.contact) && entity.contact.effect==='lethal', '实体 contact.effect 只能为 lethal：' + entity.id);
         check(object(entity.contact) && (entity.contact.message===undefined || text(entity.contact.message,120)), '实体 contact.message 最多 120 字：' + entity.id);
@@ -135,7 +146,7 @@ export function validateLevel(input) {
     input.rules.slice(0, 129).forEach((rule, index) => {
       if (!object(rule)) { errors.push('rules[' + index + '] 必须是对象。'); return; }
       const source = object(rule.on) ? byId.get(rule.on.source) : null;
-      check(Boolean(source && eventTypes(source.kind).includes(rule.on.type)), 'rules[' + index + '] 的事件源或事件类型无效。');
+      check(Boolean(source && eventTypes(source).includes(rule.on.type)), 'rules[' + index + '] 的事件源或事件类型无效。');
       if(rule.on?.type==='done')check(Array.isArray(source?.behaviors) && source.behaviors.some(b=>b?.id===rule.on.behavior),'done 需要指定已定义的行为。');
       if (rule.if !== undefined) conditionsValid(rule.if, 'rules[' + index + ']');
       actionsValid(rule.actions);
@@ -146,10 +157,9 @@ export function validateLevel(input) {
     const supported = (x,y) => platforms.some((p) => floorY(p)===y && x >= p.x && x <= p.x + p.width);
     check(supported(input.actor.x,floorY(input.actor)), '角色起点需要位于对应高度的地面上。');
     check(supported(input.goal.x,floorY(input.goal)), '终点需要位于对应高度的地面上。');
-    for (const e of entities.filter(e=>['ladder','lift'].includes(e.kind))) {
-      const x=e.x+(e.width??28)/2;
-      const landing=(y)=>platforms.some(p=>floorY(p)===y && p.x<=e.x+(e.width??28) && p.x+p.width>=e.x);
-      check(e.kind==='lift'?(landing(floorY(e)) && landing(e.toY)):(supported(x,floorY(e)) && supported(x,e.toY)), '梯子/电梯的上下出口都需要地面：' + e.id);
+    for (const e of entities.filter(e=>verticalTransport(e)||e.kind==='lift')) {
+      const t=verticalTransport(e)??e;
+      for(const [end,y] of [['下端',floorY(e)],['上端',t.toY]])check(landingX(input,e,y)!==null,e.label+'（'+e.id+'）'+end+' Y='+y+' 未连接路面；移动端点吸附路面，或延长该层路面至通道范围内。');
     }
   }
   return { valid: errors.length === 0, errors };

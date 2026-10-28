@@ -13,7 +13,7 @@ export function createPreview(level) {
     reset:()=>simulation.reset(),
     click(source) {
       const state=simulation.snapshot(),status=state.status,entity=state.entities[source];
-      if(!['ready','paused','running'].includes(status)||!entity||!eventTypes(entity.kind).includes('click'))return false;
+      if(!['ready','paused','running'].includes(status)||!entity||!eventTypes(entity).includes('click'))return false;
       simulation.start();const accepted=simulation.click(source);
       if(status!=='running')simulation.pause();
       return accepted;

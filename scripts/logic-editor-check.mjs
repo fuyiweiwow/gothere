@@ -85,6 +85,26 @@ try{
   await placeRoad(760,200);assert.equal((await draft()).platforms[2].y,360);
   await page.locator('#placement-mode').selectOption('cursor');await placeRoad(850,200);assert.equal((await draft()).platforms[3].y,200);
   const roadDraft=await draft();await page.reload();await page.locator('#editor-overlay').waitFor();assert.deepEqual(await draft(),roadDraft);
+  // Direct manipulation: roads, object corners and independently snapped channel endpoints.
+  async function resize(handle,dx,dy){const h=await page.locator('[data-resize="'+handle+'"]').boundingBox(),b=await page.locator('#editor-overlay').boundingBox();await page.mouse.move(h.x+h.width/2,h.y+h.height/2);await page.mouse.down();await page.mouse.move(h.x+h.width/2+dx/1200*b.width,h.y+h.height/2+dy/640*b.height,{steps:5});await page.mouse.up();}
+  await page.locator('[data-ref="platform:1"]').click();assert.equal(await page.locator('[data-resize]').count(),2);
+  await resize('e',50,0);assert.equal((await draft()).platforms[1].width,250);
+  await page.locator('#editor-undo').click();assert.equal((await draft()).platforms[1].width,200);
+  await page.locator('#editor-new').click();await placeRoad(320,260);
+  await page.locator('[data-tool="ladder"]').click();let b=await page.locator('#editor-overlay').boundingBox();await page.mouse.click(b.x+280/1200*b.width,b.y+450/640*b.height);
+  assert.equal(await page.locator('#panel-library').isVisible(),true);
+  let channel=(await draft()).entities[0];assert.equal(channel.kind,'object');assert.equal(channel.y,440);assert.equal(channel.transport.toY,260);
+  await page.locator('[data-ref="entity:'+channel.id+'"]').click();assert.equal(await page.locator('[data-resize]').count(),8);assert.equal(await page.locator('.event-slot[data-event="arrive"]').count(),1);
+  assert.equal(await page.locator('#object-transport').isChecked(),true);assert.match(await page.locator('.transport-status').textContent(),/已连接/);
+  await resize('e',40,0);assert.equal((await draft()).entities[0].width,100);
+  await resize('n',0,30);assert.equal((await draft()).entities[0].transport.toY,290);assert.equal(await page.locator('#editor-test').isDisabled(),true);
+  await resize('n',0,-20);assert.equal((await draft()).entities[0].transport.toY,260);assert.equal(await page.locator('#editor-test').isDisabled(),false);
+  await page.locator('#editor-tab-library').click();await page.locator('[data-tool="object"]').click();b=await page.locator('#editor-overlay').boundingBox();await page.mouse.click(b.x+500/1200*b.width,b.y+440/640*b.height);
+  await page.locator('[data-ref="entity:object-2"]').click();await resize('ne',50,-40);
+  let resized=(await draft()).entities[1];assert.equal(resized.width,98);assert.equal(resized.height,76);assert.equal(await page.locator('#object-height').inputValue(),'76');
+  await page.locator('#editor-undo').click();assert.equal((await draft()).entities[1].height,undefined);await page.locator('#editor-redo').click();
+  await page.locator('#object-transport').check();assert.equal((await draft()).entities[1].transport.type,'vertical');assert.equal(await page.locator('.event-slot[data-event="arrive"]').count(),1);
+  const resizedDraft=await draft();await page.reload();await page.locator('#editor-overlay').waitFor();assert.deepEqual(await draft(),resizedDraft);
   // JSON import adds an independent draft and retains route metadata.
   await page.locator('#open-data').click();await page.locator('#level-json').fill(JSON.stringify(before));await page.locator('#apply-level').click();assert.deepEqual(await draft(),before);
   const downloadEvent=page.waitForEvent('download');await page.locator('#open-data').click();await page.locator('#export-level').click();
@@ -110,6 +130,7 @@ try{
   await offline.clock.install();await offline.goto(pathToFileURL(portable.path).href);await offline.locator('.library-item').first().waitFor();
   await offline.locator('#preview-step').click();assert.equal(await offline.locator('#runtime-tick').textContent(),'tick 1 · 0.02 s');
   await offline.locator('#preview-toggle').click();await offline.clock.runFor(12000);assert.ok((await offline.locator('#runtime-status').textContent()).includes('已到达终点'));
+  await offline.locator('#editor-return').click();await offline.locator('[data-ref="entity:item"]').click();assert.equal(await offline.locator('[data-resize]').count(),8);
   const offlineDownload=offline.waitForEvent('download');await offline.locator('#download-editor').click();const file=await offlineDownload;
   const savedPath=new URL('../artifacts/downloaded-editor.html',import.meta.url).pathname.replace(/^\/([A-Z]:)/,'$1');await file.saveAs(savedPath);
   await offline.goto(pathToFileURL(savedPath).href);await offline.locator('.library-item').first().waitFor();assert.equal(await offline.locator('#editor-overlay').isVisible(),true);
@@ -117,5 +138,5 @@ try{
   const previewServer=makeServer({portableOnly:true});await new Promise(r=>previewServer.listen(0,'127.0.0.1',r));
   try{await page.goto('http://127.0.0.1:'+previewServer.address().port+'/editor.html');await page.locator('.library-item').first().waitFor();await page.locator('#preview-step').click();assert.equal(await page.locator('#runtime-tick').textContent(),'tick 1 · 0.02 s');assert.deepEqual(errors,[]);}
   finally{await new Promise(r=>previewServer.close(r));}
-  console.log('Standalone editor passed: continuous placement, manual inspection, cancel/history, road heights/drag, persistence, wiring, JSON, preview, creature behaviors and offline/downloaded copy.');
+  console.log('Standalone editor passed: continuous placement, corner/road resize, channel endpoint snap and capability editing, history, persistence, wiring, preview and offline/downloaded copy.');
 }finally{await context.close();await browser.close();await new Promise(r=>server.close(r));}

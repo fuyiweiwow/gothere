@@ -1,4 +1,6 @@
 import { STATES, validateLevel, floorY } from '../core/schema.js';
+import { verticalTransport } from '../core/transport.js';
+import { diagramBounds } from '../core/geometry.js';
 
 const clone = (value) => structuredClone(value);
 const finiteY = value => value?.y === undefined || Number.isFinite(value.y);
@@ -12,6 +14,7 @@ const shape = (level) => Boolean(level && level.schemaVersion === 1 && level.wor
     e && typeof e.id === 'string' && Object.hasOwn(STATES, e.kind) && Number.isFinite(e.x) &&
     (e.width === undefined || Number.isFinite(e.width)) && finiteY(e) && typeof e.label === 'string' &&
     (!['ladder','lift'].includes(e.kind) || Number.isFinite(e.toY)) &&
+    (e.transport === undefined || Number.isFinite(e.transport?.toY)) &&
     (e.motion === undefined || (Number.isFinite(e.motion?.minX) && Number.isFinite(e.motion?.maxX)))) &&
   Array.isArray(level.rules) && level.rules.length <= 128 &&
   // Geometry can be unfinished; references, states and action trees must remain safe to edit.
@@ -19,6 +22,7 @@ const shape = (level) => Boolean(level && level.schemaVersion === 1 && level.wor
     platforms:[{x:0,width:1200},{x:0,width:1200,y:260}],
     entities:level.entities.map(e=>({...e,x:25,width:8,y:440,
       ...(['ladder','lift'].includes(e.kind)?{toY:260}:{}),
+      ...(e.transport?{transport:{...e.transport,toY:260}}:{}),
       ...(e.motion?{motion:{...e.motion,minX:25,maxX:100}}:{})}))}).valid);
 
 /** Drafts may be temporarily unplayable. Each slot owns its document and bounded history. */
@@ -81,7 +85,7 @@ export function createBlankLevel(id) {
 }
 
 export const KIND_NAMES = {platform:'路面 / 平台',bridge:'木桥',switch:'开关',hazard:'旧危险物（兼容）',plate:'压力板',gate:'小门',actor:'旅行者',goal:'目的地',
-  object:'物件 / 生物',zone:'区域触发器',ladder:'梯子',lift:'电梯'};
+  object:'物件 / 生物',zone:'区域触发器',ladder:'高度通道（旧版）',lift:'电梯'};
 
 export function addObject(level, kind, x, y=440) {
   if (kind === 'platform') {
@@ -106,6 +110,63 @@ export function deleteObject(level, ref) {
   pruneReferences(level);
 }
 
+const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
+const channelConfig=e=>verticalTransport(e)??(e.kind==='lift'?e:null);
+
+/** Snap authored endpoints to nearby overlapping roads, never invent a landing at runtime. */
+export function snapTransport(level, entity, ends=['lower','upper']) {
+  const t=channelConfig(entity);if(!t)return;
+  const rows=level.platforms.filter(p=>p.x<=entity.x+(entity.width??28)&&p.x+p.width>=entity.x).map(floorY);
+  const nearest=(value,valid)=>rows.filter(y=>Math.abs(y-value)<=24&&valid(y)).sort((a,b)=>Math.abs(a-value)-Math.abs(b-value)||a-b)[0];
+  if(ends.includes('lower')){const y=nearest(floorY(entity),y=>y>=t.toY+40);if(y!==undefined)entity.y=y;}
+  if(ends.includes('upper')){const y=nearest(t.toY,y=>y<=floorY(entity)-40);if(y!==undefined)t.toY=y;}
+}
+
+/** The warehouse preset is an ordinary object with a vertical movement capability. */
+export function addHeightTransport(level,x,y=440) {
+  const ref=addObject(level,'object',x,Math.max(200,y)),e=level.entities.at(-1);
+  delete e.appearance;e.width=60;e.x=clamp(x,25,1140);e.label='高度通道'+e.id.slice(7);
+  e.transport={type:'vertical',toY:Math.max(160,floorY(e)-180),speed:90};
+  snapTransport(level,e,['lower']);
+  const rows=level.platforms.filter(p=>p.x<=e.x+e.width&&p.x+p.width>=e.x&&floorY(p)<=floorY(e)-40);
+  rows.sort((a,b)=>Math.abs(floorY(a)-e.transport.toY)-Math.abs(floorY(b)-e.transport.toY));
+  if(rows.length)e.transport.toY=floorY(rows[0]);
+  return ref;
+}
+
+export function setHeightTransport(level,entity,enabled) {
+  if(enabled){
+    if(entity.motion)throw new Error('请先关闭左右巡逻，再启用高度移动。');
+    if(floorY(entity)<200)throw new Error('下端至少需要 Y=200，才能连接更高的路面。');
+    entity.transport={type:'vertical',toY:Math.max(160,floorY(entity)-180),speed:90};snapTransport(level,entity);
+  }else{
+    if(level.rules.some(r=>r.on.source===entity.id&&r.on.type==='arrive'))throw new Error('请先移除「抵达出口」事件的连线，再关闭高度移动。');
+    delete entity.transport;
+  }
+}
+
+/** Resize from the opposite edge; one call describes an entire drag from its initial geometry. */
+export function resizeObject(level,ref,handle,dx,dy) {
+  const e=ref.type==='entity'?level.entities.find(e=>e.id===ref.id):ref.type==='platform'?level.platforms[ref.index]:null;
+  if(!e)return;
+  const road=ref.type==='platform',b=diagramBounds(e.kind??'platform',e),t=channelConfig(e);
+  const minX=road?0:25,maxWidth=road?1200:Math.min(600,e.motion?1200-e.motion.maxX:600),minWidth=road?1:8;
+  if(handle.includes('w')){
+    const right=e.x+(e.width??28),left=clamp(e.x+dx,Math.max(minX,right-maxWidth,e.motion?.minX??minX),Math.min(right-minWidth,e.motion?.maxX??(road?1199:1175)));
+    e.x=left;e.width=right-left;
+  }else if(handle.includes('e'))e.width=clamp((e.width??28)+dx,minWidth,Math.min(maxWidth,1200-e.x));
+  if(!road){
+    if(t){
+      if(handle.includes('n'))t.toY=clamp(t.toY+dy,160,floorY(e)-40);
+      if(handle.includes('s'))e.y=clamp(floorY(e)+dy,t.toY+40,560);
+      snapTransport(level,e,handle.includes('n')?['upper']:handle.includes('s')?['lower']:['lower','upper']);
+    }else{
+      if(handle.includes('n'))e.height=clamp(b.height-dy,8,240);
+      if(handle.includes('s')){const y=clamp(floorY(e)+dy,Math.max(160,b.y+8),Math.min(560,b.y+240));e.y=y;e.height=y-b.y;}
+    }
+  }
+}
+
 /** Move logical geometry; connectors retain their span and patrol paths move with their object. */
 export function moveObject(level, ref, dx, dy=0) {
   const target=ref.type==='entity'?level.entities.find(e=>e.id===ref.id):
@@ -118,9 +179,9 @@ export function moveObject(level, ref, dx, dy=0) {
   if(target.motion){target.motion.minX+=shift;target.motion.maxX+=shift;}
   target.x=x;
   if(dy){
-    const y=floorY(target),connector=['ladder','lift'].includes(target.kind),span=connector?y-target.toY:0;
+    const y=floorY(target),t=channelConfig(target),span=t?y-t.toY:0;
     target.y=Math.max(160+span,Math.min(560,y+dy));
-    if(connector)target.toY+=target.y-y;
+    if(t)t.toY+=target.y-y;
   }
 }
 

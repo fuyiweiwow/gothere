@@ -65,7 +65,7 @@ function loadLevel(next, index = -1, forTest = false) {
   $('hint-text').hidden = true; $('hint').setAttribute('aria-expanded', 'false');
   $('hint').textContent = '需要一点提示？ ↗';
   $('hotspots').replaceChildren(); $('mechanism-actions').replaceChildren(); mechanismButtons.clear();
-  level.entities.filter((e) => eventTypes(e.kind).includes('click') &&
+  level.entities.filter((e) => eventTypes(e).includes('click') &&
     (e.kind !== 'object' || level.rules.some(r => r.on.source === e.id && r.on.type === 'click'))).forEach((entity, index) => {
     const hotspot = document.createElement('button');
     hotspot.className = 'hotspot'; hotspot.dataset.entity = entity.id;

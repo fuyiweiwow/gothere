@@ -1,9 +1,10 @@
-import { createEditorStore, createBlankLevel, addObject, deleteObject, moveObject, addBehavior, renameBehavior, deleteBehavior, ruleWires, KIND_NAMES } from './model.js';
+import { createEditorStore, createBlankLevel, addObject, addHeightTransport, setHeightTransport, snapTransport, resizeObject, deleteObject, moveObject, addBehavior, renameBehavior, deleteBehavior, ruleWires, KIND_NAMES } from './model.js';
 import { STATES, SKINS, eventTypes, floorY, validateLevel } from '../core/schema.js';
 import { stateLabel } from '../core/engine.js';
 import { CATALOG, CATEGORIES, filterCatalog } from './catalog.js';
 import { snapPoint, setWirePoints, routeWire, nearestInsertion } from './routing.js';
 import { diagramBounds } from '../core/geometry.js';
+import { verticalTransport, landingX } from '../core/transport.js';
 
 const $ = id => document.getElementById(id);
 const STORAGE = 'gothere.editor.v1';
@@ -26,13 +27,14 @@ function input(value,label,onChange,settings={}) {
 }
 const button = (name,handler,className='button secondary') => {const el=element('button',name,className);el.type='button';el.addEventListener('click',handler);return el;};
 const eventNames={click:'点击',contact:'碰到',enter:'走入区域',board:'登上电梯',arrive:'抵达出口',done:'行为完成'};
-const availableEvents=e=>eventTypes(e.kind).filter(t=>t!=='done'||e.behaviors?.length);
+const availableEvents=e=>eventTypes(e).filter(t=>t!=='done'||e.behaviors?.length);
 const actionList = (actions,path) => {for(const index of path)actions=actions[index].actions;return actions;};
 
 /** DOM adapter only: the draft store and simulation do not depend on this interface. */
 export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagram=false,onChange=()=>{},onMode=()=>{}}) {
   let store=createEditorStore(), restored=false, mode='closed', selection=null, tool='select', drag=null, serial=0,placementY=440;
   let placementMode=diagram?'cursor':'fixed';
+  let suppressClick=false;
   let wireSource=null,wireTarget=null,wireEvent=null,wireBehavior=null,wireSourceBehavior=null;
   let tab='library',category='all',query='',wireView='all',selectedWire=null,routeDrag=null;
   const wireKey=w=>w.rule+':'+w.path.join('.');
@@ -127,7 +129,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     const placement=input(placementY,'放置高度 Y',value=>{placementY=value;placementMode='fixed';renderTools();},{id:'placement-y',type:'number',min:160,max:560,step:10});
     $('editor-tools').append(field('放置在 Y',placement));
     const view=select([['all','全部连线'],['related','选中物体的连线'],['none','隐藏连线']],wireView,'连线显示',value=>{wireView=value;renderOverlay(store.document());});view.id='wire-view';$('editor-tools').append(view);
-    $('editor-help').textContent=tool==='select'?(diagram?'上下左右拖动物体 / 路面 · 双击连线添加转接点':'拖动物体 · 双击连线添加转接点'):tool==='wire'?'选择事件起点，再选择目标行为':(CATALOG.find(i=>i.kind===tool)?.name??'物体')+(diagram?'：连续点击放置':'：点击地图放置')+(diagram?(placementMode==='cursor'?' · 高度跟随点击':' · 固定 Y='+placementY):'')+' · Esc 取消';
+    $('editor-help').textContent=tool==='select'?(diagram?'拖动物体移动 · 拖动选框节点缩放 · 通道端点吸附路面':'拖动物体 · 双击连线添加转接点'):tool==='wire'?'选择事件起点，再选择目标行为':(CATALOG.find(i=>i.kind===tool)?.name??'物体')+(diagram?'：连续点击放置':'：点击地图放置')+(diagram?(placementMode==='cursor'?' · 高度跟随点击':' · 固定 Y='+placementY):'')+' · Esc 取消';
   }
   function renderWireControls(d) {
     const box=$('wire-controls');box.replaceChildren();box.hidden=tool!=='wire';
@@ -236,14 +238,44 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
       el.addEventListener('pointerdown',event=>{
         if(tool!=='select')return;
         event.preventDefault();event.stopPropagation();selection=ref;selectedWire=null;showTab('object');
-        for(const sibling of $('editor-overlay').children)sibling.setAttribute('aria-pressed',String(sibling===el));
-        renderFields(d);
+        for(const sibling of $('editor-overlay').querySelectorAll('.edit-object'))sibling.setAttribute('aria-pressed',String(sibling===el));
+        renderFields(d);renderResizeHandles(d);
         drag={ref,el,start:event.clientX,startY:event.clientY,left:bounds.x,dx:0,dy:0,pointerId:event.pointerId};
       });
       el.addEventListener('click',event=>{if(tool==='wire'){event.stopPropagation();if(ref.type==='entity'){if(!wireSource){wireSource=p.id;wireEvent=null;}else{wireTarget=p.id;wireBehavior=null;}showTab('logic');renderWireControls(store.document());}return;}
         if(tool==='select'||(diagram&&ref.type!=='platform')){event.stopPropagation();chooseObject(ref);}});
       $('editor-overlay').append(el);
     }
+    renderResizeHandles(d);
+  }
+  function positionResizeHandles(d) {
+    const e=resolveObject(d,selection);if(!e)return;
+    const b=diagramBounds(e.kind??selection.type,e);
+    for(const el of $('editor-overlay').querySelectorAll('[data-resize]')){
+      const h=el.dataset.resize;
+      el.style.left=(b.x+(h.includes('w')?0:h.includes('e')?b.width:b.width/2))/12+'%';
+      el.style.top=(b.y+(h.includes('n')?0:h.includes('s')?b.height:b.height/2))/6.4+'%';
+    }
+  }
+  function renderResizeHandles(d) {
+    for(const el of $('editor-overlay').querySelectorAll('[data-resize]'))el.remove();
+    if(!diagram||!selection||!['entity','platform'].includes(selection.type))return;
+    const names={n:'上',ne:'右上',e:'右',se:'右下',s:'下',sw:'左下',w:'左',nw:'左上'};
+    for(const h of selection.type==='platform'?['w','e']:Object.keys(names)){
+      const el=button('',()=>{},'resize-handle');el.dataset.resize=h;el.setAttribute('aria-label','调整'+names[h]+'边尺寸');
+      el.addEventListener('click',event=>event.stopPropagation());
+      el.addEventListener('pointerdown',event=>{
+        if(tool!=='select'||event.button!==0)return;event.preventDefault();event.stopPropagation();
+        drag={ref:structuredClone(selection),el:$('editor-overlay').querySelector('[data-ref="'+refKey(selection)+'"]'),handle:h,start:event.clientX,startY:event.clientY,dx:0,dy:0,pointerId:event.pointerId};
+      });
+      el.addEventListener('keydown',event=>{
+        if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;
+        event.preventDefault();event.stopPropagation();edit(doc=>resizeObject(doc,selection,h,event.key==='ArrowRight'?10:event.key==='ArrowLeft'?-10:0,event.key==='ArrowDown'?10:event.key==='ArrowUp'?-10:0));
+        $('editor-overlay').querySelector('[data-resize="'+h+'"]')?.focus();
+      });
+      $('editor-overlay').append(el);
+    }
+    positionResizeHandles(d);
   }
   function renderFields(d) {
     const fields=$('level-fields');fields.replaceChildren();
@@ -257,11 +289,12 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     const definition=element('div',undefined,'object-definition');definition.append(element('strong',KIND_NAMES[target.kind??selection.type]),element('code',target.id??selection.type));box.append(definition);
     if(selection.type==='entity')renderSlots(d,target,box);
     box.append(element('h3','属性','inspector-heading'));
-    const update=(key,value)=>edit(doc=>{resolveObject(doc,selection)[key]=value;});
+    const update=(key,value)=>edit(doc=>{const e=resolveObject(doc,selection);e[key]=value;if(diagram&&['x','y','width','toY'].includes(key))snapTransport(doc,e);});
     const geometry={platform:[0,1199],actor:[20,1150],goal:[40,1180],entity:[25,1175]}[selection.type];
     box.append(field('位置 X',input(target.x,'位置 X',value=>update('x',value),{id:'object-x',type:'number',min:geometry[0],max:geometry[1],step:1})));
     if(['platform','entity'].includes(selection.type)) box.append(field('宽度',input(target.width??28,'宽度',value=>update('width',value),{id:'object-width',type:'number',min:selection.type==='platform'?1:8,max:selection.type==='platform'?1200:600,step:1})));
     if(['platform','entity','actor','goal'].includes(selection.type))box.append(field('脚底高度 Y',input(floorY(target),'脚底高度 Y',value=>update('y',value===440?undefined:value),{id:'object-y',type:'number',min:160,max:560,step:10})));
+    if(diagram&&selection.type==='entity'&&!verticalTransport(target)&&target.kind!=='lift')box.append(field('高度',input(diagramBounds(target.kind,target).height,'高度',value=>update('height',value),{id:'object-height',type:'number',min:8,max:240,step:1})));
     if(selection.type==='actor') {
       const direction=select([['1','向右'],['-1','向左']],String(target.direction??1),'起始朝向',value=>update('direction',Number(value)));
       direction.id='object-direction';box.append(field('起始朝向',direction));
@@ -277,15 +310,26 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
           const ref=structuredClone(selection),key=store.key(),reader=new FileReader();reader.onload=()=>{if(store.key()!==key)return;edit(doc=>{const e=resolveObject(doc,ref);if(e)e.appearance={...e.appearance,skin:e.appearance?.skin??'axe',image:reader.result};});};reader.onerror=()=>notify('无法读取贴图，请重新选择。');reader.readAsDataURL(file);});
         box.append(field('自定义贴图（24 KiB 内）',upload));
       }
-      if(['ladder','lift'].includes(target.kind)) {
-        box.append(field('上层脚底 Y',input(target.toY,'上层脚底 Y',value=>update('toY',value),{id:'object-to-y',type:'number',min:160,max:floorY(target)-40,step:10})));
-        box.append(field('通行速度',input(target.speed,'通行速度',value=>update('speed',value),{id:'object-speed',type:'number',min:15,max:180,step:5})));
+      if(target.kind==='object'){
+        const enabled=element('input');enabled.id='object-transport';enabled.type='checkbox';enabled.checked=Boolean(verticalTransport(target));enabled.setAttribute('aria-label','高度移动能力');
+        enabled.addEventListener('change',()=>{edit(doc=>setHeightTransport(doc,resolveObject(doc,selection),enabled.checked));renderFields(store.document());});
+        box.append(field('高度移动能力',enabled));
+      }
+      const transport=verticalTransport(target)??(target.kind==='lift'?target:null);
+      if(transport) {
+        const updateTransport=(key,value)=>edit(doc=>{const e=resolveObject(doc,selection),t=verticalTransport(e)??e;t[key]=value;if(diagram&&key==='toY')snapTransport(doc,e,['upper']);});
+        box.append(field('上层脚底 Y',input(transport.toY,'上层脚底 Y',value=>updateTransport('toY',value),{id:'object-to-y',type:'number',min:160,max:floorY(target)-40,step:1})));
+        box.append(field('通行速度',input(transport.speed,'通行速度',value=>updateTransport('speed',value),{id:'object-speed',type:'number',min:15,max:180,step:5})));
         for(const [key,label] of [['upperDirection','上层出口方向'],['lowerDirection','下层出口方向']]) {
-          const direction=select([['','保持朝向'],['1','向右'],['-1','向左']],String(target[key]??''),label,value=>update(key,value?Number(value):undefined));direction.id='object-'+key;box.append(field(label,direction));
+          const direction=select([['','保持朝向'],['1','向右'],['-1','向左']],String(transport[key]??''),label,value=>updateTransport(key,value?Number(value):undefined));direction.id='object-'+key;box.append(field(label,direction));
+        }
+        if(diagram){
+          const status=element('p',undefined,'transport-status');status.textContent=[['上端',transport.toY],['下端',floorY(target)]].map(([name,y])=>name+' Y='+y+' · '+(landingX(d,target,y)===null?'未连接路面':'已连接')).join('\n');box.append(status);
+          box.append(button('吸附附近路面',()=>edit(doc=>snapTransport(doc,resolveObject(doc,selection))),'text-button'));
         }
       }
       if(target.kind==='object') {
-        const patrol=element('input');patrol.type='checkbox';patrol.checked=Boolean(target.motion);patrol.setAttribute('aria-label','启用巡逻');patrol.addEventListener('change',()=>edit(doc=>{const e=resolveObject(doc,selection);e.motion=patrol.checked?{type:'patrol',minX:Math.max(25,e.x-50),maxX:Math.min(1200-(e.width??28),e.x+50),speed:45}:undefined;}));box.append(field('左右巡逻',patrol));
+        const patrol=element('input');patrol.type='checkbox';patrol.disabled=Boolean(transport);patrol.title=transport?'关闭高度移动后可启用左右巡逻':'';patrol.checked=Boolean(target.motion);patrol.setAttribute('aria-label','启用巡逻');patrol.addEventListener('change',()=>edit(doc=>{const e=resolveObject(doc,selection);e.motion=patrol.checked?{type:'patrol',minX:Math.max(25,e.x-50),maxX:Math.min(1200-(e.width??28),e.x+50),speed:45}:undefined;}));box.append(field('左右巡逻',patrol));
         if(target.motion)for(const [key,label,min,max] of [['minX','巡逻左界',25,1175],['maxX','巡逻右界',35,1190],['speed','巡逻速度',15,180]])box.append(field(label,input(target.motion[key],label,value=>edit(doc=>{resolveObject(doc,selection).motion[key]=value;}),{type:'number',min,max,step:5})));
 
       }
@@ -384,7 +428,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
   }
   function renderRules(d) {
     const list=$('rule-list');list.replaceChildren();
-    const sources=d.entities.filter(e=>eventTypes(e.kind).length);
+    const sources=d.entities.filter(e=>eventTypes(e).length);
     $('add-rule').disabled=!sources.length || d.rules.length>=128;
     if(!d.rules.length)list.append(element('p','还没有规则。用连线工具连接事件与行为，或添加一条规则。','empty-rules'));
     const entities=d.entities.map(e=>[e.id,e.label]);
@@ -424,7 +468,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     const x=Math.round((event.clientX-box.left)/box.width*1200/10)*10;
     const y=placementMode==='cursor'?Math.max(160,Math.min(560,Math.round((event.clientY-box.top)/box.height*640/10)*10)):placementY;
     const kind=tool;selectedWire=null;
-    if(diagram){selection=null;edit(doc=>{addObject(doc,kind,x,y);});}
+    if(diagram){selection=null;edit(doc=>{if(kind==='ladder')addHeightTransport(doc,x,y);else addObject(doc,kind,x,y);});}
     else {tool='select';tab='object';edit(doc=>{selection=addObject(doc,kind,x,placementY);});}
   });
   window.addEventListener('pointermove',event=>{
@@ -432,16 +476,18 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     if(!drag || event.pointerId!==drag.pointerId)return;const box=$('editor-overlay').getBoundingClientRect();
     drag.dx=Math.round((event.clientX-drag.start)/box.width*1200/10)*10;
     drag.dy=diagram?Math.round((event.clientY-drag.startY)/box.height*640/10)*10:0;
-    const d=store.document();moveObject(d,drag.ref,drag.dx,drag.dy);const target=resolveObject(d,drag.ref);
-    if(diagram){const b=diagramBounds(target.kind??drag.ref.type,target);drag.el.style.left=b.x/12+'%';drag.el.style.top=b.y/6.4+'%';onChange(d);renderWires(d);}
+    const d=store.document();if(drag.handle)resizeObject(d,drag.ref,drag.handle,drag.dx,drag.dy);else {moveObject(d,drag.ref,drag.dx,drag.dy);if(diagram)snapTransport(d,resolveObject(d,drag.ref));}const target=resolveObject(d,drag.ref);
+    if(diagram){const b=diagramBounds(target.kind??drag.ref.type,target);drag.el.style.left=b.x/12+'%';drag.el.style.top=b.y/6.4+'%';drag.el.style.width=b.width/12+'%';drag.el.style.height=b.height/6.4+'%';positionResizeHandles(d);onChange(d);renderWires(d);}
     else drag.el.style.left=(drag.left+drag.dx)/12+'%';
   });
   window.addEventListener('pointerup',event=>{
     if(routeDrag && event.pointerId===routeDrag.pointerId){const moved=routeDrag;routeDrag=null;if(JSON.stringify(moved.points)!==JSON.stringify(moved.wire.points))edit(doc=>setWirePoints(doc,moved.wire,moved.points));return;}
     if(!drag || event.pointerId!==drag.pointerId)return;const moved=drag;drag=null;
     if(!moved.dx&&!moved.dy)return;
-    edit(doc=>moveObject(doc,moved.ref,moved.dx,moved.dy));
+    suppressClick=true;
+    edit(doc=>{if(moved.handle)resizeObject(doc,moved.ref,moved.handle,moved.dx,moved.dy);else {moveObject(doc,moved.ref,moved.dx,moved.dy);if(diagram)snapTransport(doc,resolveObject(doc,moved.ref));}});
   });
+  document.addEventListener('click',event=>{const suppress=suppressClick;suppressClick=false;if(suppress&&$('editor-overlay').contains(event.target)){event.preventDefault();event.stopImmediatePropagation();}},{capture:true});
   window.addEventListener('pointercancel',()=>{drag=null;routeDrag=null;if(mode==='editing')render();});
   $('editor-new').addEventListener('click',()=>{const id='map-'+Date.now().toString(36)+'-'+serial++;openDocument(createBlankLevel(id),'custom:'+id);});
   $('draft-select').addEventListener('change',()=>{store.open($('draft-select').value);selection=null;selectedWire=null;wireSource=null;wireTarget=null;tool='select';save();render();});
@@ -449,7 +495,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
   const history=(redo)=>{if(redo?store.redo():store.undo()){save();render();}};
   $('editor-undo').addEventListener('click',()=>history(false));$('editor-redo').addEventListener('click',()=>history(true));
   $('add-rule').addEventListener('click',()=>edit(doc=>{
-    const selected=resolveObject(doc,selection), source=selected && Object.hasOwn(STATES,selected.kind)?selected:doc.entities.find(e=>eventTypes(e.kind).length);
+    const selected=resolveObject(doc,selection), source=selected && Object.hasOwn(STATES,selected.kind)?selected:doc.entities.find(e=>eventTypes(e).length);
     if(!source)return;
     const target=doc.entities.find(e=>e.id!==source.id && e.kind!=='ladder' && e.kind!=='lift');
     const action=source.kind==='object'?{type:'hold',target:source.id}:
