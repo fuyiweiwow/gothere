@@ -1,5 +1,5 @@
 export const CATALOG = [
-  {kind:'platform',name:'地面',group:'basic',icon:'━',description:'提供同层支撑。',keywords:'平台 地板 platform'},
+  {kind:'platform',name:'路面 / 平台',group:'basic',icon:'━',description:'可放在不同高度，为该层的主角提供支撑。',keywords:'地面 平台 地板 楼层 高架 路面 platform'},
   {kind:'object',name:'物件 / 生物',group:'objects',icon:'◇',description:'组合持有、巡逻、接触效果与行为。',keywords:'物品 生物 斧子 敌人 object'},
   {kind:'switch',name:'开关',group:'interaction',icon:'⊙',description:'点击发出事件。',keywords:'按钮 switch'},
   {kind:'zone',name:'区域触发器',group:'interaction',icon:'▧',description:'进入区域时发出事件，试玩时不可见。',keywords:'位置 感应 zone'},

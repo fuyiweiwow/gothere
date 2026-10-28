@@ -31,3 +31,21 @@ test('explicit multi-floor transport: missed lift fails, summoned lift reaches u
   assert.equal(called.snapshot().status,'won');assert.equal(called.snapshot().actor.y,180);
   assert.equal(called.click('call'),false);
 });
+test('enemy is a generic object: contact invokes a named behavior containing a hurt action',()=>{
+  const level=createEditorExample('creature'),enemy=level.entities.find(e=>e.id==='creature');
+  assert.equal(validateLevel(level).valid,true);assert.equal(enemy.kind,'object');assert.equal(enemy.contact,undefined);assert.equal(enemy.appearance,undefined);
+  assert.deepEqual(level.rules.find(r=>r.on.source==='creature').actions,[{type:'invoke',target:'creature',behavior:'attack'}]);
+  assert.equal(enemy.behaviors.find(b=>b.id==='attack').actions[0].type,'hurt');
+  const dangerous=createPreview(level);dangerous.start();dangerous.advance(2000);
+  assert.equal(dangerous.snapshot().status,'lost');assert.equal(dangerous.snapshot().reason,'hurt');
+  assert.match(dangerous.snapshot().events.at(-1).message,/巡逻生物执行了攻击行为/);
+  const safe=createPreview(level);safe.click('stop');safe.start();safe.advance(2000);assert.equal(safe.snapshot().status,'won');assert.equal(safe.snapshot().actor.y,300);
+  assert.equal(safe.snapshot().entities.creature.state,'inactive');
+  const harmless=structuredClone(level);harmless.entities.find(e=>e.id==='creature').behaviors.find(b=>b.id==='attack').actions=[{type:'set',target:'creature',state:'inactive'}];
+  const changed=createPreview(harmless);changed.start();changed.advance(2000);assert.equal(changed.snapshot().status,'won','editing the behavior alone removes danger');
+});
+test('an active enemy on an upper road does not hurt an actor walking underneath',()=>{
+  const level=createEditorExample('creature');level.platforms[0].width=1200;level.goal={x:1100,y:520};
+  level.entities=level.entities.filter(e=>e.id!=='ladder');level.entities.find(e=>e.id==='creature').state='active';
+  const preview=createPreview(level);preview.start();preview.advance(2000);assert.equal(preview.snapshot().status,'won');
+});

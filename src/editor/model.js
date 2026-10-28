@@ -1,4 +1,4 @@
-import { STATES, validateLevel } from '../core/schema.js';
+import { STATES, validateLevel, floorY } from '../core/schema.js';
 
 const clone = (value) => structuredClone(value);
 const finiteY = value => value?.y === undefined || Number.isFinite(value.y);
@@ -80,12 +80,12 @@ export function createBlankLevel(id) {
     actor:{x:95,speed:68}, goal:{x:1100}, platforms:[{x:0,width:1200}], entities:[], rules:[] };
 }
 
-export const KIND_NAMES = {platform:'地面',bridge:'木桥',switch:'开关',hazard:'旧危险物（兼容）',plate:'压力板',gate:'小门',actor:'旅行者',goal:'目的地',
+export const KIND_NAMES = {platform:'路面 / 平台',bridge:'木桥',switch:'开关',hazard:'旧危险物（兼容）',plate:'压力板',gate:'小门',actor:'旅行者',goal:'目的地',
   object:'物件 / 生物',zone:'区域触发器',ladder:'梯子',lift:'电梯'};
 
 export function addObject(level, kind, x, y=440) {
   if (kind === 'platform') {
-    if (level.platforms.length >= 64) throw new Error('最多放置 64 段地面。');
+    if (level.platforms.length >= 64) throw new Error('最多放置 64 段路面。');
     level.platforms.push({x:Math.max(0,Math.min(1000,x)),width:200,...(y!==440?{y}:{})});
     return {type:'platform',index:level.platforms.length-1};
   }
@@ -104,6 +104,24 @@ export function deleteObject(level, ref) {
   if (ref?.type!=='entity') return;
   level.entities = level.entities.filter(e=>e.id!==ref.id);
   pruneReferences(level);
+}
+
+/** Move logical geometry; connectors retain their span and patrol paths move with their object. */
+export function moveObject(level, ref, dx, dy=0) {
+  const target=ref.type==='entity'?level.entities.find(e=>e.id===ref.id):
+    ref.type==='platform'?level.platforms[ref.index]:ref.type==='actor'?level.actor:ref.type==='goal'?level.goal:null;
+  if(!target)return;
+  let min=ref.type==='platform'?0:ref.type==='goal'?40:ref.type==='actor'?20:25;
+  let max=ref.type==='actor'?1150:ref.type==='goal'?1180:Math.min(ref.type==='entity'?1175:1199,1200-(target.width??28));
+  if(target.motion){min+=target.x-target.motion.minX;max-=target.motion.maxX-target.x;}
+  const x=Math.max(min,Math.min(max,target.x+dx)),shift=x-target.x;
+  if(target.motion){target.motion.minX+=shift;target.motion.maxX+=shift;}
+  target.x=x;
+  if(dy){
+    const y=floorY(target),connector=['ladder','lift'].includes(target.kind),span=connector?y-target.toY:0;
+    target.y=Math.max(160+span,Math.min(560,y+dy));
+    if(connector)target.toY+=target.y-y;
+  }
 }
 
 // Removing the last action can remove a behavior, which can invalidate other calls.

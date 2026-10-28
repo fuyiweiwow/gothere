@@ -1,6 +1,22 @@
 /** Content examples use only geometry and rules. They require no artwork or game shell. */
 export function createEditorExample(name='logic') {
   const common = { schemaVersion:1, world:{width:1200,height:640,groundY:440} };
+  if(name==='creature')return { ...common, id:'editor-creature', name:'生物行为与伤害',
+    description:'爬到上层路面后，感应区会启动巡逻生物；接触事件调用「攻击」行为，再执行伤害动作。先点击停止机关，可安全通过。',
+    actor:{x:80,y:520,speed:100},goal:{x:1100,y:300},
+    platforms:[{x:0,width:500,y:520},{x:280,width:920,y:300}],
+    entities:[{id:'ladder',kind:'ladder',x:300,y:520,toY:300,width:40,speed:110,state:'enabled',label:'上层通道'},
+      {id:'stop',kind:'switch',x:190,y:520,width:28,state:'off',label:'停止机关'},
+      {id:'wake-region',kind:'zone',x:450,y:300,width:80,state:'enabled',label:'唤醒区域'},
+      {id:'creature',kind:'object',x:700,y:300,width:56,state:'inactive',label:'巡逻生物',
+        motion:{type:'patrol',minX:650,maxX:900,speed:55},
+        behaviors:[{id:'wake',label:'开始巡逻',actions:[{type:'set',target:'creature',state:'active'}]},
+          {id:'rest',label:'休息',actions:[{type:'set',target:'creature',state:'inactive'}]},
+          {id:'attack',label:'攻击',actions:[{type:'hurt',message:'巡逻生物执行了攻击行为。先让它休息，再通过上层路面。'}]}]}],
+    rules:[{on:{type:'enter',source:'wake-region'},actions:[{type:'invoke',target:'creature',behavior:'wake'}]},
+      {on:{type:'contact',source:'creature'},actions:[{type:'invoke',target:'creature',behavior:'attack'}]},
+      {on:{type:'click',source:'stop'},actions:[{type:'invoke',target:'creature',behavior:'rest'},
+        {type:'set',target:'wake-region',state:'disabled'},{type:'set',target:'stop',state:'on'}]}] };
   if(name==='floors')return { ...common, id:'editor-floors', name:'多层运输',
     description:'先点开关召回电梯。登车事件调用上行行为；没有车时主角继续走并掉落。',
     actor:{x:80,y:520,speed:100},goal:{x:1080,y:180},

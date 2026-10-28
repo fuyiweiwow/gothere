@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createEditorStore, createBlankLevel, deleteObject, addObject } from '../src/editor/model.js';
+import { createEditorStore, createBlankLevel, deleteObject, addObject, moveObject } from '../src/editor/model.js';
 import { levels } from '../src/levels.js';
 import { createSimulation, validateLevel } from '../src/core/engine.js';
 
@@ -46,6 +46,27 @@ test('blank document and placed objects have unique ids and serialize into the e
   assert.equal(new Set(level.entities.map(e=>e.id)).size, 6);
   assert.equal(validateLevel(level).valid, true);
   assert.equal(level.platforms.length, 2);
+});
+test('roads can be created and moved on upper floors; lower roads never fill an upper-floor gap',()=>{
+  const level=createBlankLevel('upper-roads');
+  addObject(level,'platform',100,300);addObject(level,'platform',450,300);
+  level.actor={x:150,y:300,speed:100};level.goal={x:500,y:300};
+  assert.equal(validateLevel(level).valid,true);
+  const gap=createSimulation(level);gap.start();gap.step(500);assert.equal(gap.snapshot().reason,'fall');
+  const ref=addObject(level,'platform',280,300),store=createEditorStore();store.open('upper',level);
+  const run=()=>{const sim=createSimulation(store.document());sim.start();sim.step(500);return sim.snapshot();};
+  assert.equal(run().status,'won');
+  store.change(doc=>moveObject(doc,ref,0,-20));assert.equal(store.document().platforms[ref.index].y,280);assert.equal(run().reason,'fall');
+  store.undo();assert.equal(run().status,'won');store.redo();
+  const restored=createEditorStore(store.serialize());assert.equal(restored.document().platforms[ref.index].y,280);
+});
+test('moving a connector retains both landing heights; a moved patrol retains a bounded patrol path',()=>{
+  const level=createBlankLevel('movement');const lift=addObject(level,'lift',500,520);
+  moveObject(level,lift,100,-100);const connector=level.entities[0];assert.equal(connector.y,420);assert.equal(connector.toY,240);
+  moveObject(level,lift,0,-1000);assert.equal(connector.toY,160);assert.equal(connector.y,340);
+  const creature=addObject(level,'object',700,300),e=level.entities[1];e.motion={type:'patrol',minX:650,maxX:900,speed:55};
+  moveObject(level,creature,50,20);assert.equal(e.x,750);assert.equal(e.y,320);assert.equal(e.motion.minX,700);assert.equal(e.motion.maxX,950);
+  moveObject(level,creature,2000,0);assert.equal(e.motion.maxX,1200-e.width);assert.equal(e.x>=e.motion.minX&&e.x<=e.motion.maxX,true);
 });
 test('deleting an entity removes dependent rules and nested actions without dangling references', () => {
   const level = structuredClone(levels[2]);

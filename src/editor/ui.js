@@ -1,4 +1,4 @@
-import { createEditorStore, createBlankLevel, addObject, deleteObject, addBehavior, renameBehavior, deleteBehavior, ruleWires, KIND_NAMES } from './model.js';
+import { createEditorStore, createBlankLevel, addObject, deleteObject, moveObject, addBehavior, renameBehavior, deleteBehavior, ruleWires, KIND_NAMES } from './model.js';
 import { STATES, SKINS, eventTypes, floorY, validateLevel } from '../core/schema.js';
 import { stateLabel } from '../core/engine.js';
 import { CATALOG, CATEGORIES, filterCatalog } from './catalog.js';
@@ -32,6 +32,7 @@ const actionList = (actions,path) => {for(const index of path)actions=actions[in
 /** DOM adapter only: the draft store and simulation do not depend on this interface. */
 export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagram=false,onChange=()=>{},onMode=()=>{}}) {
   let store=createEditorStore(), restored=false, mode='closed', selection=null, tool='select', drag=null, serial=0,placementY=440;
+  let placementMode=diagram?'cursor':'fixed';
   let wireSource=null,wireTarget=null,wireEvent=null,wireBehavior=null,wireSourceBehavior=null;
   let tab='library',category='all',query='',wireView='all',selectedWire=null,routeDrag=null;
   const wireKey=w=>w.rule+':'+w.path.join('.');
@@ -122,10 +123,11 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     for(const [kind,name] of [['select','↖ 选择'],['wire','↗ 连线']]) {
       const el=button(name,()=>{tool=kind;if(kind==='wire')showTab('logic');render();},'tool-button');el.dataset.tool=kind;el.setAttribute('aria-pressed',String(kind===tool));$('editor-tools').append(el);
     }
-    const placement=input(placementY,'放置高度 Y',value=>{placementY=value;},{id:'placement-y',type:'number',min:160,max:560,step:10});
+    if(diagram){const modeSelect=select([['cursor','按点击高度'],['fixed','固定高度']],placementMode,'高度放置方式',value=>{placementMode=value;renderTools();});modeSelect.id='placement-mode';$('editor-tools').append(modeSelect);}
+    const placement=input(placementY,'放置高度 Y',value=>{placementY=value;placementMode='fixed';renderTools();},{id:'placement-y',type:'number',min:160,max:560,step:10});
     $('editor-tools').append(field('放置在 Y',placement));
     const view=select([['all','全部连线'],['related','选中物体的连线'],['none','隐藏连线']],wireView,'连线显示',value=>{wireView=value;renderOverlay(store.document());});view.id='wire-view';$('editor-tools').append(view);
-    $('editor-help').textContent=tool==='select'?'拖动物体 · 双击连线添加转接点':tool==='wire'?'选择事件起点，再选择目标行为':(CATALOG.find(i=>i.kind===tool)?.name??'物体')+'：点击地图放置 · Esc 取消';
+    $('editor-help').textContent=tool==='select'?(diagram?'上下左右拖动物体 / 路面 · 双击连线添加转接点':'拖动物体 · 双击连线添加转接点'):tool==='wire'?'选择事件起点，再选择目标行为':(CATALOG.find(i=>i.kind===tool)?.name??'物体')+'：点击地图放置'+(diagram?(placementMode==='cursor'?' · 高度跟随点击':' · 固定 Y='+placementY):'')+' · Esc 取消';
   }
   function renderWireControls(d) {
     const box=$('wire-controls');box.replaceChildren();box.hidden=tool!=='wire';
@@ -217,7 +219,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
   }
   function renderOverlay(d) {
     $('editor-overlay').replaceChildren();
-    const objects=[...d.platforms.map((p,i)=>({ref:{type:'platform',index:i},p,kind:'platform',name:'地面 '+(i+1)})),
+    const objects=[...d.platforms.map((p,i)=>({ref:{type:'platform',index:i},p,kind:'platform',name:'路面 '+(i+1)})),
       ...d.entities.map(p=>({ref:{type:'entity',id:p.id},p,kind:p.kind,name:p.label})),
       {ref:{type:'actor'},p:d.actor,kind:'actor',name:'旅行者'},{ref:{type:'goal'},p:d.goal,kind:'goal',name:'目的地'}];
     if(!resolveObject(d,selection))selection=null;
@@ -236,7 +238,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
         event.preventDefault();event.stopPropagation();selection=ref;selectedWire=null;showTab('object');
         for(const sibling of $('editor-overlay').children)sibling.setAttribute('aria-pressed',String(sibling===el));
         renderFields(d);
-        drag={ref,el,start:event.clientX,x:p.x,left:bounds.x,dx:0,pointerId:event.pointerId};
+        drag={ref,el,start:event.clientX,startY:event.clientY,left:bounds.x,dx:0,dy:0,pointerId:event.pointerId};
       });
       el.addEventListener('click',event=>{if(tool==='wire'){event.stopPropagation();if(ref.type==='entity'){if(!wireSource){wireSource=p.id;wireEvent=null;}else{wireTarget=p.id;wireBehavior=null;}showTab('logic');renderWireControls(store.document());}return;}if(tool==='select'){event.stopPropagation();chooseObject(ref);}});
       $('editor-overlay').append(el);
@@ -419,23 +421,25 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     if(tool==='select'){selection=null;selectedWire=null;render();return;}
     if(tool==='wire')return;const box=$('editor-overlay').getBoundingClientRect();
     const x=Math.round((event.clientX-box.left)/box.width*1200/10)*10;
-    const kind=tool;tool='select';tab='object';selectedWire=null;edit(doc=>{selection=addObject(doc,kind,x,placementY);});
+    const y=placementMode==='cursor'?Math.max(160,Math.min(560,Math.round((event.clientY-box.top)/box.height*640/10)*10)):placementY;
+    const kind=tool;tool='select';tab='object';selectedWire=null;edit(doc=>{selection=addObject(doc,kind,x,y);});
   });
   window.addEventListener('pointermove',event=>{
     if(routeDrag && event.pointerId===routeDrag.pointerId){routeDrag.points[routeDrag.index]=overlayPoint(event);const d=store.document();setWirePoints(d,routeDrag.wire,routeDrag.points);renderWires(d);return;}
-    if(!drag || event.pointerId!==drag.pointerId)return;const width=$('editor-overlay').getBoundingClientRect().width;
-    drag.dx=Math.round((event.clientX-drag.start)/width*1200/10)*10;
-    drag.el.style.left=(drag.left+drag.dx)/12+'%';
+    if(!drag || event.pointerId!==drag.pointerId)return;const box=$('editor-overlay').getBoundingClientRect();
+    drag.dx=Math.round((event.clientX-drag.start)/box.width*1200/10)*10;
+    drag.dy=diagram?Math.round((event.clientY-drag.startY)/box.height*640/10)*10:0;
+    const d=store.document();moveObject(d,drag.ref,drag.dx,drag.dy);const target=resolveObject(d,drag.ref);
+    if(diagram){const b=diagramBounds(target.kind??drag.ref.type,target);drag.el.style.left=b.x/12+'%';drag.el.style.top=b.y/6.4+'%';onChange(d);renderWires(d);}
+    else drag.el.style.left=(drag.left+drag.dx)/12+'%';
   });
   window.addEventListener('pointerup',event=>{
     if(routeDrag && event.pointerId===routeDrag.pointerId){const moved=routeDrag;routeDrag=null;if(JSON.stringify(moved.points)!==JSON.stringify(moved.wire.points))edit(doc=>setWirePoints(doc,moved.wire,moved.points));return;}
     if(!drag || event.pointerId!==drag.pointerId)return;const moved=drag;drag=null;
-    if(!moved.dx)return;
-    edit(doc=>{const obj=resolveObject(doc,moved.ref), min=moved.ref.type==='platform'?0:moved.ref.type==='goal'?40:moved.ref.type==='actor'?20:25;
-      const max=moved.ref.type==='actor'?1150:moved.ref.type==='goal'?1180:Math.min(moved.ref.type==='entity'?1175:1199,1200-(obj.width??28));
-    obj.x=Math.max(min,Math.min(max,moved.x+moved.dx));});
+    if(!moved.dx&&!moved.dy)return;
+    edit(doc=>moveObject(doc,moved.ref,moved.dx,moved.dy));
   });
-  window.addEventListener('pointercancel',()=>{drag=null;routeDrag=null;if(mode==='editing')renderOverlay(store.document());});
+  window.addEventListener('pointercancel',()=>{drag=null;routeDrag=null;if(mode==='editing')render();});
   $('editor-new').addEventListener('click',()=>{const id='map-'+Date.now().toString(36)+'-'+serial++;openDocument(createBlankLevel(id),'custom:'+id);});
   $('draft-select').addEventListener('change',()=>{store.open($('draft-select').value);selection=null;selectedWire=null;wireSource=null;wireTarget=null;tool='select';save();render();});
   $('editor-save').addEventListener('click',()=>save(true));
@@ -458,9 +462,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     if(mode!=='editing' || document.querySelector('dialog[open]') || ['INPUT','TEXTAREA','SELECT'].includes(event.target.tagName))return;
     if((event.ctrlKey||event.metaKey) && ['z','y'].includes(event.key.toLowerCase())){event.preventDefault();history(event.shiftKey||event.key.toLowerCase()==='y');}
     else if(event.key==='Delete' && selection){event.preventDefault();edit(doc=>{deleteObject(doc,selection);selection=null;});}
-    else if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key) && selection){event.preventDefault();edit(doc=>{const obj=resolveObject(doc,selection);
-      if(['ArrowUp','ArrowDown'].includes(event.key))obj.y=Math.max(160,Math.min(560,floorY(obj)+(event.key==='ArrowDown'?10:-10)));
-      else obj.x+=event.key==='ArrowRight'?10:-10;});}
+    else if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key) && selection){event.preventDefault();edit(doc=>moveObject(doc,selection,event.key==='ArrowRight'?10:event.key==='ArrowLeft'?-10:0,event.key==='ArrowDown'?10:event.key==='ArrowUp'?-10:0));}
     else if(event.key==='Escape'){tool='select';wireSource=null;wireTarget=null;selectedWire=null;render();}
   });
   return {
