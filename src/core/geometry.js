@@ -1,0 +1,12 @@
+import { floorY } from './schema.js';
+
+/** Logical diagram bounds, shared by the editor hit areas and the art-free renderer. */
+export function diagramBounds(kind, object) {
+  const y = floorY(object), width = object.width ?? 28;
+  if (kind === 'platform') return { x:object.x, y:y+2, width, height:12 };
+  if (kind === 'actor') return { x:object.x-12, y:y-32, width:24, height:32 };
+  if (kind === 'goal') return { x:object.x-16, y:y-40, width:32, height:40 };
+  if (kind === 'ladder' || kind === 'lift') return { x:object.x, y:object.toY-12, width, height:y-object.toY+24 };
+  const height = { bridge:12, switch:28, plate:8, gate:64, object:36, zone:60, hazard:40 }[kind] ?? 28;
+  return { x:object.x, y:y-(kind==='bridge'?4:height), width, height };
+}

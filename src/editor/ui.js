@@ -3,6 +3,7 @@ import { STATES, SKINS, eventTypes, floorY, validateLevel } from '../core/schema
 import { stateLabel } from '../core/engine.js';
 import { CATALOG, CATEGORIES, filterCatalog } from './catalog.js';
 import { snapPoint, setWirePoints, routeWire, nearestInsertion } from './routing.js';
+import { diagramBounds } from '../core/geometry.js';
 
 const $ = id => document.getElementById(id);
 const STORAGE = 'gothere.editor.v1';
@@ -29,12 +30,12 @@ const availableEvents=e=>eventTypes(e.kind).filter(t=>t!=='done'||e.behaviors?.l
 const actionList = (actions,path) => {for(const index of path)actions=actions[index].actions;return actions;};
 
 /** DOM adapter only: the draft store and simulation do not depend on this interface. */
-export function createEditorUI({play,leave,pause,notify}) {
+export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagram=false,onChange=()=>{},onMode=()=>{}}) {
   let store=createEditorStore(), restored=false, mode='closed', selection=null, tool='select', drag=null, serial=0,placementY=440;
   let wireSource=null,wireTarget=null,wireEvent=null,wireBehavior=null,wireSourceBehavior=null;
   let tab='library',category='all',query='',wireView='all',selectedWire=null,routeDrag=null;
   const wireKey=w=>w.rule+':'+w.path.join('.');
-  try {const saved=localStorage.getItem(STORAGE);if(saved){store=createEditorStore(saved);restored=true;}}
+  try {const saved=localStorage.getItem(storageKey);if(saved){store=createEditorStore(saved);restored=true;}}
   catch {notify('旧草稿无法读取。可以通过关卡数据重新导入备份。');}
   $('editor-toolbar').innerHTML=`<div class="editor-commands"><label class="draft-picker"><select id="draft-select" aria-label="切换草稿"></select></label><button id="editor-new" class="button secondary">＋ 新建</button><button id="editor-undo" class="button secondary" title="Ctrl+Z">↶ 撤销</button><button id="editor-redo" class="button secondary" title="Ctrl+Shift+Z">↷ 重做</button><button id="editor-save" class="button secondary">保存</button><span id="draft-status" role="status">已保存</span><button id="editor-test" class="button primary">▷ 试玩</button><button id="editor-return" class="button primary" hidden>← 返回编辑</button><button id="editor-exit" class="text-button">退出</button></div>
     <div id="editor-tools" class="editor-tools" role="group" aria-label="地图工具"></div><p id="editor-help" class="editor-help"></p><div id="wire-selection"></div>`;
@@ -43,6 +44,7 @@ export function createEditorUI({play,leave,pause,notify}) {
     <div id="panel-object" class="editor-tab-panel" role="tabpanel" aria-label="物体"><div class="section-heading"><h2 id="object-title">未选中物体</h2></div><div id="object-fields"></div></div>
     <div id="panel-logic" class="editor-tab-panel edit-rules" role="tabpanel" aria-label="逻辑"><div id="wire-controls" class="wire-controls"></div><div class="section-heading"><h2>逻辑规则</h2><button id="add-rule" class="text-button">＋ 规则</button></div><div id="rule-list"></div></div>
     <div id="panel-map" class="editor-tab-panel" role="tabpanel" aria-label="地图"><div class="section-heading"><h2>地图设置</h2></div><div id="level-fields"></div></div><div id="editor-errors" class="data-error" role="alert" hidden></div>`;
+  if(diagram){$('editor-test').textContent='▶ 运行';$('editor-exit').hidden=true;}
   function showTab(next) {
     tab=next;
     for(const [id,label] of [['library','仓库'],['object','物体'],['logic','逻辑'],['map','地图']]){
@@ -82,7 +84,7 @@ export function createEditorUI({play,leave,pause,notify}) {
     if(!matches.length)scene.append(element('p',d.entities.length?'没有匹配的场景物体':'场景中还没有物体','empty-state'));
   }
   function save(explicit=false) {
-    try {localStorage.setItem(STORAGE,store.serialize());$('draft-status').textContent='已保存';if(explicit)notify('草稿已保存。');}
+    try {localStorage.setItem(storageKey,store.serialize());$('draft-status').textContent='已保存';if(explicit)notify('草稿已保存。');}
     catch {$('draft-status').textContent='浏览器无法保存 · 请使用关卡数据导出备份';if(explicit)notify('无法保存到浏览器，请导出 JSON 备份。');}
   }
   function edit(fn) {try{store.change(fn);save();render();}catch(error){notify(error.message);}}
@@ -94,8 +96,9 @@ export function createEditorUI({play,leave,pause,notify}) {
     $('wire-selection').hidden=!editing;
     $('wire-controls').hidden=!editing || tool!=='wire';
     for(const id of ['draft-select','editor-new','editor-undo','editor-redo','editor-save','editor-test'])$(id).disabled=!editing;
-    $('open-editor').textContent=active?'工坊已打开':'关卡工坊';
+    if($('open-editor'))$('open-editor').textContent=active?'工坊已打开':'关卡工坊';
     if(editing)render();
+    onMode(mode);
   }
   function openDocument(level,key) {
     try {store.open(key,level);}catch(error){notify(error.message);return false;}
@@ -105,12 +108,13 @@ export function createEditorUI({play,leave,pause,notify}) {
     const d=store.document(), validation=validateLevel(d);
     $('scene-title').textContent=d.name || '还没想好名字';$('scene-tag-text').textContent='正在创作';
     $('stage-note').textContent='';
-    $('editor-errors').hidden=validation.valid;$('editor-errors').textContent='暂时还不能试玩：\n'+validation.errors.join('\n');
+    $('editor-errors').hidden=validation.valid;$('editor-errors').textContent=(diagram?'暂时无法运行：\n':'暂时还不能试玩：\n')+validation.errors.join('\n');
     $('editor-test').disabled=!validation.valid;
     const history=store.history();$('editor-undo').disabled=!history.undo;$('editor-redo').disabled=!history.redo;
     const picker=$('draft-select');picker.replaceChildren();
     for(const entry of store.entries()){const option=element('option',entry.name);option.value=entry.key;picker.append(option);}picker.value=store.key();
     renderTools();renderLibrary(d);renderWireControls(d);renderOverlay(d);renderFields(d);renderRules(d);renderWireSelection(d);showTab(tab);
+    onChange(d);
   }
   function renderTools() {
     $('editor-overlay').dataset.mode=tool;
@@ -177,7 +181,8 @@ export function createEditorUI({play,leave,pause,notify}) {
     svg.setAttribute('viewBox','0 0 1200 640');svg.classList.add('wire-layer');svg.setAttribute('aria-label','事件连线');
     const defs=svgNode('defs'),marker=svgNode('marker',{id:'wire-arrow',viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:6,markerHeight:6,orient:'auto-start-reverse'});
     marker.append(svgNode('path',{d:'M 0 0 L 10 5 L 0 10 z',fill:'#637c70'}));defs.append(marker);svg.append(defs);
-    const point=(id,output)=>{const e=d.entities.find(e=>e.id===id);return e?{x:Math.max(6,Math.min(1194,output?e.x+(e.width??28)+6:e.x-6)),y:(['lift','ladder'].includes(e.kind)?e.toY:floorY(e))-32}:{x:d.actor.x,y:floorY(d.actor)-32};};
+    const point=(id,output)=>{const e=d.entities.find(e=>e.id===id);if(diagram){const b=diagramBounds(e?.kind??'actor',e??d.actor);return {x:Math.max(6,Math.min(1194,output?b.x+b.width+6:b.x-6)),y:b.y+b.height/2};}
+      return e?{x:Math.max(6,Math.min(1194,output?e.x+(e.width??28)+6:e.x-6)),y:(['lift','ladder'].includes(e.kind)?e.toY:floorY(e))-32}:{x:d.actor.x,y:floorY(d.actor)-32};};
     const duplicates=new Map(),wires=ruleWires(d).map(w=>{const key=w.source+':'+w.target,count=duplicates.get(key)??0;duplicates.set(key,count+1);return {...w,lane:w.rule%5+count};});
     if(wireView!=='none')for(const wire of wires.sort((a,b)=>Number(wireKey(a)===selectedWire)-Number(wireKey(b)===selectedWire))){
       if(wireView==='related' && (selection?.type!=='entity'||(wire.source!==selection.id&&wire.target!==selection.id)))continue;
@@ -221,16 +226,17 @@ export function createEditorUI({play,leave,pause,notify}) {
       const connection=['ladder','lift'].includes(kind),surface=floorY(p),top=connection?p.toY-12:kind==='platform'?surface+4:surface-({bridge:0,switch:12,hazard:90,plate:7,gate:88,object:48,zone:20,actor:42,goal:145}[kind]??20);
       const height=connection?surface-p.toY+24:{platform:65,bridge:32,switch:53,hazard:110,plate:22,gate:105,object:60,zone:24,actor:82,goal:160}[kind];
       const width=kind==='actor'?44:kind==='goal'?72:Math.max(p.width??28,28), offset=kind==='actor'?22:0;
+      const bounds=diagram?diagramBounds(kind,p):{x:p.x-offset,y:top,width,height};
       const el=button(name,()=>{},'edit-object '+kind);el.dataset.ref=refKey(ref);el.setAttribute('aria-label','选择：'+name);
       el.setAttribute('aria-pressed',String(selection && refKey(selection)===refKey(ref)));
-      el.style.left=(p.x-offset)/12+'%';el.style.top=top/6.4+'%';el.style.width=width/12+'%';el.style.height=height/6.4+'%';
+      el.style.left=bounds.x/12+'%';el.style.top=bounds.y/6.4+'%';el.style.width=bounds.width/12+'%';el.style.height=bounds.height/6.4+'%';
       const label=element('span',name);el.replaceChildren(label);
       el.addEventListener('pointerdown',event=>{
         if(tool!=='select')return;
         event.preventDefault();event.stopPropagation();selection=ref;selectedWire=null;showTab('object');
         for(const sibling of $('editor-overlay').children)sibling.setAttribute('aria-pressed',String(sibling===el));
         renderFields(d);
-        drag={ref,el,start:event.clientX,x:p.x,left:p.x-offset,dx:0,pointerId:event.pointerId};
+        drag={ref,el,start:event.clientX,x:p.x,left:bounds.x,dx:0,pointerId:event.pointerId};
       });
       el.addEventListener('click',event=>{if(tool==='wire'){event.stopPropagation();if(ref.type==='entity'){if(!wireSource){wireSource=p.id;wireEvent=null;}else{wireTarget=p.id;wireBehavior=null;}showTab('logic');renderWireControls(store.document());}return;}if(tool==='select'){event.stopPropagation();chooseObject(ref);}});
       $('editor-overlay').append(el);
@@ -260,7 +266,7 @@ export function createEditorUI({play,leave,pause,notify}) {
     if(selection.type==='entity') {
       box.append(field('显示名称',input(target.label,'显示名称',value=>update('label',value),{id:'object-label',maxLength:30})));
       const state=select(STATES[target.kind].map(s=>[s,stateLabel(s)]),target.state,'初始状态',value=>update('state',value));state.id='object-state';box.append(field('初始状态',state));
-      if(target.kind==='object') {
+      if(target.kind==='object' && !diagram) {
         const skin=select(Object.entries(SKINS),target.appearance?.skin??'axe','外观',value=>edit(doc=>{resolveObject(doc,selection).appearance={skin:value};}));
         skin.id='object-skin';box.append(field('贴图外观',skin));
         const upload=element('input');upload.type='file';upload.accept='image/png,image/jpeg,image/webp';upload.setAttribute('aria-label','上传自定义 PNG、JPEG 或 WebP 贴图');upload.id='object-image';
@@ -444,7 +450,8 @@ export function createEditorUI({play,leave,pause,notify}) {
       target?{type:'set',target:target.id,state:target.state}:{type:'set',target:source.id,state:source.state};
     doc.rules.push({on:{type:availableEvents(source)[0],source:source.id},actions:[action]});
   }));
-  $('editor-test').addEventListener('click',()=>{const d=store.document();if(!validateLevel(d).valid)return;setMode('testing');play(d);});
+  function preview({run=true}={}) {const d=store.document();if(!validateLevel(d).valid){notify('请先修正地图中的校验问题。');return false;}setMode('testing');play(d,{run});return true;}
+  $('editor-test').addEventListener('click',()=>preview());
   $('editor-return').addEventListener('click',()=>{pause();setMode('editing');});
   $('editor-exit').addEventListener('click',()=>{pause();const d=store.document();setMode('closed');leave(validateLevel(d).valid?d:null);});
   document.addEventListener('keydown',event=>{
@@ -458,6 +465,7 @@ export function createEditorUI({play,leave,pause,notify}) {
   });
   return {
     active:()=>mode!=='closed',isEditing:()=>mode==='editing',document:()=>store.document(),
+    preview,
     open(level,key){if(restored){pause();restored=false;setMode('editing');}else openDocument(level,key);},
     openDocument,
     importDocument(level){if(!openDocument(level,'import:'+Date.now().toString(36)+'-'+serial++))throw new Error('无法创建导入草稿，请检查草稿数量。');},

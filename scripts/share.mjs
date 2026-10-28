@@ -2,12 +2,13 @@ import { spawn } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
-import { buildPortable } from './build.mjs';
+import { buildPortable, buildEditor } from './build.mjs';
 import { makeServer } from '../server.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 await mkdir(resolve(root, 'artifacts'), { recursive:true });
 await buildPortable();
+await buildEditor();
 const preview = makeServer({ portableOnly:true });
 await new Promise((resolveListen,reject)=>{preview.once('error',reject);preview.listen(0,'127.0.0.1',resolveListen);});
 const port = preview.address().port;
