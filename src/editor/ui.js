@@ -75,7 +75,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     }
     if(!list.children.length)list.append(element('p','没有匹配的物件','empty-state'));
     const preview=$('library-preview');preview.replaceChildren();const item=CATALOG.find(i=>i.kind===tool);
-    if(item){preview.append(element('strong',item.name),element('p',item.description),element('small','点击地图放置 · Esc 取消'));
+    if(item){preview.append(element('strong',item.name),element('p',item.description),element('small',diagram?'连续点击地图放置 · Esc 取消':'点击地图放置 · Esc 取消'));
       if(item.kind!=='platform')preview.append(element('small','事件：'+eventTypes(item.kind).filter(e=>e!=='done').map(e=>eventNames[e]).join('、')));}
     const scene=$('scene-items');scene.replaceChildren();
     const terms=query.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -127,7 +127,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     const placement=input(placementY,'放置高度 Y',value=>{placementY=value;placementMode='fixed';renderTools();},{id:'placement-y',type:'number',min:160,max:560,step:10});
     $('editor-tools').append(field('放置在 Y',placement));
     const view=select([['all','全部连线'],['related','选中物体的连线'],['none','隐藏连线']],wireView,'连线显示',value=>{wireView=value;renderOverlay(store.document());});view.id='wire-view';$('editor-tools').append(view);
-    $('editor-help').textContent=tool==='select'?(diagram?'上下左右拖动物体 / 路面 · 双击连线添加转接点':'拖动物体 · 双击连线添加转接点'):tool==='wire'?'选择事件起点，再选择目标行为':(CATALOG.find(i=>i.kind===tool)?.name??'物体')+'：点击地图放置'+(diagram?(placementMode==='cursor'?' · 高度跟随点击':' · 固定 Y='+placementY):'')+' · Esc 取消';
+    $('editor-help').textContent=tool==='select'?(diagram?'上下左右拖动物体 / 路面 · 双击连线添加转接点':'拖动物体 · 双击连线添加转接点'):tool==='wire'?'选择事件起点，再选择目标行为':(CATALOG.find(i=>i.kind===tool)?.name??'物体')+(diagram?'：连续点击放置':'：点击地图放置')+(diagram?(placementMode==='cursor'?' · 高度跟随点击':' · 固定 Y='+placementY):'')+' · Esc 取消';
   }
   function renderWireControls(d) {
     const box=$('wire-controls');box.replaceChildren();box.hidden=tool!=='wire';
@@ -240,7 +240,8 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
         renderFields(d);
         drag={ref,el,start:event.clientX,startY:event.clientY,left:bounds.x,dx:0,dy:0,pointerId:event.pointerId};
       });
-      el.addEventListener('click',event=>{if(tool==='wire'){event.stopPropagation();if(ref.type==='entity'){if(!wireSource){wireSource=p.id;wireEvent=null;}else{wireTarget=p.id;wireBehavior=null;}showTab('logic');renderWireControls(store.document());}return;}if(tool==='select'){event.stopPropagation();chooseObject(ref);}});
+      el.addEventListener('click',event=>{if(tool==='wire'){event.stopPropagation();if(ref.type==='entity'){if(!wireSource){wireSource=p.id;wireEvent=null;}else{wireTarget=p.id;wireBehavior=null;}showTab('logic');renderWireControls(store.document());}return;}
+        if(tool==='select'||(diagram&&ref.type!=='platform')){event.stopPropagation();chooseObject(ref);}});
       $('editor-overlay').append(el);
     }
   }
@@ -422,7 +423,9 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     if(tool==='wire')return;const box=$('editor-overlay').getBoundingClientRect();
     const x=Math.round((event.clientX-box.left)/box.width*1200/10)*10;
     const y=placementMode==='cursor'?Math.max(160,Math.min(560,Math.round((event.clientY-box.top)/box.height*640/10)*10)):placementY;
-    const kind=tool;tool='select';tab='object';selectedWire=null;edit(doc=>{selection=addObject(doc,kind,x,y);});
+    const kind=tool;selectedWire=null;
+    if(diagram){selection=null;edit(doc=>{addObject(doc,kind,x,y);});}
+    else {tool='select';tab='object';edit(doc=>{selection=addObject(doc,kind,x,placementY);});}
   });
   window.addEventListener('pointermove',event=>{
     if(routeDrag && event.pointerId===routeDrag.pointerId){routeDrag.points[routeDrag.index]=overlayPoint(event);const d=store.document();setWirePoints(d,routeDrag.wire,routeDrag.points);renderWires(d);return;}

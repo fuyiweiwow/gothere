@@ -43,7 +43,25 @@ try{
   // Create a new map and wire an event slot to an existing behavior through visible controls.
   await page.locator('#editor-new').click();await page.locator('[data-tool="switch"]').click();
   const overlay=await page.locator('#editor-overlay').boundingBox();await page.mouse.click(overlay.x+overlay.width*.22,overlay.y+overlay.height*.45);
-  await page.locator('#editor-tab-library').click();await page.locator('[data-tool="gate"]').click();await page.mouse.click(overlay.x+overlay.width*.65,overlay.y+overlay.height*.45);
+  assert.equal(await page.locator('#panel-library').isVisible(),true,'placement keeps the library open');
+  assert.equal(await page.locator('[data-tool="switch"]').getAttribute('aria-pressed'),'true','placement tool remains active');
+  assert.equal(await page.locator('.scene-item').count(),1);
+  await page.mouse.click(overlay.x+overlay.width*.3,overlay.y+overlay.height*.45);
+  assert.equal(await page.locator('.scene-item').count(),2,'the same tool places multiple objects consecutively');
+  await page.locator('#editor-undo').click();assert.equal((await draft()).entities.length,1);
+  assert.equal(await page.locator('[data-tool="switch"]').getAttribute('aria-pressed'),'true');
+  await page.locator('#editor-redo').click();assert.equal((await draft()).entities.length,2);
+  await page.keyboard.press('Escape');const countBefore=(await draft()).entities.length;
+  await page.mouse.click(overlay.x+overlay.width*.4,overlay.y+overlay.height*.4);assert.equal((await draft()).entities.length,countBefore,'Escape cancels placement');
+  await page.locator('[data-tool="switch"]').click();
+  await page.locator('[data-ref="entity:switch-1"]').click();
+  assert.equal(await page.locator('#panel-object').isVisible(),true,'an existing object can be inspected manually');
+  assert.equal(await page.locator('#object-label').inputValue(),'开关1');
+  await page.locator('#editor-tab-library').click();await page.locator('[data-tool="gate"]').click();
+  const freshOverlay=await page.locator('#editor-overlay').boundingBox();
+  await page.mouse.click(freshOverlay.x+freshOverlay.width*.65,freshOverlay.y+freshOverlay.height*.45);
+  assert.equal(await page.locator('#panel-library').isVisible(),true);
+  await page.locator('[data-ref="entity:gate-1"]').click();assert.equal(await page.locator('#panel-object').isVisible(),true);
   await page.getByRole('button',{name:'＋ 新行为',exact:true}).click();
   await page.locator('#editor-tab-library').click();await page.locator('[data-ref="entity:switch-1"]').click();
   await page.locator('.event-slot[data-event="click"]').getByRole('button',{name:'接线'}).click();
@@ -53,6 +71,8 @@ try{
   await page.locator('#editor-new').click();assert.equal(await page.locator('#placement-mode').inputValue(),'cursor');
   async function placeRoad(x,y){await page.locator('#editor-tab-library').click();await page.locator('[data-tool="platform"]').click();const b=await page.locator('#editor-overlay').boundingBox();await page.mouse.click(b.x+x/1200*b.width,b.y+y/640*b.height);}
   await placeRoad(500,300);assert.equal((await draft()).platforms[1].y,300);
+  assert.equal(await page.locator('#panel-library').isVisible(),true);assert.equal(await page.locator('[data-tool="platform"]').getAttribute('aria-pressed'),'true');
+  await page.locator('[data-tool="select"]').click();
   const road=await page.locator('[data-ref="platform:1"]').boundingBox(),mapBounds=await page.locator('#editor-overlay').boundingBox();
   await page.mouse.move(road.x+road.width/2,road.y+road.height/2);await page.mouse.down();
   await page.mouse.move(road.x+road.width/2+20/1200*mapBounds.width,road.y+road.height/2-60/640*mapBounds.height,{steps:5});await page.mouse.up();
@@ -97,5 +117,5 @@ try{
   const previewServer=makeServer({portableOnly:true});await new Promise(r=>previewServer.listen(0,'127.0.0.1',r));
   try{await page.goto('http://127.0.0.1:'+previewServer.address().port+'/editor.html');await page.locator('.library-item').first().waitFor();await page.locator('#preview-step').click();assert.equal(await page.locator('#runtime-tick').textContent(),'tick 1 · 0.02 s');assert.deepEqual(errors,[]);}
   finally{await new Promise(r=>previewServer.close(r));}
-  console.log('Standalone editor passed: direct entry, cursor/fixed road height, vertical drag/history/persistence, slots, wiring, JSON, preview, multi-floor transport, generic creature damage/rest, offline and downloaded copy.');
+  console.log('Standalone editor passed: continuous placement, manual inspection, cancel/history, road heights/drag, persistence, wiring, JSON, preview, creature behaviors and offline/downloaded copy.');
 }finally{await context.close();await browser.close();await new Promise(r=>server.close(r));}
