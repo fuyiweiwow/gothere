@@ -4,6 +4,8 @@
 
 ## 运行与试玩
 
+[在线试玩](https://fuyiweiwow.github.io/gothere/) · [下载离线 HTML](https://fuyiweiwow.github.io/gothere/gothere-play.html)
+
 开发需要 Node.js 22.12.0 或更新版本：
 
 ```sh
@@ -17,6 +19,8 @@ npm run build
 ```
 
 生成 `dist/gothere-play.html` 和 `dist/index.html`，可直接用桌面浏览器离线打开，也可静态托管。移动端暂不作为交付前提。临时分享可用 `npm run share`，再用 `npm run test:share` 验证实际地址；隧道不保证持续有效。
+
+`main` 为发布分支。推送后，GitHub Actions 先运行内核与数据测试，再构建单文件 HTML 并发布到 GitHub Pages；站点只包含试玩首页与离线 HTML。工坊草稿保存在当前浏览器中，可导出 JSON 备份。
 
 ## 创作模型
 
