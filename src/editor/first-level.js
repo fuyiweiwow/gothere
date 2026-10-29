@@ -1,4 +1,5 @@
-/** Reference mechanics, authored entirely with the public object/behavior DSL. No artwork. */
+import {createFirstScene} from './first-scene.js';
+/** Reference mechanics and resource scene, both authored as editable data. */
 export function createFirstLevel() {
   const angle=Math.atan2(100,160)*180/Math.PI,length=Math.hypot(160,100),rampEnd=40+240*Math.cos(Math.PI/6);
   const invoke=(target,behavior)=>({type:'invoke',target,behavior});
@@ -60,5 +61,5 @@ export function createFirstLevel() {
   const visuals=[['cloud','#b9dad2','bob'],['beam','#a7bdb1','none'],['umbrella','#edb864','none'],['beam','#9ab6b6','none'],
     ['support','#b08d6f','none'],['beam','#8eaca5','none'],['pot','#bd795f','none'],['creature','#91a87f','none']];
   level.entities.forEach((e,i)=>{const [symbol,color,animation]=visuals[i];e.presentation={symbol,color,animation};});
-  return level;
+  level.scene=createFirstScene(level);return level;
 }

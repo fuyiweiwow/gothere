@@ -1,6 +1,7 @@
 import { verticalTransport, landingX } from './transport.js';
 import { surfaceHeight, collectSurfaces } from './surfaces.js';
 import { poseInBounds } from './pose.js';
+import {validateScene} from './scene-schema.js';
 
 export const STATES = Object.freeze({
   switch: ['off', 'on'], bridge: ['folded', 'extended'], gate: ['closed', 'open'],
@@ -25,6 +26,7 @@ export function validateLevel(input) {
   const errors = [];
   const check = (ok, message) => { if (!ok) errors.push(message); };
   if (!object(input)) return { valid: false, errors: ['关卡必须是一个 JSON 对象。'] };
+  errors.push(...validateScene(input));
   check(input.schemaVersion === 1, 'schemaVersion 必须为 1。');
   check(text(input.id, 48) && idPattern.test(input.id), 'id 必须是小写英文、数字或短横线，以字母开头。');
   check(text(input.name, 60), 'name 必须是 1～60 字的关卡名称。');

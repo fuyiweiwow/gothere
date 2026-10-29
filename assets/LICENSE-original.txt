@@ -1,0 +1,9 @@
+Gothere original vector artwork in assets/original/
+
+To the extent possible under law, the Gothere contributors have waived all copyright
+and related or neighboring rights to this artwork under CC0 1.0 Universal.
+You may copy, modify, distribute and use the artwork, including commercially,
+without asking permission. No warranty is provided.
+
+https://creativecommons.org/publicdomain/zero/1.0/
+https://creativecommons.org/publicdomain/zero/1.0/legalcode

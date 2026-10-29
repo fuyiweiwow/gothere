@@ -3,13 +3,16 @@ import {surfaceEndY} from '../core/surfaces.js';
 import {posePolygon} from '../core/pose.js';
 import {diagramBounds} from '../core/geometry.js';
 import {presentationFrame,presentationGeometry} from './presentation.js';
+import {drawResources} from './resources.js';
 
 function polygon(ctx,points,fill,stroke){ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke();}}
 function ellipse(ctx,x,y,rx,ry,color){ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,Math.max(1,rx),Math.max(1,ry),0,0,Math.PI*2);ctx.fill();}
 function round(ctx,x,y,w,h,r,color){ctx.fillStyle=color;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill();}
 
 /** The scene paints the same geometry and states as the logic view; it never advances or edits them. */
-export function drawScene(ctx,level,snapshot,{animate=true}={}) {
+export function drawScene(ctx,level,snapshot,options={}) {
+  const {animate=true}=options;
+  if(level.scene){drawResources(ctx,level,snapshot,options);return;}
   const tick=snapshot?.tick??0,entities=snapshot?Object.values(snapshot.entities):level.entities;
   const sky=ctx.createLinearGradient(0,0,0,640);sky.addColorStop(0,'#101e35');sky.addColorStop(1,'#263c50');ctx.fillStyle=sky;ctx.fillRect(0,0,1200,640);
   ellipse(ctx,1035,77,29,29,'#f5dfad');ellipse(ctx,1047,68,24,24,'#14243b');

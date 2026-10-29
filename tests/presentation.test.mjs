@@ -23,7 +23,7 @@ test('a scene symbol follows its object pivot and rotation instead of overriding
     createLinearGradient(){return {addColorStop(){}};},
     ellipse(x,y){if(ctx.fillStyle==='#abcdef')painted.push({x:matrix[0]*x+matrix[2]*y+matrix[4],y:matrix[1]*x+matrix[3]*y+matrix[5]});}
   },{get:(target,key)=>key in target?target[key]:()=>{}});
-  const level=createFirstLevel(),e=level.entities[0];e.presentation={symbol:'cloud',color:'#abcdef',animation:'none'};e.pose={angle:30,pivot:1};
+  const level=createFirstLevel(),e=level.entities[0];delete level.scene;e.presentation={symbol:'cloud',color:'#abcdef',animation:'none'};e.pose={angle:30,pivot:1};
   level.entities=[e];drawScene(ctx,level,undefined,{animate:false});
   const center=painted.reduce((sum,p)=>({x:sum.x+p.x/painted.length,y:sum.y+p.y/painted.length}),{x:0,y:0});
   const baseline=posePoint(e,.5),r=e.pose.angle*Math.PI/180;

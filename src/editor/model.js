@@ -3,6 +3,7 @@ import { verticalTransport, landingHeights } from '../core/transport.js';
 import { diagramBounds } from '../core/geometry.js';
 import { surfaceEndY } from '../core/surfaces.js';
 import { posePoint, poseInBounds } from '../core/pose.js';
+import {validateScene} from '../core/scene-schema.js';
 
 const clone = (value) => structuredClone(value);
 const finiteY = value => value?.y === undefined || Number.isFinite(value.y);
@@ -20,7 +21,7 @@ const shape = (level) => Boolean(level && level.schemaVersion === 1 && level.wor
     (e.motion === undefined || (Number.isFinite(e.motion?.minX) && Number.isFinite(e.motion?.maxX)))) &&
   Array.isArray(level.rules) && level.rules.length <= 128 &&
   // Geometry can be unfinished; references, states and action trees must remain safe to edit.
-  validateLevel({...level, world:{...level.world,...(level.world.physics===undefined&&(level.actor.maxLandingSpeed!==undefined||level.entities.some(e=>e.surface||e.collider||e.body||e.supportProbe||e.carriedPhysics))?{physics:{gravity:900,maxFallSpeed:480}}:{})},
+  validateScene(level).length===0 && validateLevel({...level, scene:undefined, world:{...level.world,...(level.world.physics===undefined&&(level.actor.maxLandingSpeed!==undefined||level.entities.some(e=>e.surface||e.collider||e.body||e.supportProbe||e.carriedPhysics))?{physics:{gravity:900,maxFallSpeed:480}}:{})},
     actor:{...level.actor,x:95,y:440,speed:68}, goal:{x:1100},
     platforms:[{x:0,width:1200},{x:0,width:1200,y:260}],
     entities:level.entities.map(e=>({...e,x:25,width:8,y:440,
@@ -107,9 +108,10 @@ export function addObject(level, kind, x, y=440) {
 }
 
 export function deleteObject(level, ref) {
-  if (ref?.type==='platform') { level.platforms.splice(ref.index,1); return; }
+  if (ref?.type==='platform') { level.platforms.splice(ref.index,1);if(level.scene){level.scene.nodes=level.scene.nodes.filter(n=>n.bind?.type!=='platform'||n.bind.index!==ref.index);for(const n of level.scene.nodes)if(n.bind?.type==='platform'&&n.bind.index>ref.index)n.bind.index--;} return; }
   if (ref?.type!=='entity') return;
   level.entities = level.entities.filter(e=>e.id!==ref.id);
+  if(level.scene)level.scene.nodes=level.scene.nodes.filter(n=>n.bind?.type!=='entity'||n.bind.id!==ref.id);
   pruneReferences(level);
 }
 

@@ -1,0 +1,1372 @@
+[
+  {
+    "id": "anemometer",
+    "label": "风向标",
+    "category": "细节",
+    "file": "kenney/anemometer.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "awningGreen",
+    "label": "绿白遮阳篷",
+    "category": "细节",
+    "file": "kenney/awningGreen.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "awningGreenRed",
+    "label": "awningGreenRed",
+    "category": "细节",
+    "file": "kenney/awningGreenRed.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "awningRed",
+    "label": "咖啡馆遮阳篷",
+    "category": "细节",
+    "file": "kenney/awningRed.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "chimney",
+    "label": "烟囱",
+    "category": "细节",
+    "file": "kenney/chimney.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "chimneyLow",
+    "label": "矮烟囱",
+    "category": "细节",
+    "file": "kenney/chimneyLow.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "chimneyThin",
+    "label": "细烟囱",
+    "category": "细节",
+    "file": "kenney/chimneyThin.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "clock",
+    "label": "钟面",
+    "category": "细节",
+    "file": "kenney/clock.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "doorKnob",
+    "label": "木门",
+    "category": "窗门",
+    "file": "kenney/doorKnob.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "doorKnobAlt",
+    "label": "doorKnobAlt",
+    "category": "窗门",
+    "file": "kenney/doorKnobAlt.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "doorLock",
+    "label": "doorLock",
+    "category": "窗门",
+    "file": "kenney/doorLock.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "doorOpen",
+    "label": "doorOpen",
+    "category": "窗门",
+    "file": "kenney/doorOpen.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "doorOpenTop",
+    "label": "doorOpenTop",
+    "category": "窗门",
+    "file": "kenney/doorOpenTop.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "doorPlateTop",
+    "label": "doorPlateTop",
+    "category": "窗门",
+    "file": "kenney/doorPlateTop.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "doorTop",
+    "label": "门楣",
+    "category": "窗门",
+    "file": "kenney/doorTop.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "doorWindowTop",
+    "label": "doorWindowTop",
+    "category": "窗门",
+    "file": "kenney/doorWindowTop.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "fenceGate",
+    "label": "fenceGate",
+    "category": "细节",
+    "file": "kenney/fenceGate.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "fenceLong",
+    "label": "阳台栏杆",
+    "category": "细节",
+    "file": "kenney/fenceLong.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "fenceLow",
+    "label": "矮栏杆",
+    "category": "细节",
+    "file": "kenney/fenceLow.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseBeige",
+    "label": "houseBeige",
+    "category": "墙面",
+    "file": "kenney/houseBeige.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseBeigeAlt",
+    "label": "houseBeigeAlt",
+    "category": "墙面",
+    "file": "kenney/houseBeigeAlt.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseBeigeAlt2",
+    "label": "houseBeigeAlt2",
+    "category": "墙面",
+    "file": "kenney/houseBeigeAlt2.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseBeigeBottomLeft",
+    "label": "houseBeigeBottomLeft",
+    "category": "墙面",
+    "file": "kenney/houseBeigeBottomLeft.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseBeigeBottomMid",
+    "label": "houseBeigeBottomMid",
+    "category": "墙面",
+    "file": "kenney/houseBeigeBottomMid.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseBeigeBottomRight",
+    "label": "houseBeigeBottomRight",
+    "category": "墙面",
+    "file": "kenney/houseBeigeBottomRight.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseBeigeMidLeft",
+    "label": "houseBeigeMidLeft",
+    "category": "墙面",
+    "file": "kenney/houseBeigeMidLeft.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseBeigeMidRight",
+    "label": "houseBeigeMidRight",
+    "category": "墙面",
+    "file": "kenney/houseBeigeMidRight.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseBeigeTopLeft",
+    "label": "houseBeigeTopLeft",
+    "category": "墙面",
+    "file": "kenney/houseBeigeTopLeft.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseBeigeTopMid",
+    "label": "houseBeigeTopMid",
+    "category": "墙面",
+    "file": "kenney/houseBeigeTopMid.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseBeigeTopRight",
+    "label": "houseBeigeTopRight",
+    "category": "墙面",
+    "file": "kenney/houseBeigeTopRight.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseDark",
+    "label": "houseDark",
+    "category": "墙面",
+    "file": "kenney/houseDark.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseDarkAlt",
+    "label": "houseDarkAlt",
+    "category": "墙面",
+    "file": "kenney/houseDarkAlt.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseDarkAlt2",
+    "label": "houseDarkAlt2",
+    "category": "墙面",
+    "file": "kenney/houseDarkAlt2.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseDarkBottomLeft",
+    "label": "houseDarkBottomLeft",
+    "category": "墙面",
+    "file": "kenney/houseDarkBottomLeft.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseDarkBottomMid",
+    "label": "houseDarkBottomMid",
+    "category": "墙面",
+    "file": "kenney/houseDarkBottomMid.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseDarkBottomRight",
+    "label": "houseDarkBottomRight",
+    "category": "墙面",
+    "file": "kenney/houseDarkBottomRight.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseDarkMidLeft",
+    "label": "houseDarkMidLeft",
+    "category": "墙面",
+    "file": "kenney/houseDarkMidLeft.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseDarkMidRight",
+    "label": "houseDarkMidRight",
+    "category": "墙面",
+    "file": "kenney/houseDarkMidRight.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseDarkTopLeft",
+    "label": "houseDarkTopLeft",
+    "category": "墙面",
+    "file": "kenney/houseDarkTopLeft.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseDarkTopMid",
+    "label": "houseDarkTopMid",
+    "category": "墙面",
+    "file": "kenney/houseDarkTopMid.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseDarkTopRight",
+    "label": "houseDarkTopRight",
+    "category": "墙面",
+    "file": "kenney/houseDarkTopRight.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseGray",
+    "label": "houseGray",
+    "category": "墙面",
+    "file": "kenney/houseGray.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseGrayAlt",
+    "label": "houseGrayAlt",
+    "category": "墙面",
+    "file": "kenney/houseGrayAlt.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseGrayAlt2",
+    "label": "houseGrayAlt2",
+    "category": "墙面",
+    "file": "kenney/houseGrayAlt2.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseGrayBottomLeft",
+    "label": "houseGrayBottomLeft",
+    "category": "墙面",
+    "file": "kenney/houseGrayBottomLeft.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseGrayBottomMid",
+    "label": "houseGrayBottomMid",
+    "category": "墙面",
+    "file": "kenney/houseGrayBottomMid.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseGrayBottomRight",
+    "label": "houseGrayBottomRight",
+    "category": "墙面",
+    "file": "kenney/houseGrayBottomRight.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseGrayMidLeft",
+    "label": "houseGrayMidLeft",
+    "category": "墙面",
+    "file": "kenney/houseGrayMidLeft.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseGrayMidRight",
+    "label": "houseGrayMidRight",
+    "category": "墙面",
+    "file": "kenney/houseGrayMidRight.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseGrayTopLeft",
+    "label": "houseGrayTopLeft",
+    "category": "墙面",
+    "file": "kenney/houseGrayTopLeft.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseGrayTopMid",
+    "label": "houseGrayTopMid",
+    "category": "墙面",
+    "file": "kenney/houseGrayTopMid.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "houseGrayTopRight",
+    "label": "houseGrayTopRight",
+    "category": "墙面",
+    "file": "kenney/houseGrayTopRight.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "roofGreyLeft",
+    "label": "roofGreyLeft",
+    "category": "屋顶",
+    "file": "kenney/roofGreyLeft.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "roofGreyMid",
+    "label": "roofGreyMid",
+    "category": "屋顶",
+    "file": "kenney/roofGreyMid.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "roofGreyRight",
+    "label": "roofGreyRight",
+    "category": "屋顶",
+    "file": "kenney/roofGreyRight.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "roofGreyTopLeft",
+    "label": "roofGreyTopLeft",
+    "category": "屋顶",
+    "file": "kenney/roofGreyTopLeft.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "roofGreyTopMid",
+    "label": "roofGreyTopMid",
+    "category": "屋顶",
+    "file": "kenney/roofGreyTopMid.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "roofGreyTopRight",
+    "label": "roofGreyTopRight",
+    "category": "屋顶",
+    "file": "kenney/roofGreyTopRight.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "roofRedLeft",
+    "label": "roofRedLeft",
+    "category": "屋顶",
+    "file": "kenney/roofRedLeft.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "roofRedMid",
+    "label": "roofRedMid",
+    "category": "屋顶",
+    "file": "kenney/roofRedMid.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "roofRedRight",
+    "label": "roofRedRight",
+    "category": "屋顶",
+    "file": "kenney/roofRedRight.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "roofRedTopLeft",
+    "label": "roofRedTopLeft",
+    "category": "屋顶",
+    "file": "kenney/roofRedTopLeft.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "roofRedTopMid",
+    "label": "roofRedTopMid",
+    "category": "屋顶",
+    "file": "kenney/roofRedTopMid.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "roofRedTopRight",
+    "label": "roofRedTopRight",
+    "category": "屋顶",
+    "file": "kenney/roofRedTopRight.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "roofYellowLeft",
+    "label": "roofYellowLeft",
+    "category": "屋顶",
+    "file": "kenney/roofYellowLeft.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "roofYellowMid",
+    "label": "roofYellowMid",
+    "category": "屋顶",
+    "file": "kenney/roofYellowMid.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "roofYellowRight",
+    "label": "roofYellowRight",
+    "category": "屋顶",
+    "file": "kenney/roofYellowRight.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "roofYellowTopLeft",
+    "label": "roofYellowTopLeft",
+    "category": "屋顶",
+    "file": "kenney/roofYellowTopLeft.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "roofYellowTopMid",
+    "label": "roofYellowTopMid",
+    "category": "屋顶",
+    "file": "kenney/roofYellowTopMid.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "roofYellowTopRight",
+    "label": "roofYellowTopRight",
+    "category": "屋顶",
+    "file": "kenney/roofYellowTopRight.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "signBed",
+    "label": "旅店招牌",
+    "category": "细节",
+    "file": "kenney/signBed.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "signCoin",
+    "label": "signCoin",
+    "category": "细节",
+    "file": "kenney/signCoin.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "signCup",
+    "label": "咖啡招牌",
+    "category": "细节",
+    "file": "kenney/signCup.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "signHangingBed",
+    "label": "signHangingBed",
+    "category": "细节",
+    "file": "kenney/signHangingBed.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "signHangingCoin",
+    "label": "signHangingCoin",
+    "category": "细节",
+    "file": "kenney/signHangingCoin.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "signHangingCup",
+    "label": "signHangingCup",
+    "category": "细节",
+    "file": "kenney/signHangingCup.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "window",
+    "label": "拱窗",
+    "category": "窗门",
+    "file": "kenney/window.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "windowCheckered",
+    "label": "格窗",
+    "category": "窗门",
+    "file": "kenney/windowCheckered.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "windowHighBottom",
+    "label": "长窗底",
+    "category": "窗门",
+    "file": "kenney/windowHighBottom.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "windowHighCheckeredBottom",
+    "label": "windowHighCheckeredBottom",
+    "category": "窗门",
+    "file": "kenney/windowHighCheckeredBottom.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "windowHighCheckeredMid",
+    "label": "windowHighCheckeredMid",
+    "category": "窗门",
+    "file": "kenney/windowHighCheckeredMid.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "windowHighCheckeredTop",
+    "label": "windowHighCheckeredTop",
+    "category": "窗门",
+    "file": "kenney/windowHighCheckeredTop.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "windowHighLeadlightBottom",
+    "label": "windowHighLeadlightBottom",
+    "category": "窗门",
+    "file": "kenney/windowHighLeadlightBottom.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "windowHighLeadlightMid",
+    "label": "windowHighLeadlightMid",
+    "category": "窗门",
+    "file": "kenney/windowHighLeadlightMid.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "windowHighLeadlightTop",
+    "label": "windowHighLeadlightTop",
+    "category": "窗门",
+    "file": "kenney/windowHighLeadlightTop.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "windowHighMid",
+    "label": "长窗中段",
+    "category": "窗门",
+    "file": "kenney/windowHighMid.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "windowHighOpenBottom",
+    "label": "windowHighOpenBottom",
+    "category": "窗门",
+    "file": "kenney/windowHighOpenBottom.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "windowHighOpenMid",
+    "label": "windowHighOpenMid",
+    "category": "窗门",
+    "file": "kenney/windowHighOpenMid.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "windowHighOpenTop",
+    "label": "windowHighOpenTop",
+    "category": "窗门",
+    "file": "kenney/windowHighOpenTop.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "windowHighTop",
+    "label": "长窗顶",
+    "category": "窗门",
+    "file": "kenney/windowHighTop.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "windowLeadlight",
+    "label": "windowLeadlight",
+    "category": "窗门",
+    "file": "kenney/windowLeadlight.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "windowLow",
+    "label": "windowLow",
+    "category": "窗门",
+    "file": "kenney/windowLow.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "windowLowCheckered",
+    "label": "windowLowCheckered",
+    "category": "窗门",
+    "file": "kenney/windowLowCheckered.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "windowLowLeadlight",
+    "label": "windowLowLeadlight",
+    "category": "窗门",
+    "file": "kenney/windowLowLeadlight.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "windowLowOpen",
+    "label": "windowLowOpen",
+    "category": "窗门",
+    "file": "kenney/windowLowOpen.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "windowOpen",
+    "label": "暗拱窗",
+    "category": "窗门",
+    "file": "kenney/windowOpen.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "moon_full",
+    "label": "满月",
+    "category": "天空远景",
+    "file": "kenney/moon_full.png",
+    "width": 85,
+    "height": 85,
+    "source": "kenney-background",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "cloud1",
+    "label": "云朵1",
+    "category": "天空远景",
+    "file": "kenney/cloud1.png",
+    "width": 190,
+    "height": 127,
+    "source": "kenney-background",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "cloud2",
+    "label": "云朵2",
+    "category": "天空远景",
+    "file": "kenney/cloud2.png",
+    "width": 200,
+    "height": 125,
+    "source": "kenney-background",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "cloud3",
+    "label": "云朵3",
+    "category": "天空远景",
+    "file": "kenney/cloud3.png",
+    "width": 177,
+    "height": 121,
+    "source": "kenney-background",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "house_grey_front",
+    "label": "远景 house_grey_front",
+    "category": "天空远景",
+    "file": "kenney/house_grey_front.png",
+    "width": 102,
+    "height": 174,
+    "source": "kenney-background",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "house_grey_side",
+    "label": "远景 house_grey_side",
+    "category": "天空远景",
+    "file": "kenney/house_grey_side.png",
+    "width": 174,
+    "height": 174,
+    "source": "kenney-background",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "tower_grey",
+    "label": "远景 tower_grey",
+    "category": "天空远景",
+    "file": "kenney/tower_grey.png",
+    "width": 66,
+    "height": 227,
+    "source": "kenney-background",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "castle_grey",
+    "label": "远景 castle_grey",
+    "category": "天空远景",
+    "file": "kenney/castle_grey.png",
+    "width": 204,
+    "height": 182,
+    "source": "kenney-background",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "wallLavender",
+    "label": "紫灰墙砖",
+    "category": "墙面",
+    "file": "kenney/wallLavender.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings-adapted",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "wallTeal",
+    "label": "蓝绿墙砖",
+    "category": "墙面",
+    "file": "kenney/wallTeal.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings-adapted",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "wallIndigo",
+    "label": "靛蓝墙砖",
+    "category": "墙面",
+    "file": "kenney/wallIndigo.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings-adapted",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "roofBlue",
+    "label": "蓝色屋瓦",
+    "category": "屋顶",
+    "file": "kenney/roofBlue.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings-adapted",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "wallRose",
+    "label": "暖灰墙砖",
+    "category": "墙面",
+    "file": "kenney/wallRose.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings-adapted",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "wallStone",
+    "label": "石色墙砖",
+    "category": "墙面",
+    "file": "kenney/wallStone.png",
+    "width": 70,
+    "height": 70,
+    "source": "kenney-buildings-adapted",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "shutter",
+    "label": "蓝色百叶窗",
+    "category": "细节",
+    "file": "original/shutter.svg",
+    "width": 30,
+    "height": 90,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "windowNight",
+    "label": "夜色高窗",
+    "category": "窗门",
+    "file": "original/windowNight.svg",
+    "width": 42,
+    "height": 84,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "windowGlow",
+    "label": "亮灯目的地窗",
+    "category": "窗门",
+    "file": "original/windowGlow.svg",
+    "width": 54,
+    "height": 116,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "cornice",
+    "label": "石质檐口",
+    "category": "屋顶",
+    "file": "original/cornice.svg",
+    "width": 120,
+    "height": 16,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "drainpipe",
+    "label": "雨水管",
+    "category": "细节",
+    "file": "original/drainpipe.svg",
+    "width": 12,
+    "height": 180,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "balcony",
+    "label": "铁艺阳台",
+    "category": "细节",
+    "file": "original/balcony.svg",
+    "width": 140,
+    "height": 48,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "antenna",
+    "label": "屋顶天线",
+    "category": "机关",
+    "file": "original/antenna.svg",
+    "width": 200,
+    "height": 24,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "flag",
+    "label": "塔顶小旗",
+    "category": "细节",
+    "file": "original/flag.svg",
+    "width": 46,
+    "height": 86,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "flowerPot",
+    "label": "花盆与花",
+    "category": "机关",
+    "file": "original/flowerPot.svg",
+    "width": 44,
+    "height": 64,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "umbrellaOpen",
+    "label": "展开的伞",
+    "category": "机关",
+    "file": "original/umbrellaOpen.svg",
+    "width": 72,
+    "height": 84,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "umbrellaClosed",
+    "label": "收起的伞",
+    "category": "机关",
+    "file": "original/umbrellaClosed.svg",
+    "width": 26,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "bracket",
+    "label": "窗台支撑架",
+    "category": "机关",
+    "file": "original/bracket.svg",
+    "width": 42,
+    "height": 38,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "catAwake",
+    "label": "醒着的屋顶猫",
+    "category": "角色",
+    "file": "original/catAwake.svg",
+    "width": 92,
+    "height": 72,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "catRest",
+    "label": "休息的屋顶猫",
+    "category": "角色",
+    "file": "original/catRest.svg",
+    "width": 92,
+    "height": 72,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "ivy",
+    "label": "垂挂藤蔓",
+    "category": "细节",
+    "file": "original/ivy.svg",
+    "width": 46,
+    "height": 120,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "eiffel",
+    "label": "远处的铁塔剪影",
+    "category": "天空远景",
+    "file": "original/eiffel.svg",
+    "width": 110,
+    "height": 200,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "star",
+    "label": "星点",
+    "category": "天空远景",
+    "file": "original/star.svg",
+    "width": 8,
+    "height": 8,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "hotelSign",
+    "label": "HÔTEL 招牌",
+    "category": "细节",
+    "file": "original/hotelSign.svg",
+    "width": 150,
+    "height": 40,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "cafeSign",
+    "label": "CAFÉ 招牌",
+    "category": "细节",
+    "file": "original/cafeSign.svg",
+    "width": 150,
+    "height": 40,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "restSign",
+    "label": "RESTO 招牌",
+    "category": "细节",
+    "file": "original/restSign.svg",
+    "width": 150,
+    "height": 40,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "travelerIdle",
+    "label": "旅行者站姿",
+    "category": "角色",
+    "file": "kenney/travelerIdle.png",
+    "width": 55,
+    "height": 94,
+    "source": "kenney-toon-characters",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "travelerWalk1",
+    "label": "旅行者步行1",
+    "category": "角色",
+    "file": "kenney/travelerWalk1.png",
+    "width": 75,
+    "height": 94,
+    "source": "kenney-toon-characters",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "travelerWalk2",
+    "label": "旅行者步行2",
+    "category": "角色",
+    "file": "kenney/travelerWalk2.png",
+    "width": 65,
+    "height": 92,
+    "source": "kenney-toon-characters",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "travelerWalk3",
+    "label": "旅行者步行3",
+    "category": "角色",
+    "file": "kenney/travelerWalk3.png",
+    "width": 59,
+    "height": 93,
+    "source": "kenney-toon-characters",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "mansardRoof",
+    "label": "蓝瓦孟莎式屋顶",
+    "category": "屋顶",
+    "file": "original/mansardRoof.svg",
+    "width": 300,
+    "height": 108,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "spireRoof",
+    "label": "蓝瓦尖塔屋顶",
+    "category": "屋顶",
+    "file": "original/spireRoof.svg",
+    "width": 100,
+    "height": 126,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "dormerRoof",
+    "label": "雕花老虎窗屋顶",
+    "category": "屋顶",
+    "file": "original/dormerRoof.svg",
+    "width": 120,
+    "height": 52,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  }
+]
