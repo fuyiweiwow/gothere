@@ -74,6 +74,9 @@ export function advanceWalker(actor, surfaces, speed, physics, goal) {
   for (let transitions = 0; elapsed < STEP - EPSILON && transitions < surfaces.length * 2 + 8; transitions++) {
     const remaining = STEP - elapsed;
     if (next.mode === 'walking') {
+      if(goal&&Math.abs(next.x-goal.x)<EPSILON&&Math.abs(next.y-(goal.y??440))<EPSILON&&supportAt(surfaces,next.x,next.y,next.support)){
+        next.x=goal.x;goalReached=true;break;
+      }
       const surface = supportAt(surfaces, next.x, next.y, next.support, next.direction);
       if (!surface) { next.mode='falling';next.support=null;next.vy=0;continue; }
       next.support=surface.id;
@@ -100,6 +103,7 @@ export function advanceWalker(actor, surfaces, speed, physics, goal) {
         next.y=lineHeight(hit.surface,next.x);segments.at(-1).to.y=next.y;
         next.mode='walking';next.support=hit.surface.id;next.vy=0;
         landings.push({time:elapsed,x:next.x,y:next.y,support:next.support});
+        if(goal&&Math.abs(next.x-goal.x)<EPSILON&&Math.abs(next.y-(goal.y??440))<EPSILON){next.x=goal.x;goalReached=true;break;}
       }
     }
   }
