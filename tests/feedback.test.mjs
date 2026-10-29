@@ -111,3 +111,32 @@ test('malformed feedback sources cannot create silently unreachable subscription
     const l=createFirstLevel();l.scene.feedback=[slot(l,{trigger})];assert.equal(validateLevel(l).valid,false);
   }
 });
+
+test('first sound waits for browser audio unlock and reset cancels the pending first cue',async()=>{
+  const {createSoundPlayer}=await import('../src/render/audio.js');let resumed,plays=0;
+  const param={setValueAtTime(){},exponentialRampToValueAtTime(){}};
+  const context={state:'suspended',currentTime:0,destination:{},resume:()=>new Promise(r=>{resumed=()=>{context.state='running';r();};}),
+    createGain:()=>({gain:param,connect(){},disconnect(){}}),createOscillator:()=>({frequency:param,connect(){},disconnect(){},start(){plays++;},stop(){}})};
+  const audio=createSoundPlayer({contextFactory:()=>context});const first=audio.play({sound:'pop'});
+  assert.equal(typeof resumed,'function','the first preview unlocks audio');resumed();await first;assert.equal(plays,1);
+  audio.stop();context.state='suspended';const cancelled=audio.play({sound:'pop'});audio.stop();resumed();await cancelled;assert.equal(plays,1);
+});
+
+test('audio disconnects completed and stopped sources and repeated pause changes are idempotent',async()=>{
+  const {createSoundPlayer}=await import('../src/render/audio.js');const sources=[],gains=[];let suspends=0,resumes=0;
+  const param={setValueAtTime(){},exponentialRampToValueAtTime(){}};
+  const connection=()=>({connected:true,connect(){},disconnect(){this.connected=false;}});
+  const context={state:'running',currentTime:0,destination:{},resume:async()=>{resumes++;},suspend:async()=>{suspends++;},
+    createGain:()=>{const g={...connection(),gain:param};gains.push(g);return g;},
+    createOscillator:()=>{const n={...connection(),frequency:param,start(){},stop(){}};sources.push(n);return n;}};
+  const audio=createSoundPlayer({contextFactory:()=>context});await audio.unlock();await audio.play({sound:'pop'});sources[0].onended();
+  assert.equal(sources[0].connected,false);assert.equal(gains[0].connected,false);
+  await audio.play({sound:'pop'});audio.stop();assert.equal(sources[1].connected,false);assert.equal(gains[1].connected,false);
+  await audio.setPaused(true);await audio.setPaused(true);assert.equal(suspends,1);
+  context.state='suspended';await audio.setPaused(false);await audio.setPaused(false);assert.equal(resumes,1);
+});
+
+test('removing a behavior also prunes its done-event feedback subscription',()=>{
+  const l=createFirstLevel();l.scene.feedback=[slot(l,{trigger:{type:'event',source:'pipe',event:'done',behavior:'lower'}})];
+  assert.equal(validateLevel(l).valid,true);deleteBehavior(l,'pipe','lower');assert.equal(l.scene.feedback.length,0);assert.equal(validateLevel(l).valid,true);
+});

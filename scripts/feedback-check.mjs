@@ -17,6 +17,11 @@ try{
  await p.locator('#feedback-add').click();let slot=p.locator('.feedback-slot').last();await slot.locator('[data-feedback-field="motion"]').selectOption('shake');await slot.locator('[data-feedback-field="particles"]').selectOption('smoke');
  await slot.locator('[data-feedback-field="sound"]').selectOption('puff');const configured=await draft(p);assert.equal(configured.scene.feedback.at(-1).motion,'shake');assert.deepEqual(configured.entities,initial.entities);
  await slot.locator('[data-feedback-preview]').click();await p.clock.runFor(180);assert.ok(Number(await p.locator('#scene').getAttribute('data-feedback-particles'))>0);await p.clock.runFor(2500);assert.equal(await p.locator('#scene').getAttribute('data-feedback-active'),'0');
+ await slot.locator('[data-feedback-field="duration"]').fill('2.3');await slot.locator('[data-feedback-field="duration"]').dispatchEvent('change');assert.equal((await draft(p)).scene.feedback.at(-1).duration,138);
+ await slot.locator('[data-feedback-field="trigger-type"]').selectOption('event');await slot.locator('[data-feedback-field="trigger-source"]').selectOption('window-sensor');
+ await slot.locator('[data-feedback-field="trigger-type"]').selectOption('behavior');assert.ok((await draft(p)).scene.feedback.at(-1).trigger.behavior,'switching from a sensor chooses an eligible behavior source');
+ await slot.locator('[data-feedback-field="trigger-type"]').selectOption('start');
+ configured.scene.feedback=(await draft(p)).scene.feedback;
  await p.locator('#feedback-stop').click();await p.reload();await p.locator('#scene[data-assets=ready]').waitFor();assert.deepEqual(await draft(p),configured);
  await p.locator('#preview-toggle').click();await p.clock.runFor(1000);assert.ok(Number(await p.locator('#scene').getAttribute('data-feedback-particles'))>0,'ambient smoke runs from authored start slots');
  await p.locator('#scene-interactions [data-source="chimney"]').click();await p.clock.runFor(250);assert.ok(Number(await p.locator('#scene').getAttribute('data-audio-played'))>0,'a behavior plays its sound once');
