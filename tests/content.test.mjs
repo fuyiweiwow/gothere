@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createBlankLevel, createEditorStore, deleteObject } from '../src/editor/model.js';
 import { createSimulation, replayRecording, validateLevel } from '../src/core/engine.js';
-import { examples } from '../src/examples.js';
+import { examples } from './fixtures/game-examples.js';
 
 const fixture=()=>({...createBlankLevel('content-test'),actor:{x:80,speed:120},goal:{x:800},
   entities:[{id:'tool',kind:'object',x:150,width:40,state:'active',label:'东西',appearance:{skin:'axe'}}],

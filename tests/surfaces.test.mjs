@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createSimulation, replayRecording, validateLevel } from '../src/core/engine.js';
 import { createBlankLevel, createEditorStore, moveObject, resizeObject, copyObject, pasteObject, snapTransport } from '../src/editor/model.js';
-import { createEditorExample } from '../src/editor/starter.js';
+import { createEditorExample } from './fixtures/editor-examples.js';
 import { landingX } from '../src/core/transport.js';
 
 const fixture = () => ({ ...createBlankLevel('surface-test'),

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createEditorStore, createBlankLevel, deleteObject, addObject, moveObject } from '../src/editor/model.js';
-import { levels } from '../src/levels.js';
+import { levels } from './fixtures/levels.js';
 import { createSimulation, validateLevel } from '../src/core/engine.js';
 
 test('a playable document and simulation never mutate the authoring draft', () => {

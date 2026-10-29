@@ -1,5 +1,5 @@
 import { createEditorStore, createBlankLevel, addObject, addHeightTransport, setHeightTransport, setPhysicalCapability, setSupportProbe, snapTransport, resizeObject, deleteObject, moveObject, copyObject, pasteObject, addBehavior, renameBehavior, deleteBehavior, ruleWires, deleteWire, KIND_NAMES } from './model.js';
-import { STATES, SKINS, eventTypes, floorY, validateLevel } from '../core/schema.js';
+import { STATES, eventTypes, floorY, validateLevel } from '../core/schema.js';
 import { stateLabel } from '../core/engine.js';
 import { CATALOG, CATEGORIES, filterCatalog } from './catalog.js';
 import { snapPoint, setWirePoints, routeWire, nearestInsertion } from './routing.js';
@@ -8,6 +8,7 @@ import { verticalTransport, landingX } from '../core/transport.js';
 import { surfaceEndY } from '../core/surfaces.js';
 import { posePoint, posePolygon } from '../core/pose.js';
 import { EDITOR_SHORTCUTS, shortcutCommand, nudgeDelta } from './shortcuts.js';
+import {PRESENTATION_SYMBOLS,PRESENTATION_ANIMATIONS} from '../render/presentation.js';
 
 const $ = id => document.getElementById(id);
 const STORAGE = 'gothere.editor.v1';
@@ -349,15 +350,13 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     if(selection.type==='entity') {
       box.append(field('显示名称',input(target.label,'显示名称',value=>update('label',value),{id:'object-label',maxLength:30})));
       const state=select(STATES[target.kind].map(s=>[s,stateLabel(s)]),target.state,'初始状态',value=>update('state',value));state.id='object-state';box.append(field('初始状态',state));
-      if(target.kind==='object' && !diagram) {
-        const skin=select(Object.entries(SKINS),target.appearance?.skin??'axe','外观',value=>edit(doc=>{resolveObject(doc,selection).appearance={skin:value};}));
-        skin.id='object-skin';box.append(field('贴图外观',skin));
-        const upload=element('input');upload.type='file';upload.accept='image/png,image/jpeg,image/webp';upload.setAttribute('aria-label','上传自定义 PNG、JPEG 或 WebP 贴图');upload.id='object-image';
-        upload.addEventListener('change',()=>{const file=upload.files[0];if(!file)return;if(file.size>24000||!['image/png','image/jpeg','image/webp'].includes(file.type)){notify('贴图只接受 24 KiB 以内的 PNG、JPEG 或 WebP。');upload.value='';return;}
-          const ref=structuredClone(selection),key=store.key(),reader=new FileReader();reader.onload=()=>{if(store.key()!==key)return;edit(doc=>{const e=resolveObject(doc,ref);if(e)e.appearance={...e.appearance,skin:e.appearance?.skin??'axe',image:reader.result};});};reader.onerror=()=>notify('无法读取贴图，请重新选择。');reader.readAsDataURL(file);});
-        box.append(field('自定义贴图（24 KiB 内）',upload));
-      }
       if(target.kind==='object'){
+        const visual=target.presentation??{symbol:'block',color:'#9db9ad',animation:'none'};
+        const changeVisual=(key,value)=>edit(doc=>{const e=resolveObject(doc,selection);e.presentation={...(e.presentation??visual),[key]:value};});
+        const symbol=select(Object.entries(PRESENTATION_SYMBOLS),visual.symbol,'场景图形',value=>changeVisual('symbol',value));symbol.id='object-symbol';
+        const color=input(visual.color,'场景颜色',value=>changeVisual('color',value),{type:'color',id:'object-color'});
+        const motion=select(Object.entries(PRESENTATION_ANIMATIONS),visual.animation,'场景循环动画',value=>changeVisual('animation',value));motion.id='object-animation';
+        box.append(field('场景图形',symbol),field('场景颜色',color),field('场景循环动画',motion));
         const collider=element('input');collider.id='object-collider';collider.type='checkbox';collider.checked=Boolean(target.collider);collider.disabled=Boolean(target.pose||target.transport);collider.setAttribute('aria-label','矩形碰撞体');
         collider.addEventListener('change',()=>edit(doc=>setPhysicalCapability(doc,resolveObject(doc,selection),'collider',collider.checked)));box.append(field('矩形碰撞体',collider));
         if(target.collider){const enabled=element('input');enabled.id='object-collider-enabled';enabled.type='checkbox';enabled.checked=target.collider.enabled;enabled.setAttribute('aria-label','碰撞初始启用');

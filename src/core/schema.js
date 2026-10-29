@@ -67,6 +67,8 @@ export function validateLevel(input) {
       check(text(entity.label, 30), '实体需要 1～30 字的 label：' + String(entity.id));
       check(entity.y===undefined || number(entity.y,160,560), '实体 y 必须为 160～560：' + String(entity.id));
       check(entity.height===undefined||number(entity.height,8,240),'实体 height 必须为 8～240：'+entity.id);
+      if(entity.presentation!==undefined){const p=entity.presentation;check(object(p)&&['block','cloud','beam','umbrella','pot','creature','support'].includes(p.symbol)&&
+        typeof p.color==='string'&&/^#[0-9a-f]{6}$/i.test(p.color)&&['none','bob','pulse'].includes(p.animation),'表现需要合法图形、六位颜色和动画类型：'+entity.id);}
       if(entity.supportProbe!==undefined)check(entity.kind==='object'&&object(entity.supportProbe)&&number(entity.supportProbe.at,0,1)&&
         entity.body===undefined&&Boolean(world?.physics),'支撑检测需要 at（0～1），不与动态重力组合，并需要重力模式：'+entity.id);
       if(entity.carriedPhysics!==undefined)check(entity.kind==='object'&&object(entity.carriedPhysics)&&number(entity.carriedPhysics.gravityScale,0.05,1)&&

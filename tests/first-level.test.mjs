@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createSimulation,replayRecording,validateLevel} from '../src/core/engine.js';
 import {createBlankLevel,createEditorStore,copyObject,pasteObject,setSupportProbe,setPhysicalCapability} from '../src/editor/model.js';
-import {createEditorExample} from '../src/editor/starter.js';
+import {createEditorExample} from './fixtures/editor-examples.js';
 
 const fixture=()=>({...createBlankLevel('support-probe'),world:{width:1200,height:640,groundY:440,physics:{gravity:900,maxFallSpeed:480}},
   actor:{x:80,y:520,speed:30},goal:{x:1100,y:520},platforms:[{x:0,width:1200,y:520}],

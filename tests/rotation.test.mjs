@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createSimulation, replayRecording, validateLevel } from '../src/core/engine.js';
 import { collectSurfaces, surfaceHeight } from '../src/core/surfaces.js';
 import { createBlankLevel, createEditorStore, resizeObject, moveObject, copyObject, pasteObject, deleteObject } from '../src/editor/model.js';
-import { createEditorExample } from '../src/editor/starter.js';
+import { createEditorExample } from './fixtures/editor-examples.js';
 import { diagramBounds } from '../src/core/geometry.js';
 import { posePoint, posePolygon } from '../src/core/pose.js';
 

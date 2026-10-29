@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { levels } from '../src/levels.js';
+import { levels } from './fixtures/levels.js';
 import { createSimulation, replayRecording, validateLevel } from '../src/core/engine.js';
 import { solutions } from './solutions.mjs';
 

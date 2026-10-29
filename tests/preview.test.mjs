@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createPreview } from '../src/app/preview.js';
 import { createSimulation } from '../src/core/engine.js';
 import { validateLevel } from '../src/core/schema.js';
-import { createEditorExample } from '../src/editor/starter.js';
+import { createEditorExample } from './fixtures/editor-examples.js';
 
 test('art-free editor data: holding, condition, delay and completion chain reaches goal without changing document',()=>{
   const level=createEditorExample(),before=structuredClone(level);

@@ -13,22 +13,21 @@ export function makeServer({ portableOnly = false } = {}) {
     if (!['GET','HEAD'].includes(request.method)) { send(405, 'Method not allowed'); return; }
     try {
       const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
-      if (portableOnly || pathname === '/play.html' || pathname === '/gothere-editor.html') {
-        if (!['/', '/index.html', '/play.html', '/editor.html', '/gothere-editor.html'].includes(pathname)) { send(404, 'Not found'); return; }
-        const isEditor=['/editor.html','/gothere-editor.html'].includes(pathname);
-        const html = await readFile(resolve(ROOT, isEditor?'dist/gothere-editor.html':'dist/gothere-play.html'));
+      if (portableOnly || pathname === '/gothere-editor.html') {
+        if (!['/', '/index.html', '/editor.html', '/gothere-editor.html'].includes(pathname)) { send(404, 'Not found'); return; }
+        const html = await readFile(resolve(ROOT,'dist/gothere-editor.html'));
         response.writeHead(200, {
           'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store',
           'X-Content-Type-Options': 'nosniff',
           'Content-Security-Policy': "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'",
-          ...(['/play.html','/gothere-editor.html'].includes(pathname) ? { 'Content-Disposition': 'attachment; filename="'+(isEditor?'gothere-editor.html':'gothere-play.html')+'"' } : {}),
+          ...(pathname==='/gothere-editor.html'?{'Content-Disposition':'attachment; filename="gothere-editor.html"'}:{}),
         });
         response.end(request.method === 'HEAD' ? undefined : html);
         return;
       }
       const allowed = pathname === '/' || pathname === '/index.html' || pathname === '/editor.html' || pathname === '/favicon.svg' || pathname === '/project.md' || pathname.startsWith('/src/');
       if (!allowed || pathname.includes('\\') || pathname.includes('\0')) { send(404, 'Not found'); return; }
-      const file = await realpath(resolve(ROOT, '.' + (pathname === '/' ? '/index.html' : pathname)));
+      const file = await realpath(resolve(ROOT, '.' + (['/','/index.html'].includes(pathname) ? '/editor.html' : pathname)));
       const rel = relative(ROOT, file);
       if (rel.startsWith('..' + sep) || rel === '..' || resolve(ROOT, rel) !== file || !(await stat(file)).isFile()) { send(404, 'Not found'); return; }
       response.writeHead(200, { 'Content-Type':MIME[extname(file)] ?? 'application/octet-stream',

@@ -57,5 +57,8 @@ export function createFirstLevel() {
     [[460,285],[460,250],[400,250],[400,285]],[[490,450],[490,410],[375,410],[375,450]],
     [[500,450],[500,505],[365,505],[365,450]]];
   level.rules.forEach((rule,i)=>{if(routes[i])rule.actions[0].editor={waypoints:routes[i].map(([x,y])=>({x,y}))};});
+  const visuals=[['cloud','#b9dad2','bob'],['beam','#a7bdb1','none'],['umbrella','#edb864','none'],['beam','#9ab6b6','none'],
+    ['support','#b08d6f','none'],['beam','#8eaca5','none'],['pot','#bd795f','none'],['creature','#91a87f','none']];
+  level.entities.forEach((e,i)=>{const [symbol,color,animation]=visuals[i];e.presentation={symbol,color,animation};});
   return level;
 }

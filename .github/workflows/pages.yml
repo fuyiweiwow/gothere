@@ -25,14 +25,14 @@ jobs:
         with:
           node-version: '22'
       # The simulation tests and portable builder use Node.js built-ins only.
-      - name: Verify game and editor data
+      - name: Verify editor and simulation
         run: npm test
       - name: Build standalone HTML
         run: npm run build
       - name: Stage static site
         run: |
           mkdir _site
-          cp dist/index.html dist/gothere-play.html dist/editor.html dist/gothere-editor.html _site/
+          cp dist/index.html dist/editor.html dist/gothere-editor.html _site/
           touch _site/.nojekyll
       - name: Configure Pages
         uses: actions/configure-pages@v5

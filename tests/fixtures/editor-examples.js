@@ -1,4 +1,4 @@
-import {createFirstLevel} from './first-level.js';
+import {createFirstLevel} from '../../src/editor/first-level.js';
 
 /** Content examples use only geometry and rules. They require no artwork or game shell. */
 export function createEditorExample(name='logic') {
