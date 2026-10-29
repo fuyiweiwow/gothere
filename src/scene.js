@@ -216,7 +216,7 @@ export function createRenderer(canvas) {
         else if(e.kind==='object' && !verticalTransport(e) && snapshot.actor.holding!==e.id)prop(e);
       }
       walker(snapshot,time,fallAge,reducedMotion);
-      if(snapshot.actor.holding)prop(snapshot.entities[snapshot.actor.holding],true);
+      if(snapshot.actor.holding){const held=snapshot.entities[snapshot.actor.holding];if(held.pose)drawPosedObject(ctx,held);else prop(held,true);}
       // Foreground wildflowers, only on actual ground.
       for(const x of [156,205,701,867,1037])if(level.platforms.some(p=>(p.y??440)===440&&x>p.x+15&&x<p.x+p.width-15)){
         tuft(x,443,.7);line(x+10,441,x+8,424,'#7f9669',1.2);circle(x+8,422,3.2,'#e7ddad');circle(x+8,422,1,'#bca773');

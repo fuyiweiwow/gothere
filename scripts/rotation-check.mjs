@@ -13,6 +13,7 @@ const context=await browser.newContext({viewport:{width:1600,height:1000}}),page
 const draft=p=>p.evaluate(()=>{const s=JSON.parse(localStorage.getItem('gothere.logic-editor.v1'));return s.documents.find(d=>d.key===s.activeKey).level;});
 const near=(a,b)=>assert.ok(Math.abs(a-b)<0.01,`${a} != ${b}`);
 async function load(p){await p.locator('#example-select').selectOption('rotation');await p.locator('#load-example').click();}
+async function freezeClock(p){await p.clock.install({time:new Date('2026-10-29T00:00:00Z')});await p.clock.pauseAt(new Date('2026-10-29T00:00:01Z'));}
 async function play(p){
   await p.locator('#preview-toggle').click();await p.locator('[data-source="release"]').click();
   await p.clock.runFor(500);assert.match(await p.locator('#runtime-entities').textContent(),/旋转中/);
@@ -21,7 +22,7 @@ async function play(p){
   await p.locator('#editor-return').click();
 }
 try{
-  page.on('pageerror',e=>errors.push(e.message));await page.clock.install();
+  page.on('pageerror',e=>errors.push(e.message));await freezeClock(page);
   await page.goto(process.argv[2]??'http://127.0.0.1:'+server.address().port+'/editor.html?example=rotation');
   await page.locator('#editor-overlay').waitFor();assert.equal((await draft(page)).id,'editor-rotation');await load(page);
   const initial=await draft(page);
@@ -45,9 +46,26 @@ try{
   await play(page);assert.deepEqual(await draft(page),initial);
   await page.locator('[data-ref="entity:panel"]').click();
   await page.screenshot({path:new URL('../artifacts/rotation-editor.png',import.meta.url).pathname.replace(/^\/([A-Z]:)/,'$1'),fullPage:true});
+  // Author a second instance through ordinary object controls, independently of the example definition.
+  await page.locator('#editor-tab-library').click();await page.locator('[data-tool="object"]').click();
+  const map=await page.locator('#editor-overlay').boundingBox();await page.mouse.click(map.x+600/1200*map.width,map.y+410/640*map.height);
+  await page.locator('[data-ref="entity:object-1"]').click();await page.locator('#object-pose').check();await page.locator('#object-surface').check();
+  await page.locator('#object-pivot').fill('0.5');await page.locator('#object-pivot').press('Enter');
+  await page.getByRole('button',{name:'＋ 新行为',exact:true}).click();
+  const authored=page.locator('[data-behavior="behavior-1"] .action-row');await authored.locator('[data-action-type]').selectOption('rotate');
+  await authored.locator('[data-action-target]').selectOption('object-1');
+  await authored.locator('[data-rotate-angle]').fill('15');await authored.locator('[data-rotate-angle]').press('Enter');
+  await authored.locator('[data-rotate-duration]').fill('0.5');await authored.locator('[data-rotate-duration]').press('Enter');
+  await page.locator('.event-slot[data-event="click"]').getByRole('button',{name:'接线',exact:true}).click();
+  await page.getByLabel('连线目标',{exact:true}).selectOption('object-1');await page.locator('#wire-connect').click();
+  const created=await draft(page),object=created.entities.find(e=>e.id==='object-1');
+  assert.deepEqual(object.pose,{angle:0,pivot:0.5});assert.deepEqual(object.behaviors[0].actions,[{type:'rotate',target:'object-1',angle:15,ticks:30}]);
+  assert.equal(created.rules.at(-1).actions[0].target,'object-1');
+  await page.locator('#open-data').click();assert.deepEqual(JSON.parse(await page.locator('#level-json').inputValue()),created);
+  await page.locator('#apply-level').click();assert.deepEqual(await draft(page),created);
   const portable=await buildEditor(),offline=await context.newPage(),requests=[];
   offline.on('pageerror',e=>errors.push(e.message));offline.on('request',r=>{if(/^https?:/.test(r.url()))requests.push(r.url());});
-  await offline.clock.install();await offline.goto(pathToFileURL(portable.path).href);await load(offline);await play(offline);
+  await freezeClock(offline);await offline.goto(pathToFileURL(portable.path).href);await load(offline);await play(offline);
   assert.deepEqual(requests,[]);assert.deepEqual(errors,[]);
   console.log('PASS rotation: inspector, action editing, completion slot, endpoint drag, undo/reload, real slope route and offline playback.');
 }finally{await context.close();await browser.close();await new Promise(resolve=>server.close(resolve));}
