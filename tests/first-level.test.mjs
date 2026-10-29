@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createSimulation,replayRecording,validateLevel} from '../src/core/engine.js';
-import {createBlankLevel,createEditorStore,copyObject,pasteObject} from '../src/editor/model.js';
+import {createBlankLevel,createEditorStore,copyObject,pasteObject,setSupportProbe,setPhysicalCapability} from '../src/editor/model.js';
 import {createEditorExample} from '../src/editor/starter.js';
 
 const fixture=()=>({...createBlankLevel('support-probe'),world:{width:1200,height:640,groundY:440,physics:{gravity:900,maxFallSpeed:480}},
@@ -66,6 +66,30 @@ test('dropping or closing the held item restores gravity; a speed cap never reve
     const s=createSimulation(l);s.start();s.click('item');s.step(100);assert.equal(s.snapshot().actor.vy,90);
     s.click('landing');s.step(80);assert.equal(s.snapshot().reason,'hard-landing');
   }
+});
+
+test('reactivating a held fall limiter during a fast fall clamps velocity without moving upward',()=>{
+  const l=fallFixture();l.rules.push({on:{type:'click',source:'landing'},actions:[{type:'set',target:'item',state:'inactive'}]});
+  const s=createSimulation(l);s.start();s.click('item');s.step(100);s.click('landing');s.step(12);
+  const before=s.snapshot().actor;assert.ok(before.vy>90);s.click('item');s.step();
+  assert.equal(s.snapshot().actor.vy,90);assert.ok(s.snapshot().actor.y>before.y);
+});
+
+test('held probes suspend detection and resume without a false loss on dropping',()=>{
+  const l=fixture();l.actor={x:295,y:300,speed:15};l.platforms.push({x:0,y:300,width:300});
+  l.rules.push({on:{type:'click',source:'panel'},actions:[{type:'hold',target:'panel'}]},
+    {on:{type:'click',source:'signal'},actions:[{type:'drop'}]});
+  const s=createSimulation(l);s.start();s.click('panel');s.step(3);assert.equal(s.snapshot().entities.panel.supportState.mode,'held');
+  s.click('signal');s.step();assert.equal(s.snapshot().entities.panel.supportState.mode,'supported');
+  assert.equal(s.snapshot().events.some(e=>e.kind==='supportlost'),false);
+});
+
+test('capability editing protects support event references and rejects duplicate support models',()=>{
+  const l=fixture(),e=l.entities[0];assert.throws(()=>setSupportProbe(l,e,false),/连线/);
+  l.rules=l.rules.filter(r=>r.on.source!==e.id);setSupportProbe(l,e,false);assert.equal(e.supportProbe,undefined);
+  setSupportProbe(l,e,true);delete e.pose;delete e.surface;
+  assert.throws(()=>setPhysicalCapability(l,e,'body',true),/支撑检测/);
+  delete e.supportProbe;setPhysicalCapability(l,e,'body',true);assert.throws(()=>setSupportProbe(l,e,true),/动态/);
 });
 
 test('new capabilities reject malformed data and survive history and object copies',()=>{

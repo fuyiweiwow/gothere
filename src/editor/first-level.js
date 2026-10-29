@@ -3,7 +3,7 @@ export function createFirstLevel() {
   const angle=Math.atan2(100,160)*180/Math.PI,length=Math.hypot(160,100),rampEnd=40+240*Math.cos(Math.PI/6);
   const invoke=(target,behavior)=>({type:'invoke',target,behavior});
   const enable=(target,capability,enabled)=>({type:'enable',target,capability,enabled});
-  return {schemaVersion:1,id:'editor-first-level',name:'第一关 · 屋顶到亮窗',
+  const level={schemaVersion:1,id:'editor-first-level',name:'第一关 · 屋顶到亮窗',
     description:'从右上屋顶向左走，经临时通路和天线桥到塔顶；持有缓降物落到左下檐面，再沿放下的斜面经过生物，走向右侧亮窗。',
     hint:'运行后可直接点物体，也可用右侧按钮：①启用云桥 → ②放下天线桥 → ③展开缓降物 → ④抽去檐面支撑 → ⑤释放落物。可提前布置；云桥持续15秒。',
     world:{width:1200,height:640,groundY:440,physics:{gravity:900,maxFallSpeed:480}},
@@ -44,4 +44,13 @@ export function createFirstLevel() {
       {on:{type:'click',source:'pot'},actions:[invoke('pot','release')]},
       {on:{type:'impact',source:'creature',other:'pot'},actions:[invoke('creature','rest')]},
       {on:{type:'contact',source:'creature'},actions:[invoke('creature','attack')]}]};
+  // Ordinary saved reroute points keep the example's self-connections near their objects.
+  const routes=[[[680,286],[680,325],[465,325],[465,286]],
+    [[495,286],[495,240],[280,240],[280,286]],[[280,165],[280,125],[220,125],[220,165]],
+    [[290,165],[290,145],[210,145],[210,165]],[[310,370],[310,400],[250,400],[250,370]],
+    [[300,366],[300,420],[30,420],[30,366]],[[310,366],[310,440],[25,440],[25,366]],
+    [[460,285],[460,250],[400,250],[400,285]],[[490,450],[490,410],[375,410],[375,450]],
+    [[500,450],[500,505],[365,505],[365,450]]];
+  level.rules.forEach((rule,i)=>{rule.actions[0].editor={waypoints:routes[i].map(([x,y])=>({x,y}))};});
+  return level;
 }
