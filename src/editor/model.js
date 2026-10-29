@@ -2,6 +2,7 @@ import { STATES, validateLevel, floorY } from '../core/schema.js';
 import { verticalTransport, landingHeights } from '../core/transport.js';
 import { diagramBounds } from '../core/geometry.js';
 import { surfaceEndY } from '../core/surfaces.js';
+import { posePoint, poseInBounds } from '../core/pose.js';
 
 const clone = (value) => structuredClone(value);
 const finiteY = value => value?.y === undefined || Number.isFinite(value.y);
@@ -173,6 +174,15 @@ export function resizeObject(level,ref,handle,dx,dy) {
   const e=ref.type==='entity'?level.entities.find(e=>e.id===ref.id):ref.type==='platform'?level.platforms[ref.index]:null;
   if(!e)return;
   const road=ref.type==='platform',b=diagramBounds(e.kind??'platform',e),t=channelConfig(e);
+  if(e.pose){
+    const left=posePoint(e,0),right=posePoint(e,1);
+    const point=handle==='w'?left:right;point.x+=dx;point.y+=dy;
+    const width=Math.hypot(right.x-left.x,right.y-left.y),angle=Math.atan2(right.y-left.y,right.x-left.x)*180/Math.PI;
+    const pivot={x:left.x+(right.x-left.x)*e.pose.pivot,y:left.y+(right.y-left.y)*e.pose.pivot};
+    const candidate={...e,x:pivot.x-width*e.pose.pivot,y:pivot.y,width,pose:{...e.pose,angle}};
+    if(width>=8&&width<=600&&Math.abs(angle)<=75&&candidate.x>=25&&candidate.x<=1175&&candidate.x+width<=1200&&poseInBounds(candidate))Object.assign(e,candidate);
+    return;
+  }
   const minX=road?0:25,maxWidth=road?1200:Math.min(600,e.motion?1200-e.motion.maxX:600),minWidth=road?1:8;
   if(handle.includes('w')){
     const right=e.x+(e.width??28),left=clamp(e.x+dx,Math.max(minX,right-maxWidth,e.motion?.minX??minX),Math.min(right-minWidth,e.motion?.maxX??(road?1199:1175)));
@@ -207,7 +217,8 @@ export function moveObject(level, ref, dx, dy=0) {
   target.x=x;
   if(dy){
     const y=floorY(target),t=channelConfig(target),span=t?y-t.toY:0;
-    const shift=ref.type==='platform'?clamp(dy,160-Math.min(y,surfaceEndY(target)),560-Math.max(y,surfaceEndY(target))):clamp(dy,160+span-y,560-y);
+    const ends=target.pose?[y,posePoint(target,0).y,posePoint(target,1).y]:[y,surfaceEndY(target)];
+    const shift=ref.type==='platform'||target.pose?clamp(dy,160-Math.min(...ends),560-Math.max(...ends)):clamp(dy,160+span-y,560-y);
     target.y=y+shift;
     if(ref.type==='platform'&&target.yEnd!==undefined)target.yEnd+=shift;
     if(t)t.toY+=target.y-y;

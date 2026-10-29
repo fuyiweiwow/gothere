@@ -1,6 +1,7 @@
 import { validateLevel, floorY, eventTypes } from './schema.js';
 import { verticalTransport, transportEnabled, landingX } from './transport.js';
 import { collectSurfaces, advanceWalker, touchesFootPath, supportAt } from './surfaces.js';
+import { posePoint } from './pose.js';
 export { validateLevel } from './schema.js';
 export const TICKS_PER_SECOND = 60;
 const clone = (value) => structuredClone(value);
@@ -23,7 +24,7 @@ export function createSimulation(input) {
     state = { tick: 0, status: 'ready', reason: null,
       actor: { x: level.actor.x, y:floorY(level.actor), direction:level.actor.direction??1, holding:null, mode:'walking', connector:null,
         ...(level.world.physics?{vy:0,support:null}:{}) },
-      entities: Object.fromEntries(level.entities.map((e) => [e.id, { ...e, y:floorY(e), width: e.width ?? 28,
+      entities: Object.fromEntries(level.entities.map((e) => [e.id, { ...clone(e), y:floorY(e), width: e.width ?? 28,
         ...(e.kind==='hazard'?{contact:{effect:'lethal'}}:{}),
         ...(e.kind==='lift'?{carY:e.state==='upper'?e.toY:floorY(e)}:{}), ...(e.motion?{motionDirection:1}:{}) }])),
       events: [], clicks: 0, timers: [] };
@@ -63,7 +64,10 @@ export function createSimulation(input) {
         invokeDepth++;
         execute(b.actions,{source:action.target,behavior:b.id,remaining:1,parent:invocation,depth:(invocation?.depth??0)+1});
         invokeDepth--;
-      } else {
+      } else if (action.type==='rotate') {
+        const e=state.entities[action.target];
+        e.rotation={from:e.pose.angle,to:action.angle,ticks:action.ticks,elapsed:0};
+      } else if (action.type==='after') {
         if(invocation)invocation.remaining++;
         state.timers.push({ due: state.tick + action.ticks, order: serial++, actions: clone(action.actions), ...(invocation?{invocation}:{}) });
       }
@@ -109,6 +113,11 @@ export function createSimulation(input) {
   const approach=(from,to,amount)=>from<to?Math.min(to,from+amount):Math.max(to,from-amount);
   const syncHeld=()=>{const a=state.actor,e=a.holding===null?null:state.entities[a.holding];if(e){e.x=a.x+a.direction*18-e.width/2;const t=verticalTransport(e);if(t)t.toY+=a.y-e.y;e.y=a.y;}};
   function updateMotion() {
+    const a=state.actor,held=a.holding;
+    const support=a.mode==='walking'?supportAt(collectSurfaces(level,state.entities,held),a.x,a.y,a.support):null;
+    const carrier=support?state.entities[support.id]:null;
+    const local=carrier?.surface?(a.x-support.x)/support.width:null;
+    const completed=[];
     for(const e of Object.values(state.entities)) {
       e.previousX=e.x;
       if(e.kind==='lift')e.carY=approach(e.carY,e.state==='upper'?e.toY:e.y,e.speed/60);
@@ -118,7 +127,14 @@ export function createSimulation(input) {
         if(x<m.minX){x=2*m.minX-x;e.motionDirection=1;}
         e.x=x;
       }
+      if(e.rotation){
+        const r=e.rotation;r.elapsed++;
+        e.pose.angle=r.elapsed===r.ticks?r.to:r.from+(r.to-r.from)*r.elapsed/r.ticks;
+        if(r.elapsed===r.ticks){delete e.rotation;completed.push(e.id);}
+      }
     }
+    if(local!==null){const point=posePoint(carrier,local);a.x=point.x;a.y=point.y;a.support=carrier.id;}
+    for(const id of completed){emit(state.entities[id].label+' 旋转结束。','rotated');trigger('rotated',id);}
   }
   function finishConnection(e) {
     const a=state.actor,t=verticalTransport(e)??e;
@@ -137,7 +153,7 @@ export function createSimulation(input) {
     }
   }
   function movePhysicsActor() {
-    const a=state.actor,from=a.x,result=advanceWalker(a,collectSurfaces(level,state.entities),level.actor.speed,level.world.physics,level.goal);
+    const a=state.actor,from=a.x,result=advanceWalker(a,collectSurfaces(level,state.entities,a.holding),level.actor.speed,level.world.physics,level.goal);
     let first=null;
     // Explicit transports can only intercept a supported portion of this tick's path.
     for(const e of Object.values(state.entities)) {
@@ -248,7 +264,7 @@ export function createSimulation(input) {
     contacts=touching;
     if (state.status !== 'running') return;
     if(level.world.physics){
-      if(a.mode==='walking'&&!supportAt(collectSurfaces(level,state.entities),a.x,a.y,a.support)){
+      if(a.mode==='walking'&&!supportAt(collectSurfaces(level,state.entities,a.holding),a.x,a.y,a.support)){
         a.mode='falling';a.vy=0;a.support=null;reachedPhysicsGoal=false;
       }
     }else if (walked && !supported(Math.min(from,to),Math.max(from,to))) { lose('fall', '脚下的路临时请假了。试试先把桥放下来。'); return; }

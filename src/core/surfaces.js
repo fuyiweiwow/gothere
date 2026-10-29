@@ -1,3 +1,5 @@
+import { posedSurface } from './pose.js';
+
 const EPSILON = 1e-7;
 const STEP = 1 / 60;
 
@@ -16,13 +18,14 @@ export function surfaceHeight(surface, x) {
   return lineHeight(surface, x);
 }
 
-export function collectSurfaces(level, entities) {
+export function collectSurfaces(level, entities, held = null) {
   return [
     ...level.platforms.map((p, index) => ({ ...p, id:'platform:' + index })),
     ...Object.values(entities).filter(e => e.kind === 'bridge' && e.state === 'extended')
       .map(e => ({ x:e.x, width:e.width, y:e.y, id:e.id })),
     ...Object.values(entities).filter(e => e.kind === 'lift')
       .map(e => ({ x:e.x, width:e.width, y:e.carY, id:e.id })),
+    ...Object.values(entities).filter(e => e.surface?.enabled && e.id !== held).map(e=>posedSurface(e)),
   ];
 }
 

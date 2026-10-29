@@ -1,5 +1,6 @@
 import { verticalTransport, landingX } from './transport.js';
-import { surfaceHeight } from './surfaces.js';
+import { surfaceHeight, collectSurfaces } from './surfaces.js';
+import { poseInBounds } from './pose.js';
 
 export const STATES = Object.freeze({
   switch: ['off', 'on'], bridge: ['folded', 'extended'], gate: ['closed', 'open'],
@@ -10,7 +11,8 @@ export const SKINS = Object.freeze({axe:'斧子',crate:'箱子',crocodile:'鳄�
 export const floorY = (value) => value?.y ?? 440;
 export const eventTypes = (source) => {const kind=typeof source==='string'?source:source?.kind;return [...(kind==='object'?['contact','click']:['switch','hazard'].includes(kind)?['click']:[]),
   ...(kind==='plate'||kind==='zone'?['enter']:[]), ...(['zone','object'].includes(kind)?[]:['contact']),
-  ...(kind==='lift'?['board','arrive']:[]), ...(kind==='ladder'||(kind==='object'&&verticalTransport(source))?['arrive']:[]), 'done'];};
+  ...(kind==='lift'?['board','arrive']:[]), ...(kind==='ladder'||(kind==='object'&&verticalTransport(source))?['arrive']:[]),
+  ...(typeof source==='object'&&source?.pose?['rotated']:[]), 'done'];};
 const object = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 const number = (value, min, max) => Number.isFinite(value) && value >= min && value <= max;
 const text = (value, max) => typeof value === 'string' && value.length > 0 && value.length <= max;
@@ -61,6 +63,17 @@ export function validateLevel(input) {
       check(text(entity.label, 30), '实体需要 1～30 字的 label：' + String(entity.id));
       check(entity.y===undefined || number(entity.y,160,560), '实体 y 必须为 160～560：' + String(entity.id));
       check(entity.height===undefined||number(entity.height,8,240),'实体 height 必须为 8～240：'+entity.id);
+      if(entity.pose!==undefined){
+        check(entity.kind==='object'&&object(entity.pose)&&number(entity.pose.angle,-75,75)&&number(entity.pose.pivot,0,1),
+          'pose 需要 angle（-75～75 度）和 pivot（0～1 的支点位置）：'+entity.id);
+        check(poseInBounds(entity),'物体姿态端点必须在地图范围内，Y 为 160～560：'+entity.id);
+        check(entity.transport===undefined,'姿态与高度通道暂不组合：'+entity.id);
+      }
+      if(entity.surface!==undefined){
+        check(entity.kind==='object'&&object(entity.surface)&&typeof entity.surface.enabled==='boolean'&&object(entity.pose),
+          '承托面需要通用物体的 pose 和 surface.enabled 布尔值：'+entity.id);
+        check(Boolean(world?.physics),'承托面需要启用重力模式。');
+      }
       if(entity.transport!==undefined){
         const t=entity.transport;
         check(entity.kind==='object'&&object(t)&&t.type==='vertical','transport 只能是通用物体的 vertical 高度移动能力：'+entity.id);
@@ -143,6 +156,12 @@ export function validateLevel(input) {
         check([-1,1].includes(action.direction),'turn.direction 必须为 -1 或 1。');
       } else if (action.type === 'invoke') {
         check(Array.isArray(byId.get(action.target)?.behaviors) && byId.get(action.target).behaviors.some(b=>b?.id===action.behavior),'invoke 的目标行为不存在。');
+      } else if (action.type === 'rotate') {
+        const entity=byId.get(action.target);
+        check(Boolean(entity?.kind==='object'&&object(entity.pose)),'rotate 目标需要姿态能力。');
+        check(number(action.angle,-75,75)&&Number.isInteger(action.ticks)&&number(action.ticks,1,3600),
+          'rotate 需要 angle（-75～75 度）和 ticks（1～3600 整数）。');
+        check(!entity||poseInBounds(entity,action.angle),'rotate 的目标端点超出地图高度范围：'+String(action.target));
       } else errors.push('未知动作类型：' + String(action.type));
     }
   };
@@ -159,7 +178,8 @@ export function validateLevel(input) {
   }
   for(const e of byId.values())if(Array.isArray(e.behaviors))for(const b of e.behaviors.slice(0,17))if(object(b))actionsValid(b.actions);
   if (errors.length === 0) {
-    const supported = (x,y) => platforms.some(p => {const height=surfaceHeight(p,x);return height!==null&&Math.abs(height-y)<1e-7;});
+    const surfaces=collectSurfaces(input,Object.fromEntries(entities.map(e=>[e.id,{...e,...(e.kind==='lift'?{carY:e.state==='upper'?e.toY:floorY(e)}:{})}])));
+    const supported = (x,y) => surfaces.some(p => {const height=surfaceHeight(p,x);return height!==null&&Math.abs(height-y)<1e-7;});
     check(supported(input.actor.x,floorY(input.actor)), '角色起点需要位于对应高度的地面上。');
     check(supported(input.goal.x,floorY(input.goal)), '终点需要位于对应高度的地面上。');
     for (const e of entities.filter(e=>verticalTransport(e)||e.kind==='lift')) {
