@@ -18,5 +18,6 @@ test('animation frames and hit geometry use simulation ticks without changing ph
   const original=structuredClone(e),a=presentationFrame(e,0,true),b=presentationFrame(e,20,true);
   assert.notEqual(a.offsetY,b.offsetY);assert.equal(presentationFrame(e,20,false).offsetY,0);assert.deepEqual(e,original);
   const bounds=presentationBounds(e);assert.ok(bounds.width>e.width);assert.ok(bounds.y<e.y-e.height);
+  assert.ok(bounds.y<=e.y-e.height-32,'the open canopy stays inside the clickable scene bounds');
   const s=createSimulation(l);s.start().step(20);const state=s.snapshot();for(let i=0;i<300;i++)presentationFrame(e,i,true);assert.deepEqual(s.snapshot(),state);
 });
