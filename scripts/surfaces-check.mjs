@@ -22,7 +22,8 @@ async function loadSlope(target){
   await target.locator('#example-select').selectOption('slopes');await target.locator('#load-example').click();
 }
 try{
-  await page.clock.install();await page.goto('http://127.0.0.1:'+server.address().port+'/editor.html');await loadSlope(page);
+  await page.clock.install();await page.goto(process.argv[2]??'http://127.0.0.1:'+server.address().port+'/editor.html?example=slopes');
+  await page.locator('#editor-overlay').waitFor();assert.equal((await draft(page)).id,'editor-slopes');await loadSlope(page);
   const initial=await draft(page);assert.equal(initial.world.physics.gravity,900);
   await page.locator('[data-ref="platform:1"]').click();assert.equal(await page.locator('#object-slope').isChecked(),true);
   assert.equal(await page.locator('#object-y-end').inputValue(),'340');
