@@ -123,3 +123,9 @@ test('translation and rotation compose on a patrolling surface and a rotated eve
   const state=sim.snapshot(),s=collectSurfaces(level,state.entities).find(s=>s.id==='panel');
   near(state.actor.y,surfaceHeight(s,state.actor.x));assert.equal(state.actor.mode,'walking');
 });
+
+test('a rotation completion that ends the run stops actor movement in that tick',()=>{
+  const level=fixture();level.rules[0].actions=[{type:'rotate',target:'panel',angle:10,ticks:1}];
+  level.rules[1].actions=[{type:'hurt',message:'停止'}];const sim=createSimulation(level);sim.start();sim.click('panel');sim.step();
+  assert.equal(sim.snapshot().status,'lost');assert.equal(sim.snapshot().actor.x,80);
+});
