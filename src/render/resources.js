@@ -20,14 +20,19 @@ export function artTransform(node,level,snapshot,{tick=snapshot?.tick??0,animate
     x=object.x+pivot+(n.x-pivot)*Math.cos(r)-n.y*Math.sin(r);
     y=floorY(object)+(n.x-pivot)*Math.sin(r)+n.y*Math.cos(r);rotation+=angle;
   }
-  const frames=variantData?.asset?variantData.animation?.frames:n.animation?.frames,frame=animate?Math.floor(tick*(n.animation?.fps??1)/60):0;
+  const animation=variantData&&Object.hasOwn(variantData,'animation')?variantData.animation:variantData?.asset?null:node.animation;
+  const frames=animation?.frames,frame=animate?Math.floor(tick*(animation?.fps??1)/60):0;
   return {...n,x,y,rotation,asset:frames?.[frame%frames.length]??n.asset,
     flipX:Boolean(n.flipX)!==Boolean(n.flipWithDirection&&object?.direction===-1)};
 }
 
-export function artBounds(node,level,snapshot,options) {
+export function artCorners(node,level,snapshot,options) {
   const n=artTransform(node,level,snapshot,options),r=n.rotation*Math.PI/180,C=Math.cos(r),S=Math.sin(r);
-  const corners=[[0,0],[n.width,0],[n.width,n.height],[0,n.height]].map(([x,y])=>({x:n.x+x*C-y*S,y:n.y+x*S+y*C}));
+  return Object.fromEntries([['nw',0,0],['ne',n.width,0],['se',n.width,n.height],['sw',0,n.height]].map(([key,x,y])=>[key,{x:n.x+x*C-y*S,y:n.y+x*S+y*C}]));
+}
+
+export function artBounds(node,level,snapshot,options) {
+  const corners=Object.values(artCorners(node,level,snapshot,options));
   const xs=corners.map(p=>p.x),ys=corners.map(p=>p.y),x=Math.min(...xs),y=Math.min(...ys);
   return {x,y,width:Math.max(...xs)-x,height:Math.max(...ys)-y};
 }

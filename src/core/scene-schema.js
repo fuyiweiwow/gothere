@@ -23,13 +23,15 @@ export function validateScene(level) {
     check(num(a.width,1,2048)&&num(a.height,1,2048),'导入图片尺寸不能超过2048。');
   }
   check(bytes<=700000,'自定义图片总计不能超过512 KiB。');
+  const animation=a=>obj(a)&&Array.isArray(a.frames)&&a.frames.length>=1&&a.frames.length<=24&&a.frames.every(f=>assets.has(f))&&num(a.fps,1,30);
   const transform=(n,partial=false)=>{
     if(!obj(n))return false;
     return (partial&&n.asset===undefined||assets.has(n.asset))&&
       ['x','y','width','height','rotation','layer','opacity'].every(k=>n[k]===undefined?(partial||!['x','y','width','height','layer'].includes(k)):
         num(n[k],{x:-2400,y:-1280,width:1,height:1,rotation:-180,layer:-100,opacity:0}[k],{x:3600,y:1920,width:2400,height:1920,rotation:180,layer:100,opacity:1}[k]))&&
       (n.flipX===undefined||typeof n.flipX==='boolean')&&(n.flipWithDirection===undefined||typeof n.flipWithDirection==='boolean')&&
-      (n.visible===undefined||typeof n.visible==='boolean');
+      (n.visible===undefined||typeof n.visible==='boolean')&&
+      (n.animation===undefined||partial&&n.animation===null||animation(n.animation));
   };
   const ids=new Set();
   if(Array.isArray(s.nodes))for(const n of s.nodes.slice(0,601)){
@@ -43,7 +45,6 @@ export function validateScene(level) {
         (b.type==='platform'&&Number.isInteger(b.index)&&b.index>=0&&b.index<(level.platforms??[]).length)),'资源绑定的实体不存在：'+n.id);
     }
     if(n.variants!==undefined)check(obj(n.variants)&&Object.keys(n.variants).length<=16&&Object.entries(n.variants).every(([key,v])=>id(key)&&transform(v,true)),'资源状态变体无效：'+n.id);
-    if(n.animation!==undefined){const a=n.animation;check(obj(a)&&Array.isArray(a.frames)&&a.frames.length>=1&&a.frames.length<=24&&a.frames.every(f=>assets.has(f))&&num(a.fps,1,30),'资源动画需要1～24帧及1～30 fps：'+n.id);}
   }
   return errors;
 }

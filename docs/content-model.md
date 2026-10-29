@@ -1,4 +1,4 @@
-# 内容模型 v0.13
+# 内容模型 v0.14
 
 编辑器、JSON DSL 与未来生成器共同使用 schemaVersion 1。规则是唯一执行依据；可视连线由规则投影，删除、撤销、导入和重新加载都会重建连线。
 
@@ -19,7 +19,7 @@
 
 所有实体都可定义多个命名行为；行为 ID 在所属实体内唯一，动作引用用实体 ID + 行为 ID。编辑器改名会同步引用；删除实体或行为会清理相关调用、完成事件与空动作树，支持撤销。
 
-可选 `presentation` 仅用于场景表现：symbol 为 block、cloud、beam、umbrella、pot、creature 或 support；color 为六位十六进制颜色；animation 为 none、bob 或 pulse。编辑器可修改这些字段，随草稿、历史和 JSON 保存。渲染器只读实体状态、真实姿态/坐标和模拟 tick，暂停冻结，循环表现可关闭，不影响机制。纯逻辑视图不依赖这些字段。
+可选 `presentation` 保留旧草稿的程序化表现兼容：symbol 为 block、cloud、beam、umbrella、pot、creature 或 support；color 为六位十六进制颜色；animation 为 none、bob 或 pulse。当前编辑器使用下文的 `scene` 配置图片与动画；逻辑属性面板不再编辑这些旧表现字段。渲染器只读实体状态、真实姿态/坐标和模拟 tick，不影响机制。
 
 旧 `appearance` 仅保留数据导入兼容，可包含 axe、crate、crocodile、orb 内置 skin 及有界 PNG/JPEG/WebP data URL；仍拒绝远程地址和 SVG。当前编辑器不显示旧贴图，也不提供上传。完整资源包和状态到动画片段的映射尚未实现。
 
@@ -215,4 +215,25 @@ supportlost 从失去支撑的动态物体发出；landed 从下落后落定的�
 
 上限：64 个实体、64 段平台、128 条规则；每实体 16 个行为；每列表 1～32 动作、after 最深 4 层、关卡总动作 512；每 tick 1,024 动作、256 个待执行计时器、调用深度 32、每局 36,000 tick。超过运行预算明确失败，可重置。未知能力、无效状态和悬空引用加载前拒绝。
 
-文件导入上限 256 KiB，草稿工作区上限 2 MiB。编辑中几何可以暂时不完整，但引用保持有效；试玩前进行完整验证。产品只内置 `src/editor/first-level.js` 这一关；`tests/fixtures/` 中的旧场景仅为内核回归素材，不进入发布包。
+文件导入上限 1 MiB，草稿工作区上限 2 MiB。编辑中几何可以暂时不完整，但引用保持有效；试玩前进行完整验证。产品只内置 `src/editor/first-level.js` 这一关；`tests/fixtures/` 中的旧场景仅为内核回归素材，不进入发布包。
+
+## 资源场景
+
+可选 `scene` 与逻辑定义分离；模拟器不读取其图片变换。`background` 为六位十六进制颜色，`assets` 为最多24张内嵌自定义图片，`nodes` 为最多600个可编辑图层。内置资源标识见 `assets/library.json`，许可见 `assets/CREDITS.md`。旧关卡没有 scene 时仍可导入，并使用兼容的程序化表现。
+
+```json
+{"scene":{"background":"#1b204b","assets":[],"nodes":[
+  {"id":"flower-art","label":"花盆贴图","asset":"flowerPot",
+   "x":-5,"y":-55,"width":40,"height":55,"layer":25,
+   "bind":{"type":"entity","id":"pot"},
+   "variants":{"inactive":{"opacity":0.4}}}
+]}}
+```
+
+图层必填 id、label、asset、x、y、width、height、layer。width/height 为图片显示尺寸，与实体宽高完全独立；layer 范围 -100～100，同层按声明顺序绘制。可选 rotation 为 -180～180 度、opacity 为0～1、flipX/visible 为布尔值。tile 的 width/height 定义8～512的平铺单元尺寸。
+
+`bind` 可为 `{"type":"actor"}`、`{"type":"goal"}`、`{"type":"entity","id":"pot"}` 或 `{"type":"platform","index":0}`。绑定时 x/y 是逻辑基点的局部偏移，跟随对象实际姿态绕支点旋转；图片自己的附加角度绕左上角旋转。未绑定为独立布景。多个图片可绑定同一实体。删除逻辑对象清除关联图片；删除路面还会修正后续绑定索引。删除图片不改变逻辑。
+
+`variants` 按实际实体状态覆盖变换或图片，未设置的字段继承基础图层。编辑器可单独预览/拖动状态图片。`animation:{"frames":["travelerWalk1","travelerWalk2"],"fps":8}` 支持1～24帧及1～30 fps，按 `floor(tick*fps/60)` 选择帧；暂停和回放确定。状态可覆盖 animation，设为 null 使用静态图；状态直接换 asset 且未配置 animation 时也显示静态图。`flipWithDirection:true` 随对象实际朝向翻转。
+
+自定义图片仅接受 data:image/png、jpeg、webp 的 base64；单张最多256 KiB、2048×2048，所有图片总计512 KiB。禁止引用远程图片或导入 SVG，避免离线依赖与可执行内容。内置受信 SVG 随库内嵌。图片数据、图层及状态动画与逻辑共用历史、草稿和 JSON；离线编辑器内嵌内置素材，用户草稿需另行导出 JSON。

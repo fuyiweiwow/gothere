@@ -8,7 +8,6 @@ import { verticalTransport, landingX } from '../core/transport.js';
 import { surfaceEndY } from '../core/surfaces.js';
 import { posePoint, posePolygon } from '../core/pose.js';
 import { EDITOR_SHORTCUTS, shortcutCommand, nudgeDelta } from './shortcuts.js';
-import {PRESENTATION_SYMBOLS,PRESENTATION_ANIMATIONS} from '../render/presentation.js';
 
 const $ = id => document.getElementById(id);
 const STORAGE = 'gothere.editor.v1';
@@ -351,12 +350,6 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
       box.append(field('显示名称',input(target.label,'显示名称',value=>update('label',value),{id:'object-label',maxLength:30})));
       const state=select(STATES[target.kind].map(s=>[s,stateLabel(s)]),target.state,'初始状态',value=>update('state',value));state.id='object-state';box.append(field('初始状态',state));
       if(target.kind==='object'){
-        const visual=target.presentation??{symbol:'block',color:'#9db9ad',animation:'none'};
-        const changeVisual=(key,value)=>edit(doc=>{const e=resolveObject(doc,selection);e.presentation={...(e.presentation??visual),[key]:value};});
-        const symbol=select(Object.entries(PRESENTATION_SYMBOLS),visual.symbol,'场景图形',value=>changeVisual('symbol',value));symbol.id='object-symbol';
-        const color=input(visual.color,'场景颜色',value=>changeVisual('color',value),{type:'color',id:'object-color'});
-        const motion=select(Object.entries(PRESENTATION_ANIMATIONS),visual.animation,'场景循环动画',value=>changeVisual('animation',value));motion.id='object-animation';
-        box.append(field('场景图形',symbol),field('场景颜色',color),field('场景循环动画',motion));
         const collider=element('input');collider.id='object-collider';collider.type='checkbox';collider.checked=Boolean(target.collider);collider.disabled=Boolean(target.pose||target.transport);collider.setAttribute('aria-label','矩形碰撞体');
         collider.addEventListener('change',()=>edit(doc=>setPhysicalCapability(doc,resolveObject(doc,selection),'collider',collider.checked)));box.append(field('矩形碰撞体',collider));
         if(target.collider){const enabled=element('input');enabled.id='object-collider-enabled';enabled.type='checkbox';enabled.checked=target.collider.enabled;enabled.setAttribute('aria-label','碰撞初始启用');
@@ -621,6 +614,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     if(mode==='closed'||document.querySelector('dialog[open]'))return;
     const typing=event.target.matches('input,textarea,select,[contenteditable="true"]');
     const command=shortcutCommand(event,{typing,testing:mode==='testing',diagram});if(!command)return;
+    if(mode==='editing'&&document.body.dataset.display==='scene'&&!['save','help','undo','redo','new','data','run','step','toggle'].includes(command))return;
     event.preventDefault();event.stopPropagation();
     if(drag||routeDrag){if(command==='cancel')cancelGesture();return;}
     if(event.repeat&&command!=='nudge')return;
@@ -659,6 +653,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
   });
   return {
     active:()=>mode!=='closed',isEditing:()=>mode==='editing',document:()=>store.document(),
+    change:edit,
     preview,
     open(level,key){if(restored){pause();restored=false;setMode('editing');}else openDocument(level,key);},
     openDocument,

@@ -55,9 +55,9 @@ export function createFirstScene(level) {
     const p=level.platforms[i],angle=Math.atan2((p.yEnd??p.y??440)-(p.y??440),p.width)*180/Math.PI;
     add('cornice','路面石沿 '+(i+1),0,0,Math.hypot(p.width,(p.yEnd??p.y??440)-(p.y??440)),10,12,{bind:{type:'platform',index:i},rotation:angle});
   }
-  const bind=(id,asset,label,x,y,w,h,extra={})=>add(asset,label,x,y,w,h,25,{bind:{type:'entity',id},...extra});
+  const bind=(id,asset,label,x,y,w,h,extra={})=>level.entities.some(e=>e.id===id)&&add(asset,label,x,y,w,h,25,{bind:{type:'entity',id},...extra});
   bind('cloud','cloud2','临时云桥资源',-10,-20,200,37,{opacity:.95,variants:{inactive:{opacity:.2}}});
-  bind('antenna','antenna','天线桥资源',0,-13,level.entities.find(e=>e.id==='antenna').width,25);
+  bind('antenna','antenna','天线桥资源',0,-13,level.entities.find(e=>e.id==='antenna')?.width??175,25);
   bind('umbrella','umbrellaClosed','缓降物资源',3,-48,24,48,{variants:{active:{asset:'umbrellaOpen',x:-18,y:-73,width:67,height:73}}});
   bind('sill','cornice','可倾斜窗台资源',-4,-3,248,14);
   bind('prop','bracket','可抽去支撑资源',-2,-23,36,27,{variants:{inactive:{opacity:.1}}});

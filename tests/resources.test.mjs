@@ -50,3 +50,43 @@ test('the authored first level uses a reusable asset library and editable decora
   assert.ok(l.scene.nodes.some(n=>n.bind?.type==='actor'));assert.ok(l.scene.nodes.some(n=>n.bind?.id==='pot'));
   assert.ok(l.scene.nodes.some(n=>n.label.includes('窗')));assert.ok(l.scene.nodes.some(n=>n.label.includes('屋顶')));
 });
+
+test('upgrading an edited first-level draft omits artwork for deleted logic objects',async()=>{
+  const {createFirstScene}=await import('../src/editor/first-scene.js');
+  const {deleteObject}=await import('../src/editor/model.js');
+  const l=createFirstLevel();delete l.scene;
+  deleteObject(l,{type:'entity',id:'antenna'});deleteObject(l,{type:'entity',id:'pot'});
+  l.scene=createFirstScene(l);
+  assert.equal(validateLevel(l).valid,true);
+  assert.ok(!l.scene.nodes.some(n=>['antenna','pot'].includes(n.bind?.id)));
+});
+
+test('dragging a state image edits only that variant and keeps the opposite rotated corner fixed',async()=>{
+  const {moveArt,resizeArt}=await import('../src/editor/resources.js');
+  const {artTransform,artCorners}=await import('../src/render/resources.js');
+  const l=fixture(),n=l.scene.nodes[0],base=structuredClone(n),physics=structuredClone(l.entities);
+  n.rotation=25;n.variants={active:{width:80,height:90,rotation:35}};
+  const before=artCorners(n,l,undefined,{variant:'active'}).se;
+  resizeArt(l,n.id,'nw',12,-7,'active');
+  const after=artCorners(n,l,undefined,{variant:'active'}).se;
+  assert.ok(Math.hypot(before.x-after.x,before.y-after.y)<1e-8);
+  assert.equal(n.width,base.width);assert.equal(n.x,base.x);assert.deepEqual(l.entities,physics);
+  const start=artTransform(n,l,undefined,{variant:'active'});
+  moveArt(l,n.id,23,-15,'active');
+  const end=artTransform(n,l,undefined,{variant:'active'});
+  assert.ok(Math.abs(end.x-start.x-23)<1e-8);assert.ok(Math.abs(end.y-start.y+15)<1e-8);
+  assert.equal(n.height,base.height);
+});
+
+test('state animation overrides are validated and can explicitly replace a base loop with a still image',async()=>{
+  const {artTransform}=await import('../src/render/resources.js');
+  const l=fixture(),n=l.scene.nodes[0];n.animation={frames:['window','windowOpen'],fps:6};
+  n.variants={active:{animation:{frames:['windowCheckered','windowLeadlight'],fps:12}}};
+  assert.equal(validateLevel(l).valid,true);
+  assert.equal(artTransform(n,l,undefined,{variant:'active',tick:5}).asset,'windowLeadlight');
+  n.variants.active={asset:'flowerPot',animation:null};
+  assert.equal(validateLevel(l).valid,true);assert.equal(artTransform(n,l,undefined,{variant:'active',tick:20}).asset,'flowerPot');
+  for(const bad of [{frames:[],fps:6},{frames:['missing'],fps:6},{frames:['window'],fps:0}]){
+    n.variants.active={animation:bad};assert.equal(validateLevel(l).valid,false);
+  }
+});
