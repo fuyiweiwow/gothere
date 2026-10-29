@@ -2,13 +2,14 @@ import {assetLibrary,artTransform,artCorners,artBounds} from '../render/resource
 import {ensureScene,addArt,moveArt,resizeArt,deleteArt,duplicateArt,bindArt} from './resources.js';
 import {STATES} from '../core/schema.js';
 import {alignMove,drawGuides} from './alignment.js';
+import {createFeedbackUI} from './feedback-ui.js';
 
 const $=id=>document.getElementById(id);
 const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
 const button=(text,fn,cls='button secondary')=>{const b=el('button',text,cls);b.type='button';b.addEventListener('click',fn);return b;};
 
 /** Resource authoring uses the same document/history, with its own visual selection and gestures. */
-export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspectLogic=()=>{}}) {
+export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspectLogic=()=>{},previewFeedback=()=>{},stopFeedback=()=>{}}) {
   let selected=null,tool=null,tab='library',query='',category='全部',variant='',gesture=null,suppress=false,current;
   const hiddenLayers=new Set(),lockedLayers=new Set();
   const panel=$('resource-panel'),overlay=$('resource-overlay');overlay.tabIndex=0;
@@ -17,6 +18,7 @@ export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspe
   $('resource-library-tab').onclick=()=>{tab='library';render(current);};$('resource-inspect-tab').onclick=()=>{tab='inspect';render(current);};
   $('art-select').onclick=()=>{tool=null;render(current);};
   const change=fn=>editor.change(fn);
+  const feedbackUI=createFeedbackUI({change,preview:previewFeedback,stop:stopFeedback,notify});
   function choose(id){selected=id;tool=null;variant='';tab='inspect';render(editor.document());preview(current);overlay.focus({preventScroll:true});}
   function field(name,value,fn,{id,type='number',min,max,step=1}={}) {
     const label=el('label',undefined,'edit-field'),input=el('input');label.append(el('span',name),input);input.type=type;input.value=value;
@@ -91,6 +93,7 @@ export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspe
       if(animation.frames.length<24)box.append(button('＋ 动画帧',()=>setAnimation({...animation,frames:[...animation.frames,animation.frames.at(-1)]}),'text-button'));
     }
     box.append(el('p','图片边框是显示范围。跟随对象时，位置是相对偏移；移动、缩放、换图不会改变碰撞体、路面或行为。','panel-note'));
+    box.append(feedbackUI.render(d,selected));
     const actions=el('div',undefined,'resource-actions');actions.append(button('复制图层',()=>{let id;change(doc=>{id=duplicateArt(doc,selected);});choose(id);}),button('删除图片',()=>{const id=selected;selected=null;change(doc=>deleteArt(doc,id));},'button danger'));box.append(actions);
   }
   function renderLayers(d){const list=$('resource-layers');list.replaceChildren();for(const n of [...(d.scene?.nodes??[])].sort((a,b)=>b.layer-a.layer).filter(n=>(n.label+' '+n.id).toLowerCase().includes(layerQuery.toLowerCase()))){

@@ -46,6 +46,8 @@ export function createFirstLevel() {
           {id:'close',label:'关闭窗户',actions:[{type:'set',target:'window',state:'inactive'}]}]},
       {id:'window-zone',kind:'zone',label:'开窗位置感应',x:910,y:560,width:20,height:30,state:'enabled',
         behaviors:[{id:'once',label:'感应一次后停用',actions:[invoke('window','open'),{type:'set',target:'window-zone',state:'disabled'}]}]},
+      {id:'chimney',kind:'object',label:'会喷气的烟囱',x:995,y:200,width:25,height:70,state:'inactive',
+        behaviors:[{id:'puff',label:'喷气',actions:[{type:'set',target:'chimney',state:'active'},{type:'after',ticks:90,actions:[{type:'set',target:'chimney',state:'inactive'}]}]}]},
     ],
     rules:[{on:{type:'click',source:'cloud'},if:[{entity:'cloud',state:'inactive'}],actions:[invoke('cloud','appear')]},
       {on:{type:'click',source:'antenna'},if:[{entity:'antenna',state:'inactive'}],actions:[invoke('antenna','tilt')]},
@@ -61,7 +63,8 @@ export function createFirstLevel() {
       {on:{type:'click',source:'pipe'},if:[{entity:'pipe',state:'inactive'}],actions:[invoke('pipe','lower')]},
       {on:{type:'rotated',source:'pipe'},actions:[invoke('pipe','support')]},
       {on:{type:'enter',source:'window-zone'},actions:[invoke('window-zone','once')]},
-      {on:{type:'click',source:'window'},if:[{entity:'window',state:'active'}],actions:[invoke('window','close')]}]};
+      {on:{type:'click',source:'window'},if:[{entity:'window',state:'active'}],actions:[invoke('window','close')]},
+      {on:{type:'click',source:'chimney'},if:[{entity:'chimney',state:'inactive'}],actions:[invoke('chimney','puff')]}]};
   // Ordinary saved reroute points keep the example's self-connections near their objects.
   const routes=[[[680,286],[680,325],[465,325],[465,286]],
     [[495,286],[495,240],[280,240],[280,286]],[[280,165],[280,125],[220,125],[220,165]],
@@ -71,7 +74,7 @@ export function createFirstLevel() {
     [[500,450],[500,505],[365,505],[365,450]]];
   level.rules.forEach((rule,i)=>{if(routes[i])rule.actions[0].editor={waypoints:routes[i].map(([x,y])=>({x,y}))};});
   const visuals=[['cloud','#b9dad2','bob'],['beam','#a7bdb1','none'],['umbrella','#edb864','none'],['beam','#9ab6b6','none'],
-    ['support','#b08d6f','none'],['beam','#8eaca5','none'],['pot','#bd795f','none'],['creature','#91a87f','none'],['beam','#9caed0','none'],['block','#86b9cb','none'],['block','#86b9cb','none']];
+    ['support','#b08d6f','none'],['beam','#8eaca5','none'],['pot','#bd795f','none'],['creature','#91a87f','none'],['beam','#9caed0','none'],['block','#86b9cb','none'],['block','#86b9cb','none'],['block','#b6a895','none']];
   level.entities.forEach((e,i)=>{const [symbol,color,animation]=visuals[i];e.presentation={symbol,color,animation};});
   level.scene=createFirstScene(level);return level;
 }

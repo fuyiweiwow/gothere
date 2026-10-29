@@ -1,3 +1,5 @@
+import {feedbackDefault} from '../content/feedback-presets.js';
+
 /** An authored resource scene. The renderer knows none of these building or puzzle names. */
 export function createFirstScene(level) {
   const scene={background:'#1b204b',assets:[],nodes:[]};let serial=0;
@@ -36,7 +38,8 @@ export function createFirstScene(level) {
   detail('chimneyThin','绿楼烟囱',551,298,19,34);detail('drainpipe','绿楼雨水管',743,353,8,273);
   // Right-hand hotel is deliberately dense: mansard roof, cornices, shutters and shopfront.
   wall('wallLavender','旅店主立面',775,200,268,440);ledge(769,197,280,'旅店屋顶檐口');
-  add('mansardRoof','旅店蓝瓦屋顶',783,107,252,91,-5);detail('chimney','旅店烟囱',995,130,25,64);
+  add('mansardRoof','旅店蓝瓦屋顶',783,107,252,91,-5);
+  const chimney=level.entities.find(e=>e.id==='chimney');detail('chimney','旅店烟囱',chimney?0:995,chimney?-70:130,25,64,chimney?{bind:{type:'entity',id:chimney.id}}:{});
   for(let i=0;i<3;i++){window(802+i*80,228,34,55,false,'旅店顶层窗 '+(i+1));detail('flowerPot','旅店窗台花 '+(i+1),807+i*80,271,24,34);}
   ledge(772,310,274,'旅店腰线');
   window(833,351,78,147,true,'旅店大窗');ledge(772,512,274,'旅店下层檐口');
@@ -69,5 +72,27 @@ export function createFirstScene(level) {
   add('windowGlow','目的地亮窗资源',-34,-149,68,149,20,{bind:{type:'goal'}});
   add('travelerIdle','主角资源',-15,-46,30,46,30,{bind:{type:'actor'},flipWithDirection:true,
     animation:{frames:['travelerWalk1','travelerWalk2','travelerWalk3','travelerWalk2'],fps:8}});
+  scene.feedback=[];scene.sounds=[];
+  const cue=(node,trigger,extra={})=>{if(!node)return;if(trigger.source&&!level.entities.some(e=>e.id===trigger.source))return;
+    const f={...feedbackDefault(node.id,'feedback-'+(scene.feedback.length+1)),label:node.label+'反馈',trigger,...extra};scene.feedback.push(f);};
+  const object=(id,behavior,extra={})=>cue(scene.nodes.find(n=>n.bind?.id===id),{type:'behavior',source:id,behavior},extra);
+  cue(scene.nodes.find(n=>n.label==='绿楼烟囱'),{type:'start'},{motion:'none',particles:'smoke',duration:210,loop:true,strength:.7,count:12});
+  cue(scene.nodes.find(n=>n.label==='旅店烟囱'),{type:'start'},{motion:'none',particles:'smoke',duration:240,loop:true,strength:.6,count:10});
+  cue(scene.nodes.find(n=>n.label==='塔顶小旗'),{type:'start'},{motion:'sway',duration:240,loop:true,strength:.5});
+  object('chimney','puff',{motion:'squash',particles:'smoke',sound:'puff',duration:72,count:18,strength:1.2});
+  object('cloud','appear',{motion:'pulse',particles:'spark',sound:'pop',duration:45,count:9,color:'#bfeee5',strength:.5});
+  object('pipe','support',{motion:'none',particles:'spark',sound:'clack',duration:24,count:6,color:'#e5cca0',strength:.3});
+  object('antenna','tilt',{motion:'recoil',sound:'clack',duration:24,strength:.2});
+  object('umbrella','open',{motion:'squash',sound:'pop',duration:36,strength:.65});
+  object('prop','remove',{motion:'shake',particles:'dust',sound:'clack',duration:30,count:10,strength:.5,color:'#d0b38c'});
+  object('sill','lower',{motion:'none',particles:'dust',sound:'clack',duration:45,count:8,strength:.4,color:'#b8c7bd'});
+  object('pot','release',{motion:'shake',sound:'clack',duration:24,strength:.35});
+  object('creature','rest',{motion:'shake',particles:'spark',sound:'thud',duration:36,count:10,color:'#f1d787',strength:.8});
+  object('window','open',{motion:'recoil',sound:'clack',duration:30,strength:.4});
+  object('window','close',{motion:'squash',sound:'clack',duration:24,strength:.4});
+  const actor=scene.nodes.find(n=>n.bind?.type==='actor');
+  cue(actor,{type:'event',source:'sill',event:'actorlanded'},{motion:'squash',particles:'dust',sound:'thud',anchor:{x:.5,y:1},duration:30,count:8,strength:.65});
+  cue(actor,{type:'lost'},{motion:'fall',particles:'dust',sound:'fail',anchor:{x:.5,y:1},duration:84,count:14,hold:true,color:'#e4c28c'});
+  cue(actor,{type:'won'},{motion:'hop',particles:'spark',sound:'success',duration:72,count:22,color:'#f9dd83',strength:1.2});
   return scene;
 }
