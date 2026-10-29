@@ -119,3 +119,12 @@ test('the falling object example uses ordinary capability and behavior data to p
   sim.start();sim.click('release');sim.step(3000);assert.equal(sim.snapshot().status,'won');
   const fail=createSimulation(level);fail.start().step(3000);assert.equal(fail.snapshot().reason,'hurt');
 });
+
+test('an overhanging upright body follows the contact point of a rotating support, retaining finite coordinates',()=>{
+  const level=fixture();level.entities=level.entities.filter(e=>!['shelf','receiver'].includes(e.id));
+  const weight=level.entities.find(e=>e.id==='weight');weight.x=250;weight.width=100;weight.y=260+50*Math.tan(75*Math.PI/180);
+  level.entities.push({id:'beam',kind:'object',label:'旋转梁',x:200,y:260,width:200,state:'active',pose:{angle:75,pivot:0},surface:{enabled:true}});
+  level.rules=[{on:{type:'click',source:'beam'},actions:[{type:'rotate',target:'beam',angle:0,ticks:1}]}];
+  const sim=createSimulation(level);sim.start();sim.click('beam');sim.step();const e=sim.snapshot().entities.weight;
+  assert.ok(Number.isFinite(e.x)&&Number.isFinite(e.y));near(e.y,260);assert.equal(e.bodyState.support,'beam');
+});
