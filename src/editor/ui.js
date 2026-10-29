@@ -6,6 +6,7 @@ import { snapPoint, setWirePoints, routeWire, nearestInsertion } from './routing
 import { diagramBounds } from '../core/geometry.js';
 import { verticalTransport, landingX } from '../core/transport.js';
 import { surfaceEndY } from '../core/surfaces.js';
+import { posePoint, posePolygon } from '../core/pose.js';
 import { EDITOR_SHORTCUTS, shortcutCommand, nudgeDelta } from './shortcuts.js';
 
 const $ = id => document.getElementById(id);
@@ -31,7 +32,7 @@ function input(value,label,onChange,settings={}) {
   return el;
 }
 const button = (name,handler,className='button secondary') => {const el=element('button',name,className);el.type='button';el.addEventListener('click',handler);return el;};
-const eventNames={click:'点击',contact:'碰到',enter:'走入区域',board:'登上电梯',arrive:'抵达出口',done:'行为完成'};
+const eventNames={click:'点击',contact:'碰到',enter:'走入区域',board:'登上电梯',arrive:'抵达出口',rotated:'旋转结束',done:'行为完成'};
 const availableEvents=e=>eventTypes(e).filter(t=>t!=='done'||e.behaviors?.length);
 const actionList = (actions,path) => {for(const index of path)actions=actions[index].actions;return actions;};
 
@@ -256,7 +257,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
       const connection=['ladder','lift'].includes(kind),surface=floorY(p),top=connection?p.toY-12:kind==='platform'?surface+4:surface-({bridge:0,switch:12,hazard:90,plate:7,gate:88,object:48,zone:20,actor:42,goal:145}[kind]??20);
       const height=connection?surface-p.toY+24:{platform:65,bridge:32,switch:53,hazard:110,plate:22,gate:105,object:60,zone:24,actor:82,goal:160}[kind];
       const width=kind==='actor'?44:kind==='goal'?72:Math.max(p.width??28,28), offset=kind==='actor'?22:0;
-      const bounds=diagram||(selection&&refKey(selection)===refKey(ref))?diagramBounds(kind,p):{x:p.x-offset,y:top,width,height};
+      const bounds=diagram||p.pose||(selection&&refKey(selection)===refKey(ref))?diagramBounds(kind,p):{x:p.x-offset,y:top,width,height};
       const el=button(name,()=>{},'edit-object '+kind);el.draggable=false;el.dataset.ref=refKey(ref);el.setAttribute('aria-label','选择：'+name);
       el.setAttribute('aria-pressed',String(Boolean(selection && refKey(selection)===refKey(ref))));
       el.style.left=bounds.x/12+'%';el.style.top=bounds.y/6.4+'%';el.style.width=bounds.width/12+'%';el.style.height=bounds.height/6.4+'%';
@@ -272,6 +273,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     renderResizeHandles(d);
   }
   function shapeSurfaceHit(el,kind,p) {
+    if(p.pose){const b=diagramBounds(kind,p);el.style.clipPath='polygon('+posePolygon(p).map(point=>`${(point.x-b.x)/b.width*100}% ${(point.y-b.y)/b.height*100}%`).join(',')+')';return;}
     if(kind!=='platform'||p.yEnd===undefined)return;
     const b=diagramBounds(kind,p),left=(floorY(p)+2-b.y)/b.height*100,right=(surfaceEndY(p)+2-b.y)/b.height*100,thickness=12/b.height*100;
     el.style.clipPath=`polygon(0 ${left}%,100% ${right}%,100% ${right+thickness}%,0 ${left+thickness}%)`;
@@ -281,6 +283,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     const b=diagramBounds(e.kind??selection.type,e);
     for(const el of $('editor-overlay').querySelectorAll('[data-resize]')){
       const h=el.dataset.resize;
+      if(e.pose){const p=posePoint(e,h==='w'?0:1);el.style.left=p.x/12+'%';el.style.top=p.y/6.4+'%';continue;}
       el.style.left=(b.x+(h.includes('w')?0:h.includes('e')?b.width:b.width/2))/12+'%';
       const y=selection.type==='platform'?(h==='w'?floorY(e):surfaceEndY(e))+8:b.y+(h.includes('n')?0:h.includes('s')?b.height:b.height/2);
       el.style.top=y/6.4+'%';
@@ -290,7 +293,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     for(const el of $('editor-overlay').querySelectorAll('[data-resize]'))el.remove();
     if(!selection||!['entity','platform'].includes(selection.type))return;
     const names={n:'上',ne:'右上',e:'右',se:'右下',s:'下',sw:'左下',w:'左',nw:'左上'};
-    for(const h of selection.type==='platform'?['w','e']:Object.keys(names)){
+    for(const h of selection.type==='platform'||resolveObject(d,selection)?.pose?['w','e']:Object.keys(names)){
       const el=button('',()=>{},'resize-handle');el.dataset.resize=h;el.setAttribute('aria-label','调整'+names[h]+(selection.type==='platform'?'端点':'边尺寸'));
       el.addEventListener('click',event=>event.stopPropagation());
       el.addEventListener('pointerdown',event=>{
@@ -335,7 +338,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
       if(target.yEnd!==undefined){box.append(field('右端高度 Y',input(target.yEnd,'右端高度 Y',value=>update('yEnd',value),{id:'object-y-end',type:'number',min:160,max:560,step:1})));
         box.append(element('p','拖动左右端点改变长度与坡度；拖动路面整体移动。','panel-note'));}
     }
-    if(diagram&&selection.type==='entity'&&!verticalTransport(target)&&target.kind!=='lift')box.append(field('高度',input(diagramBounds(target.kind,target).height,'高度',value=>update('height',value),{id:'object-height',type:'number',min:8,max:240,step:1})));
+    if(diagram&&selection.type==='entity'&&!verticalTransport(target)&&target.kind!=='lift')box.append(field('高度',input(target.pose?(target.height??(target.surface?12:36)):diagramBounds(target.kind,target).height,'高度',value=>update('height',value),{id:'object-height',type:'number',min:8,max:240,step:1})));
     if(selection.type==='actor') {
       const direction=select([['1','向右'],['-1','向左']],String(target.direction??1),'起始朝向',value=>update('direction',Number(value)));
       direction.id='object-direction';box.append(field('起始朝向',direction));
@@ -352,7 +355,27 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
         box.append(field('自定义贴图（24 KiB 内）',upload));
       }
       if(target.kind==='object'){
+        const pose=element('input');pose.id='object-pose';pose.type='checkbox';pose.checked=Boolean(target.pose);pose.disabled=Boolean(verticalTransport(target));pose.setAttribute('aria-label','姿态与旋转');
+        pose.addEventListener('change',()=>edit(doc=>{
+          const e=resolveObject(doc,selection);
+          if(pose.checked)e.pose={angle:0,pivot:0};
+          else{
+            const used=actions=>actions.some(a=>a.type==='after'?used(a.actions):a.type==='rotate'&&a.target===e.id);
+            if(doc.rules.some(r=>(r.on.source===e.id&&r.on.type==='rotated')||used(r.actions))||doc.entities.some(o=>(o.behaviors??[]).some(b=>used(b.actions))))throw new Error('请先移除该物体的旋转动作及旋转结束连线，再关闭姿态能力。');
+            delete e.pose;delete e.surface;
+          }
+        }));box.append(field('姿态与旋转',pose));
+        if(target.pose){
+          const updatePose=(key,value)=>edit(doc=>{resolveObject(doc,selection).pose[key]=value;});
+          box.append(field('初始角度（度）',input(target.pose.angle,'初始角度',value=>updatePose('angle',value),{id:'object-angle',type:'number',min:-75,max:75,step:'any'})));
+          box.append(field('支点（0 左端 · 1 右端）',input(target.pose.pivot,'支点',value=>updatePose('pivot',value),{id:'object-pivot',type:'number',min:0,max:1,step:'any'})));
+          const surface=element('input');surface.id='object-surface';surface.type='checkbox';surface.checked=Boolean(target.surface?.enabled);surface.setAttribute('aria-label','可承托主角');
+          surface.addEventListener('change',()=>edit(doc=>{const e=resolveObject(doc,selection);if(surface.checked){e.surface={enabled:true};doc.world.physics??={gravity:900,maxFallSpeed:480};}else delete e.surface;}));
+          box.append(field('可承托主角',surface));
+          box.append(element('p','正角度向右下倾斜。拖动两端编辑姿态；旋转动作结束后，从事件槽继续接线。','panel-note'));
+        }
         const enabled=element('input');enabled.id='object-transport';enabled.type='checkbox';enabled.checked=Boolean(verticalTransport(target));enabled.setAttribute('aria-label','高度移动能力');
+        enabled.disabled=Boolean(target.pose);
         enabled.addEventListener('change',()=>{edit(doc=>setHeightTransport(doc,resolveObject(doc,selection),enabled.checked));renderFields(store.document());});
         box.append(field('高度移动能力',enabled));
       }
@@ -428,12 +451,13 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
       const changeAction=fn=>changeRule(r=>{const items=actionList(r.actions,path);fn(items[ai],items);});
       const row=element('div',undefined,'rule-row action-row');
       if(action.type!=='after') {
-        row.append(select([['set','改变状态'],...(d.entities.some(e=>e.kind==='object')?[['hold','拿起']]:[]),['drop','放下'],['hurt','伤害主角'],...(d.entities.some(e=>e.behaviors?.length)?[['invoke','调用行为']]:[]),['turn','改变朝向']],action.type,'动作类型',value=>changeAction((a,items)=>{
+        row.append(select([['set','改变状态'],...(d.entities.some(e=>e.kind==='object')?[['hold','拿起']]:[]),['drop','放下'],['hurt','伤害主角'],...(d.entities.some(e=>e.behaviors?.length)?[['invoke','调用行为']]:[]),...(d.entities.some(e=>e.pose)?[['rotate','旋转至角度']]:[]),['turn','改变朝向']],action.type,'动作类型',value=>changeAction((a,items)=>{
           if(value===a.type)return;
           items[ai]=value==='set'?{type:'set',target:d.entities[0].id,state:d.entities[0].state}:
             value==='hold'?{type:'hold',target:d.entities.find(e=>e.kind==='object').id}:
             value==='hurt'?{type:'hurt',message:'这次不太友好。'}:
             value==='invoke'?{type:'invoke',target:d.entities.find(e=>e.behaviors?.length)?.id,behavior:d.entities.find(e=>e.behaviors?.length)?.behaviors[0]?.id}:
+            value==='rotate'?{type:'rotate',target:d.entities.find(e=>e.pose).id,angle:d.entities.find(e=>e.pose).pose.angle,ticks:60}:
             value==='turn'?{type:'turn',direction:1}:{type:'drop'};
         }),'data-action-type'));
       }
@@ -452,6 +476,12 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
         if(actions.length>1)row.append(button('×',()=>changeAction((a,items)=>items.splice(ai,1)),'rule-remove'));
         parent.append(row);
       } else {
+        if(action.type==='rotate'){
+          row.append(select(d.entities.filter(e=>e.pose).map(e=>[e.id,e.label]),action.target,'旋转哪个物体',value=>changeAction(a=>{a.target=value;a.angle=d.entities.find(e=>e.id===value).pose.angle;}),'data-action-target'));
+          const angle=input(action.angle,'目标角度',value=>changeAction(a=>{a.angle=value;}),{type:'number',min:-75,max:75,step:'any'});angle.setAttribute('data-rotate-angle','');
+          const duration=input(action.ticks/60,'旋转持续秒数',value=>changeAction(a=>{a.ticks=Math.max(1,Math.round(value*60));}),{type:'number',min:1/60,max:60,step:'any'});duration.setAttribute('data-rotate-duration','');
+          row.append(field('目标角度',angle),field('持续秒数',duration));
+        }
         if(action.type==='hold')row.append(select(d.entities.filter(e=>e.kind==='object').map(e=>[e.id,e.label]),action.target,'拿起哪个物件',value=>changeAction(a=>{a.target=value;})));
         if(action.type==='hurt')row.append(input(action.message??'','失败说明',value=>changeAction(a=>{a.message=value||undefined;}),{maxLength:120,className:'message-input'}));
         if(action.type==='invoke')row.append(select(entities.filter(([id])=>d.entities.find(e=>e.id===id)?.behaviors?.length),action.target,'调用哪个物体',value=>changeAction(a=>{a.target=value;a.behavior=d.entities.find(e=>e.id===value).behaviors[0].id;}),'data-action-target'),select((d.entities.find(e=>e.id===action.target)?.behaviors??[]).map(b=>[b.id,b.label]),action.behavior,'调用哪个行为',value=>changeAction(a=>{a.behavior=value;}),'data-action-behavior'));

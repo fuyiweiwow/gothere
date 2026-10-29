@@ -1,6 +1,18 @@
 /** Content examples use only geometry and rules. They require no artwork or game shell. */
 export function createEditorExample(name='logic') {
   const common = { schemaVersion:1, world:{width:1200,height:640,groundY:440} };
+  if(name==='rotation')return {...common,id:'editor-rotation',name:'旋转承托面',
+    description:'运行后点击「释放机关」：翻板绕左端旋转，成为通往下层的斜面；旋转结束事件打开出口。选中翻板可编辑支点、角度和行为。',
+    world:{...common.world,physics:{gravity:900,maxFallSpeed:480}},
+    actor:{x:80,y:260,speed:80},goal:{x:1100,y:410},
+    platforms:[{x:0,width:200,y:260},{x:200+300*Math.cos(Math.PI/6),width:1200-200-300*Math.cos(Math.PI/6),y:410}],
+    entities:[{id:'release',kind:'switch',x:110,y:260,width:28,state:'off',label:'释放机关'},
+      {id:'panel',kind:'object',x:200,y:260,width:300,state:'active',label:'翻板',pose:{angle:0,pivot:0},surface:{enabled:true},
+        behaviors:[{id:'lower',label:'放下',actions:[{type:'rotate',target:'panel',angle:30,ticks:60}]}]},
+      {id:'door',kind:'gate',x:800,y:410,width:28,state:'closed',label:'出口门',
+        behaviors:[{id:'open',label:'打开',actions:[{type:'set',target:'door',state:'open'}]}]}],
+    rules:[{on:{type:'click',source:'release'},actions:[{type:'set',target:'release',state:'on'},{type:'invoke',target:'panel',behavior:'lower'}]},
+      {on:{type:'rotated',source:'panel'},actions:[{type:'invoke',target:'door',behavior:'open'}]}]};
   if(name==='slopes')return { ...common,id:'editor-slopes',name:'斜坡与下落',
     description:'沿斜坡走下屋顶，离开边缘后落到下层，再沿缓坡到达终点。选中斜面，拖动两端改变坡度；地图页签可调整重力。',
     world:{...common.world,physics:{gravity:900,maxFallSpeed:480}},

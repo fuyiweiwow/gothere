@@ -3,6 +3,7 @@ import { createEditorExample } from '../editor/starter.js';
 import { createPreview } from '../app/preview.js';
 import { drawDiagram } from '../render/diagram.js';
 import { eventTypes } from '../core/schema.js';
+import { diagramBounds } from '../core/geometry.js';
 
 const $=id=>document.getElementById(id),canvas=$('scene'),ctx=canvas.getContext('2d');
 const standaloneHTML=document.getElementById('standalone-editor')?'<!doctype html>\n'+document.documentElement.outerHTML:null;
@@ -19,7 +20,7 @@ function updateDebug(){
   $('preview-toggle').textContent=state.status==='running'?'Ⅱ 暂停':state.status==='paused'||state.status==='ready'?'▶ 运行':'↻ 再次运行';
   $('runtime-actor').textContent=`X ${state.actor.x.toFixed(1)}  Y ${state.actor.y.toFixed(1)}\n朝向 ${state.actor.direction===1?'右':'左'} · ${state.actor.mode}\n持有 ${state.actor.holding??'无'}`;
   const list=$('runtime-entities');list.replaceChildren();
-  for(const e of Object.values(state.entities)){const row=document.createElement('div');row.className='runtime-entity';const name=document.createElement('span');name.textContent=e.label;const value=document.createElement('code');value.textContent=e.state+(e.kind==='lift'?' · Y '+e.carY.toFixed(1):'');row.append(name,value);list.append(row);}
+  for(const e of Object.values(state.entities)){const row=document.createElement('div');row.className='runtime-entity';const name=document.createElement('span');name.textContent=e.label;const value=document.createElement('code');value.textContent=e.state+(e.kind==='lift'?' · Y '+e.carY.toFixed(1):'')+(e.pose?' · '+e.pose.angle.toFixed(1)+'°'+(e.rotation?' · 旋转中':''):'');row.append(name,value);list.append(row);}
   $('runtime-timers').textContent=state.timers.length?state.timers.map(t=>`tick ${t.due}（余 ${Math.max(0,t.due-state.tick)} 帧）\n${t.actions.map(a=>a.type+(a.target?' → '+a.target:'')).join(', ')}`).join('\n'):'无';
   const log=$('runtime-log');log.replaceChildren();
   for(const e of state.events.slice().reverse()){const li=document.createElement('li');const time=document.createElement('code');time.textContent=String(e.tick).padStart(4,'0');li.append(time,document.createTextNode(' '+e.message));log.append(li);}
@@ -41,7 +42,7 @@ editor=createEditorUI({play:runPreview,leave:()=>{},pause:()=>preview?.pause(),n
     if(!testing){preview=null;previewLevel=null;accumulator=0;$('runtime-status').textContent='编辑中';delete $('runtime-status').dataset.status;$('runtime-tick').textContent='tick 0';$('preview-toggle').textContent='▶ 运行';}}
 });
 const requestedExample=new URL(location.href).searchParams.get('example');
-const initialExample=['logic','floors','creature','slopes'].includes(requestedExample)?requestedExample:'logic';
+const initialExample=['logic','floors','creature','slopes','rotation'].includes(requestedExample)?requestedExample:'logic';
 editor.open(createEditorExample(initialExample),'starter:'+initialExample);$('example-select').value=initialExample;
 $('load-example').addEventListener('click',()=>{const name=$('example-select').value;editor.openDocument(createEditorExample(name),'example:'+name+':'+Date.now().toString(36)+'-'+serial++);});
 $('preview-toggle').addEventListener('click',()=>{
@@ -54,7 +55,7 @@ $('preview-reset').addEventListener('click',()=>{preview.reset();accumulator=0;d
 canvas.addEventListener('click',event=>{
   if(editor.isEditing()||!preview)return;
   const box=canvas.getBoundingClientRect(),x=(event.clientX-box.left)/box.width*1200,y=(event.clientY-box.top)/box.height*640;
-  const entity=Object.values(preview.snapshot().entities).reverse().find(e=>eventTypes(e).includes('click')&&x>=e.x-8&&x<=e.x+e.width+8&&Math.abs(y-e.y)<64);
+  const entity=Object.values(preview.snapshot().entities).reverse().find(e=>{const b=diagramBounds(e.kind,e);return eventTypes(e).includes('click')&&x>=b.x-8&&x<=b.x+b.width+8&&y>=b.y-8&&y<=b.y+b.height+8;});
   if(entity&&preview.click(entity.id))updateDebug();
 });
 function frame(now){

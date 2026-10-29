@@ -1,4 +1,5 @@
 import { verticalTransport } from './core/transport.js';
+import { drawPosedObject } from './render/diagram.js';
 import { surfaceEndY } from './core/surfaces.js';
 
 const C = { ink:'#405c43', grass:'#9bac7b', land:'#a6b48b', dark:'#667f59', cream:'#faf4da', wood:'#b9a077', rust:'#b9846e' };
@@ -207,7 +208,8 @@ export function createRenderer(canvas) {
       for(const e of Object.values(snapshot.entities))if(e.kind==='bridge')bridge(e);
       destination(level.goal);
       for(const e of Object.values(snapshot.entities)){
-        if(e.kind==='switch')lever(e);
+        if(e.pose&&snapshot.actor.holding!==e.id)drawPosedObject(ctx,e);
+        else if(e.kind==='switch')lever(e);
         else if(e.kind==='hazard')prop({...e,appearance:{skin:'crate'},state:e.state==='stopped'?'inactive':'active'});
         else if(e.kind==='gate')gate(e);
         else if(e.kind==='plate')plate(e);

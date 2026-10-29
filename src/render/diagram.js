@@ -2,6 +2,14 @@ import { floorY } from '../core/schema.js';
 import { diagramBounds } from '../core/geometry.js';
 import { verticalTransport, landingX } from '../core/transport.js';
 import { surfaceEndY } from '../core/surfaces.js';
+import { posePoint, posePolygon } from '../core/pose.js';
+
+export function drawPosedObject(ctx,object,color='#8baad1') {
+  const points=posePolygon(object);ctx.save();ctx.strokeStyle=color;ctx.fillStyle=color+'35';ctx.lineWidth=2;
+  ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();ctx.fill();ctx.stroke();
+  if(object.surface?.enabled){ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(points[0].x,points[0].y);ctx.lineTo(points[1].x,points[1].y);ctx.stroke();}
+  const pivot=posePoint(object,object.pose.pivot);ctx.setLineDash([]);ctx.fillStyle='#181e28';ctx.beginPath();ctx.arc(pivot.x,pivot.y,5,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
+}
 
 const colors = { actor:'#39c3bd', goal:'#e3b454', switch:'#a6a0f0', object:'#8baad1', zone:'#83998b',
   gate:'#d7ad75', bridge:'#d7ad75', ladder:'#9cacc1', lift:'#9cacc1', plate:'#a6a0f0', hazard:'#d88080' };
@@ -23,7 +31,8 @@ export function drawDiagram(ctx, level, snapshot) {
   for(const e of entities){
     const b=diagramBounds(e.kind,e), inactive=['inactive','disabled','stopped','folded','open'].includes(e.state);
     const color=colors[e.kind]??'#9cacc1';ctx.save();ctx.strokeStyle=color;ctx.fillStyle=color+'25';ctx.lineWidth=2;
-    if(inactive)ctx.setLineDash([6,4]);ctx.fillRect(b.x,b.y,b.width,b.height);ctx.strokeRect(b.x,b.y,b.width,b.height);
+    if(inactive)ctx.setLineDash([6,4]);
+    if(e.pose)drawPosedObject(ctx,e,color);else{ctx.fillRect(b.x,b.y,b.width,b.height);ctx.strokeRect(b.x,b.y,b.width,b.height);}
     const transport=verticalTransport(e);
     if(transport){
       const cx=b.x+b.width/2,cy=(transport.toY+floorY(e))/2;ctx.setLineDash([5,5]);ctx.beginPath();ctx.moveTo(cx,transport.toY);ctx.lineTo(cx,floorY(e));ctx.stroke();ctx.setLineDash([]);

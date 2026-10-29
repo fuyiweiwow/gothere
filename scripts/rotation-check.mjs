@@ -36,8 +36,8 @@ try{
   assert.equal((await draft(page)).entities.find(e=>e.id==='panel').pose.pivot,0.5);await page.locator('#editor-undo').click();
   const h=await page.locator('[data-resize="e"]').boundingBox(),b=await page.locator('#editor-overlay').boundingBox();
   await page.mouse.move(h.x+h.width/2,h.y+h.height/2);await page.mouse.down();
-  await page.mouse.move(h.x+h.width/2-40.1923788647/1200*b.width,h.y+h.height/2+150/640*b.height,{steps:10});await page.mouse.up();
-  let panel=(await draft(page)).entities.find(e=>e.id==='panel');near(panel.pose.angle,30);near(panel.width,300);
+  await page.mouse.move(h.x+h.width/2-40/1200*b.width,h.y+h.height/2+150/640*b.height,{steps:10});await page.mouse.up();
+  let panel=(await draft(page)).entities.find(e=>e.id==='panel');near(panel.pose.angle,Math.atan2(150,260)*180/Math.PI);near(panel.width,Math.hypot(260,150));
   await page.locator('#editor-undo').click();assert.deepEqual(await draft(page),initial);
   await page.locator('#object-surface').uncheck();assert.equal((await draft(page)).entities.find(e=>e.id==='panel').surface,undefined);
   await page.locator('#editor-undo').click();
