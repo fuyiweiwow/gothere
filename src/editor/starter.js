@@ -1,6 +1,13 @@
 /** Content examples use only geometry and rules. They require no artwork or game shell. */
 export function createEditorExample(name='logic') {
   const common = { schemaVersion:1, world:{width:1200,height:640,groundY:440} };
+  if(name==='slopes')return { ...common,id:'editor-slopes',name:'斜坡与下落',
+    description:'沿斜坡走下屋顶，离开边缘后落到下层，再沿缓坡到达终点。选中斜面，拖动两端改变坡度；地图页签可调整重力。',
+    world:{...common.world,physics:{gravity:900,maxFallSpeed:480}},
+    actor:{x:80,y:200,speed:100},goal:{x:1100,y:520},
+    platforms:[{x:0,width:200,y:200},{x:200,width:240,y:200,yEnd:340},{x:440,width:100,y:340},
+      {x:570,width:250,y:460},{x:820,width:200,y:460,yEnd:520},{x:1020,width:180,y:520}],
+    entities:[],rules:[] };
   if(name==='creature')return { ...common, id:'editor-creature', name:'生物行为与伤害',
     description:'爬到上层路面后，感应区会启动巡逻生物；接触事件调用「攻击」行为，再执行伤害动作。先点击停止机关，可安全通过。',
     actor:{x:80,y:520,speed:100},goal:{x:1100,y:300},

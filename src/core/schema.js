@@ -1,4 +1,5 @@
 import { verticalTransport, landingX } from './transport.js';
+import { surfaceHeight } from './surfaces.js';
 
 export const STATES = Object.freeze({
   switch: ['off', 'on'], bridge: ['folded', 'extended'], gate: ['closed', 'open'],
@@ -28,6 +29,8 @@ export function validateLevel(input) {
   const world = input.world;
   check(object(world) && world.width === 1200 && world.height === 640 && world.groundY === 440,
     '当前版本 world 必须为 {width:1200,height:640,groundY:440}。');
+  if (world?.physics !== undefined) check(object(world.physics) && number(world.physics.gravity,60,3600) &&
+    number(world.physics.maxFallSpeed,60,1800), 'world.physics 需要 gravity（60～3600）和 maxFallSpeed（60～1800）。');
   check(object(input.actor) && number(input.actor.x, 20, 1150) && number(input.actor.speed, 15, 180),
     'actor 需要合法的 x（20～1150）和 speed（15～180，单位/秒）。');
   check(object(input.goal) && number(input.goal.x, 40, 1180), 'goal.x 必须为 40～1180。');
@@ -39,7 +42,9 @@ export function validateLevel(input) {
   check(Array.isArray(platforms) && platforms.length > 0 && platforms.length <= 64, 'platforms 必须包含 1～64 段地面。');
   if (Array.isArray(platforms)) {
     platforms.slice(0, 65).forEach((p, index) => check(object(p) && number(p.x, 0, 1200) &&
-      number(p.width, 1, 1200) && p.x + p.width <= 1200 && (p.y===undefined || number(p.y,160,560)), 'platforms[' + index + '] 的范围不合法。'));
+      number(p.width, 1, 1200) && p.x + p.width <= 1200 && (p.y===undefined || number(p.y,160,560)) &&
+      (p.yEnd===undefined || (Boolean(world?.physics) && number(p.yEnd,160,560))),
+      'platforms[' + index + '] 的范围不合法；斜面右端 yEnd 需在 160～560，并启用重力模式。'));
   }
   const entities = input.entities;
   check(Array.isArray(entities) && entities.length <= 64, 'entities 必须为最多 64 项的数组。');
@@ -154,7 +159,7 @@ export function validateLevel(input) {
   }
   for(const e of byId.values())if(Array.isArray(e.behaviors))for(const b of e.behaviors.slice(0,17))if(object(b))actionsValid(b.actions);
   if (errors.length === 0) {
-    const supported = (x,y) => platforms.some((p) => floorY(p)===y && x >= p.x && x <= p.x + p.width);
+    const supported = (x,y) => platforms.some(p => {const height=surfaceHeight(p,x);return height!==null&&Math.abs(height-y)<1e-7;});
     check(supported(input.actor.x,floorY(input.actor)), '角色起点需要位于对应高度的地面上。');
     check(supported(input.goal.x,floorY(input.goal)), '终点需要位于对应高度的地面上。');
     for (const e of entities.filter(e=>verticalTransport(e)||e.kind==='lift')) {

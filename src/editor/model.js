@@ -1,6 +1,7 @@
 import { STATES, validateLevel, floorY } from '../core/schema.js';
 import { verticalTransport } from '../core/transport.js';
 import { diagramBounds } from '../core/geometry.js';
+import { surfaceEndY } from '../core/surfaces.js';
 
 const clone = (value) => structuredClone(value);
 const finiteY = value => value?.y === undefined || Number.isFinite(value.y);
@@ -9,7 +10,7 @@ const shape = (level) => Boolean(level && level.schemaVersion === 1 && level.wor
   typeof level.name === 'string' && typeof level.description === 'string' &&
   Number.isFinite(level.actor?.x) && Number.isFinite(level.actor?.speed) && Number.isFinite(level.goal?.x) && finiteY(level.actor) && finiteY(level.goal) &&
   Array.isArray(level.platforms) && level.platforms.length <= 64 && level.platforms.every(p =>
-    p && Number.isFinite(p.x) && Number.isFinite(p.width) && finiteY(p)) &&
+    p && Number.isFinite(p.x) && Number.isFinite(p.width) && finiteY(p) && (p.yEnd===undefined||Number.isFinite(p.yEnd))) &&
   Array.isArray(level.entities) && level.entities.length <= 64 && level.entities.every(e =>
     e && typeof e.id === 'string' && Object.hasOwn(STATES, e.kind) && Number.isFinite(e.x) &&
     (e.width === undefined || Number.isFinite(e.width)) && finiteY(e) && typeof e.label === 'string' &&
@@ -177,6 +178,10 @@ export function resizeObject(level,ref,handle,dx,dy) {
     const right=e.x+(e.width??28),left=clamp(e.x+dx,Math.max(minX,right-maxWidth,e.motion?.minX??minX),Math.min(right-minWidth,e.motion?.maxX??(road?1199:1175)));
     e.x=left;e.width=right-left;
   }else if(handle.includes('e'))e.width=clamp((e.width??28)+dx,minWidth,Math.min(maxWidth,1200-e.x));
+  if(road&&e.yEnd!==undefined){
+    if(handle==='w')e.y=clamp(floorY(e)+dy,160,560);
+    if(handle==='e')e.yEnd=clamp(e.yEnd+dy,160,560);
+  }
   if(!road){
     if(t){
       if(handle.includes('n'))t.toY=clamp(t.toY+dy,160,floorY(e)-40);
@@ -202,7 +207,9 @@ export function moveObject(level, ref, dx, dy=0) {
   target.x=x;
   if(dy){
     const y=floorY(target),t=channelConfig(target),span=t?y-t.toY:0;
-    target.y=Math.max(160+span,Math.min(560,y+dy));
+    const shift=ref.type==='platform'?clamp(dy,160-Math.min(y,surfaceEndY(target)),560-Math.max(y,surfaceEndY(target))):clamp(dy,160+span-y,560-y);
+    target.y=y+shift;
+    if(ref.type==='platform'&&target.yEnd!==undefined)target.yEnd+=shift;
     if(t)t.toY+=target.y-y;
   }
 }

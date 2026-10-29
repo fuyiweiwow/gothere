@@ -1,5 +1,6 @@
 import { validateLevel, floorY, eventTypes } from './schema.js';
 import { verticalTransport, transportEnabled, landingX } from './transport.js';
+import { collectSurfaces, advanceWalker, touchesFootPath, supportAt } from './surfaces.js';
 export { validateLevel } from './schema.js';
 export const TICKS_PER_SECOND = 60;
 const clone = (value) => structuredClone(value);
@@ -13,14 +14,15 @@ export function createSimulation(input) {
   const stripLayout=list=>{for(const a of list){delete a.editor;if(a.type==='after')stripLayout(a.actions);}};
   for(const rule of level.rules)stripLayout(rule.actions);
   for(const entity of level.entities)for(const behavior of entity.behaviors??[])stripLayout(behavior.actions);
-  let state, pending, inputs, serial, actionBudget, contacts, connectorLock, invokeDepth;
+  let state, pending, inputs, serial, actionBudget, contacts, connectorLock, invokeDepth, movementTrace, reachedPhysicsGoal;
   const emit = (message, kind = 'action') => {
     state.events.push({ tick: state.tick, message, kind });
     if (state.events.length > 24) state.events.shift();
   };
   const reset = () => {
     state = { tick: 0, status: 'ready', reason: null,
-      actor: { x: level.actor.x, y:floorY(level.actor), direction:level.actor.direction??1, holding:null, mode:'walking', connector:null },
+      actor: { x: level.actor.x, y:floorY(level.actor), direction:level.actor.direction??1, holding:null, mode:'walking', connector:null,
+        ...(level.world.physics?{vy:0,support:null}:{}) },
       entities: Object.fromEntries(level.entities.map((e) => [e.id, { ...e, y:floorY(e), width: e.width ?? 28,
         ...(e.kind==='hazard'?{contact:{effect:'lethal'}}:{}),
         ...(e.kind==='lift'?{carY:e.state==='upper'?e.toY:floorY(e)}:{}), ...(e.motion?{motionDirection:1}:{}) }])),
@@ -124,6 +126,47 @@ export function createSimulation(input) {
     a.direction=a.y===t.toY?(t.upperDirection??a.direction):(t.lowerDirection??a.direction);
     a.mode='walking';a.connector=null;connectorLock=e.id;emit('经过了'+e.label);trigger('arrive',e.id);
   }
+  function beginConnection(connector) {
+    const a=state.actor,t=verticalTransport(connector);a.connector=connector.id;
+    if(t){a.mode='climbing';a.destinationY=a.y===connector.y?t.toY:connector.y;}
+    else {
+      a.mode='riding';a.boardY=a.y;emit('搭上了'+connector.label);trigger('board',connector.id);
+      if((connector.state==='upper'?connector.toY:connector.y)===a.y){
+        a.mode='walking';a.connector=null;delete a.boardY;connectorLock=connector.id;
+      }
+    }
+  }
+  function movePhysicsActor() {
+    const a=state.actor,from=a.x,result=advanceWalker(a,collectSurfaces(level,state.entities),level.actor.speed,level.world.physics,level.goal);
+    let first=null;
+    // Explicit transports can only intercept a supported portion of this tick's path.
+    for(const e of Object.values(state.entities)) {
+      if(e.id===connectorLock||e.id===a.holding||!(transportEnabled(e)||e.kind==='lift'))continue;
+      const t=verticalTransport(e)??e;
+      for(const y of [e.y,t.toY]) {
+        if(e.kind==='lift'&&e.carY!==y)continue;
+        const x=verticalTransport(e)?landingX(level,e,y,e.kind==='object'?from:e.x+e.width/2):e.x+e.width/2;
+        if(x===null)continue;
+        for(let index=0;index<result.segments.length;index++) {
+          const segment=result.segments[index];if(segment.mode!=='walking')continue;
+          const dx=segment.to.x-segment.from.x;
+          const fraction=dx?(x-segment.from.x)/dx:Math.abs(x-segment.from.x)<1e-7?0:-1;
+          if(fraction<0||fraction>1||Math.abs(segment.from.y+(segment.to.y-segment.from.y)*fraction-y)>1e-7)continue;
+          const time=segment.start+(segment.end-segment.start)*fraction;
+          if(!first||time<first.time)first={entity:e,x,y,time,index};
+        }
+      }
+    }
+    Object.assign(a,result.actor);movementTrace=result.segments;reachedPhysicsGoal=result.goalReached;
+    if(first) {
+      a.x=first.x;a.y=first.y;a.vy=0;a.support=null;reachedPhysicsGoal=false;
+      movementTrace=movementTrace.slice(0,first.index+1);
+      movementTrace.at(-1).to={x:a.x,y:a.y};movementTrace.at(-1).end=first.time;
+    }
+    for(const landing of result.landings.filter(l=>!first||l.time<=first.time))emit('落到 Y='+Number(landing.y.toFixed(1))+' 的路面。','land');
+    if(first)beginConnection(first.entity);
+    return [from,a.x,true];
+  }
   function moveActor() {
     const a=state.actor, from=a.x;
     if(a.connector) {
@@ -144,6 +187,7 @@ export function createSimulation(input) {
       const e=state.entities[connectorLock];
       if(Math.abs(a.x-e.x-e.width/2)>e.width/2+12)connectorLock=null;
     }
+    if(level.world.physics)return movePhysicsActor();
     let to=Math.round((from+a.direction*level.actor.speed/60)*1e6)/1e6;
     if(a.y===floorY(level.goal) && (level.goal.x-from)*a.direction>=0 && (level.goal.x-to)*a.direction<=0)to=level.goal.x;
     const candidate=Object.values(state.entities).filter(e=>e.id!==connectorLock&&e.id!==a.holding&&
@@ -152,15 +196,7 @@ export function createSimulation(input) {
       .filter(c=>c.x!==null&&(c.x-from)*a.direction>=0&&(c.x-to)*a.direction<=0)
       .sort((a,b)=>Math.abs(a.x-from)-Math.abs(b.x-from))[0];
     if(candidate) {
-      const connector=candidate.entity,t=verticalTransport(connector);
-      to=candidate.x;a.x=to;a.connector=connector.id;
-      if(t){a.mode='climbing';a.destinationY=a.y===connector.y?t.toY:connector.y;}
-      else {
-        a.mode='riding';a.boardY=a.y;emit('搭上了'+connector.label);trigger('board',connector.id);
-        if((connector.state==='upper'?connector.toY:connector.y)===a.y){
-          a.mode='walking';a.connector=null;delete a.boardY;connectorLock=connector.id;
-        }
-      }
+      to=candidate.x;a.x=to;beginConnection(candidate.entity);
     }
     a.x=to;return [from,to,true];
   }
@@ -179,6 +215,7 @@ export function createSimulation(input) {
     pending = [];
     if (state.status !== 'running') return;
     updateMotion();
+    movementTrace=null;reachedPhysicsGoal=false;
     const [from,to,walked]=moveActor(), a=state.actor;
     if(state.status!=='running')return;
     syncHeld();
@@ -186,9 +223,14 @@ export function createSimulation(input) {
     for (const entity of Object.values(state.entities)) {
       const sameFloor=entity.y===a.y || ((verticalTransport(entity)||entity.kind==='lift')&&(verticalTransport(entity)??entity).toY===a.y) ||
         (entity.kind==='lift' && entity.carY===a.y);
-      if(entity.id===a.holding || !sameFloor || (entity.kind==='object' && entity.state!=='active') || (entity.kind==='zone' && entity.state!=='enabled'))continue;
+      if(entity.id===a.holding || (entity.kind==='object' && entity.state!=='active') || (entity.kind==='zone' && entity.state!=='enabled'))continue;
       const left=Math.min(from,to),right=Math.max(from,to);
-      if(right+10<Math.min(entity.previousX,entity.x) || left-10>Math.max(entity.previousX,entity.x)+entity.width)continue;
+      const contactLeft=Math.min(entity.previousX,entity.x)-10,contactRight=Math.max(entity.previousX,entity.x)+entity.width+10;
+      if(movementTrace){
+        const heights=[entity.y,...(verticalTransport(entity)||entity.kind==='lift'?[(verticalTransport(entity)??entity).toY]:[]),
+          ...(entity.kind==='lift'?[entity.carY]:[])];
+        if(!heights.some(y=>touchesFootPath(movementTrace,contactLeft,contactRight,y)))continue;
+      }else if(!sameFloor||right<contactLeft||left>contactRight)continue;
       touching.add(entity.id);
       if(!contacts.has(entity.id) && entity.kind!=='zone')trigger('contact',entity.id);
       if(!contacts.has(entity.id) && entity.kind==='zone')trigger('enter',entity.id);
@@ -205,7 +247,11 @@ export function createSimulation(input) {
     }
     contacts=touching;
     if (state.status !== 'running') return;
-    if (walked && !supported(Math.min(from,to),Math.max(from,to))) { lose('fall', '脚下的路临时请假了。试试先把桥放下来。'); return; }
+    if(level.world.physics){
+      if(a.mode==='walking'&&!supportAt(collectSurfaces(level,state.entities),a.x,a.y,a.support)){
+        a.mode='falling';a.vy=0;a.support=null;reachedPhysicsGoal=false;
+      }
+    }else if (walked && !supported(Math.min(from,to),Math.max(from,to))) { lose('fall', '脚下的路临时请假了。试试先把桥放下来。'); return; }
     for (const entity of Object.values(state.entities)) {
       if (entity.y!==a.y || Math.max(from,to) + 10 < entity.x || Math.min(from,to) - 10 > entity.x + entity.width) continue;
       if (entity.kind === 'gate' && entity.state === 'closed') {
@@ -213,7 +259,7 @@ export function createSimulation(input) {
       }
     }
     syncHeld();
-    if (a.mode==='walking' && a.y===floorY(level.goal) && Math.min(from,to)<=level.goal.x && Math.max(from,to)>=level.goal.x) {
+    if (a.mode==='walking' && (level.world.physics?reachedPhysicsGoal:a.y===floorY(level.goal) && Math.min(from,to)<=level.goal.x && Math.max(from,to)>=level.goal.x)) {
       state.status = 'won'; emit('到了！就说一定能到这里。', 'won'); }
     else if(a.x<=20 || a.x>=1180 || a.y<=0 || a.y>=640)lose('boundary','走得太投入，碰到了地图边界。调整路线再试试。');
     else if (state.tick >= MAX_TICKS) lose('timeout', '这段路走成了长征。歇一下，重新出发吧。');
