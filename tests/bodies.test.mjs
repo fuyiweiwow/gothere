@@ -100,3 +100,15 @@ test('new capability data survives history/clipboard and deletion removes filter
   deleteObject(d,{type:'entity',id:'weight'});assert.equal(d.rules.some(r=>r.on.other==='weight'),false);
   assert.deepEqual(createEditorStore(store.serialize()).document(),store.document());
 });
+
+test('falling onto another dynamic body produces the same stack in either declaration order',()=>{
+  const results=[];
+  for(const reverse of [false,true]){
+    const level=fixture();level.actor.speed=15;level.rules=[];
+    level.entities=[{...level.entities[1],id:'top',y:489.7},{...structuredClone(level.entities[1]),id:'bottom',y:519.8}];
+    if(reverse)level.entities.reverse();const sim=createSimulation(level);sim.start().step(90);const s=sim.snapshot();
+    near(s.entities.bottom.y,520);near(s.entities.top.y,490);
+    results.push(s.events.map(e=>[e.kind,e.source,e.other,e.tick]));
+  }
+  assert.deepEqual(results[0],results[1]);
+});
