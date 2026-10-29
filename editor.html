@@ -10,8 +10,8 @@
 </head>
 <body class="editor-app">
   <header class="app-header">
-    <div class="app-brand"><span class="brand-symbol" aria-hidden="true">▦</span><div><h1>逻辑编辑器</h1><span>一定要到达那里 <b>0.11.0</b></span></div></div>
-    <div class="document-actions"><select id="example-select" aria-label="选择示例"><option value="logic">事件、行为与持有</option><option value="floors">多层运输</option><option value="creature">生物行为与伤害</option><option value="slopes">斜坡与下落</option><option value="rotation">旋转承托面</option><option value="bodies">失去支撑与落物撞击</option></select><button id="load-example" class="button secondary">新建示例</button><button id="open-data" class="button secondary">JSON 导入 / 导出</button><button id="download-editor" class="button secondary">下载离线编辑器</button></div>
+    <div class="app-brand"><span class="brand-symbol" aria-hidden="true">▦</span><div><h1>逻辑编辑器</h1><span>一定要到达那里 <b>0.12.0</b></span></div></div>
+    <div class="document-actions"><select id="example-select" aria-label="选择示例"><option value="first-level">第一关 · 屋顶到亮窗</option><option value="logic">事件、行为与持有</option><option value="floors">多层运输</option><option value="creature">生物行为与伤害</option><option value="slopes">斜坡与下落</option><option value="rotation">旋转承托面</option><option value="bodies">失去支撑与落物撞击</option></select><button id="load-example" class="button secondary">新建示例</button><button id="open-data" class="button secondary">JSON 导入 / 导出</button><button id="download-editor" class="button secondary">下载离线编辑器</button></div>
   </header>
   <main id="editor-workspace">
     <section id="editor-toolbar" class="editor-toolbar" aria-label="创作工具" hidden></section>
@@ -23,6 +23,7 @@
       </div></div>
       <div class="preview-controls" aria-label="模拟控制"><button id="preview-toggle" class="button primary">▶ 运行</button><button id="preview-step" class="button secondary" title="暂停并推进一个 tick">单步</button><button id="preview-reset" class="button secondary" disabled>重置模拟</button><span id="runtime-status" role="status">编辑中</span><output id="runtime-tick">tick 0</output></div>
       <p class="map-note" id="stage-note"></p>
+      <details class="map-note"><summary>关卡提示</summary><p id="level-hint"></p></details>
       <div class="map-legend"><span><i class="legend-actor"></i>主角</span><span><i class="legend-goal"></i>终点</span><span>虚线 = 非生效状态 / 延迟连线</span><span>方向键微调 · Shift 加速 · F1 快捷键</span></div>
     </section>
     <aside id="editor-panel" class="editor-panel" aria-label="逻辑编辑面板" hidden></aside>

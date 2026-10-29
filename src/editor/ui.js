@@ -1,4 +1,4 @@
-import { createEditorStore, createBlankLevel, addObject, addHeightTransport, setHeightTransport, setPhysicalCapability, snapTransport, resizeObject, deleteObject, moveObject, copyObject, pasteObject, addBehavior, renameBehavior, deleteBehavior, ruleWires, deleteWire, KIND_NAMES } from './model.js';
+import { createEditorStore, createBlankLevel, addObject, addHeightTransport, setHeightTransport, setPhysicalCapability, setSupportProbe, snapTransport, resizeObject, deleteObject, moveObject, copyObject, pasteObject, addBehavior, renameBehavior, deleteBehavior, ruleWires, deleteWire, KIND_NAMES } from './model.js';
 import { STATES, SKINS, eventTypes, floorY, validateLevel } from '../core/schema.js';
 import { stateLabel } from '../core/engine.js';
 import { CATALOG, CATEGORIES, filterCatalog } from './catalog.js';
@@ -32,7 +32,7 @@ function input(value,label,onChange,settings={}) {
   return el;
 }
 const button = (name,handler,className='button secondary') => {const el=element('button',name,className);el.type='button';el.addEventListener('click',handler);return el;};
-const eventNames={click:'点击',contact:'碰到',enter:'走入区域',board:'登上电梯',arrive:'抵达出口',rotated:'旋转结束',supportlost:'失去支撑',landed:'落地',impact:'受到落物撞击',done:'行为完成'};
+const eventNames={click:'点击',contact:'碰到',enter:'走入区域',board:'登上电梯',arrive:'抵达出口',rotated:'旋转结束',supportlost:'失去支撑',supportfound:'获得支撑',landed:'落地',actorlanded:'主角落到上面',impact:'受到落物撞击',done:'行为完成'};
 const availableEvents=e=>eventTypes(e).filter(t=>t!=='done'||e.behaviors?.length);
 const actionList = (actions,path) => {for(const index of path)actions=actions[index].actions;return actions;};
 
@@ -342,6 +342,9 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     if(selection.type==='actor') {
       const direction=select([['1','向右'],['-1','向左']],String(target.direction??1),'起始朝向',value=>update('direction',Number(value)));
       direction.id='object-direction';box.append(field('起始朝向',direction));
+      const safe=element('input');safe.type='checkbox';safe.id='object-safe-landing';safe.checked=target.maxLandingSpeed!==undefined;safe.setAttribute('aria-label','限制落地速度');
+      safe.addEventListener('change',()=>edit(doc=>{if(safe.checked){doc.actor.maxLandingSpeed=330;doc.world.physics??={gravity:900,maxFallSpeed:480};}else delete doc.actor.maxLandingSpeed;}));box.append(field('限制落地速度',safe));
+      if(target.maxLandingSpeed!==undefined)box.append(field('安全落地速度上限',input(target.maxLandingSpeed,'安全落地速度上限',value=>update('maxLandingSpeed',value),{id:'object-landing-speed',type:'number',min:60,max:1800,step:1})));
     }
     if(selection.type==='entity') {
       box.append(field('显示名称',input(target.label,'显示名称',value=>update('label',value),{id:'object-label',maxLength:30})));
@@ -359,9 +362,23 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
         collider.addEventListener('change',()=>edit(doc=>setPhysicalCapability(doc,resolveObject(doc,selection),'collider',collider.checked)));box.append(field('矩形碰撞体',collider));
         if(target.collider){const enabled=element('input');enabled.id='object-collider-enabled';enabled.type='checkbox';enabled.checked=target.collider.enabled;enabled.setAttribute('aria-label','碰撞初始启用');
           enabled.addEventListener('change',()=>edit(doc=>{resolveObject(doc,selection).collider.enabled=enabled.checked;}));box.append(field('碰撞初始启用',enabled));}
-        const body=element('input');body.id='object-body';body.type='checkbox';body.checked=Boolean(target.body);body.disabled=Boolean(target.pose||target.transport||target.motion);body.setAttribute('aria-label','受重力影响');
+        const body=element('input');body.id='object-body';body.type='checkbox';body.checked=Boolean(target.body);body.disabled=Boolean(target.pose||target.transport||target.motion||target.supportProbe);body.setAttribute('aria-label','受重力影响');
         body.addEventListener('change',()=>edit(doc=>setPhysicalCapability(doc,resolveObject(doc,selection),'body',body.checked)));box.append(field('受重力影响',body));
         if(target.collider)box.append(element('p','上沿承托主角和物体；受重力影响时，失去支撑会自行下落。碰撞开关不改变外观或激活状态。','panel-note'));
+        const probe=element('input');probe.id='object-support-probe';probe.type='checkbox';probe.checked=Boolean(target.supportProbe);probe.disabled=Boolean(target.body);probe.setAttribute('aria-label','检测下方支撑');
+        probe.addEventListener('change',()=>edit(doc=>setSupportProbe(doc,resolveObject(doc,selection),probe.checked)));box.append(field('检测下方支撑',probe));
+        if(target.supportProbe){
+          box.append(field('检测点（0 左端 · 1 右端）',input(target.supportProbe.at,'支撑检测点',value=>edit(doc=>{resolveObject(doc,selection).supportProbe.at=value;}),{id:'object-support-at',type:'number',min:0,max:1,step:'any'})));
+          box.append(element('p','菱形标记检测真实路面或物体上沿；支撑消失后发出事件，由连线选择旋转等行为。','panel-note'));
+        }
+        const carried=element('input');carried.id='object-carried-physics';carried.type='checkbox';carried.checked=Boolean(target.carriedPhysics);carried.setAttribute('aria-label','持有时改变下落');
+        carried.addEventListener('change',()=>edit(doc=>{const e=resolveObject(doc,selection);if(carried.checked){e.carriedPhysics={gravityScale:0.25,maxFallSpeed:90};doc.world.physics??={gravity:900,maxFallSpeed:480};}else delete e.carriedPhysics;}));box.append(field('持有时改变下落',carried));
+        if(target.carriedPhysics){
+          const changeFall=(key,value)=>edit(doc=>{resolveObject(doc,selection).carriedPhysics[key]=value;});
+          box.append(field('重力倍率',input(target.carriedPhysics.gravityScale,'重力倍率',value=>changeFall('gravityScale',value),{id:'object-fall-scale',type:'number',min:0.05,max:1,step:'any'})),
+            field('持有时最大下落速度',input(target.carriedPhysics.maxFallSpeed,'持有时最大下落速度',value=>changeFall('maxFallSpeed',value),{id:'object-fall-limit',type:'number',min:60,max:1800,step:1})),
+            element('p','主角持有且物体处于激活状态时生效；收起或放下恢复地图重力。','panel-note'));
+        }
         const pose=element('input');pose.id='object-pose';pose.type='checkbox';pose.checked=Boolean(target.pose);pose.disabled=Boolean(verticalTransport(target)||target.collider);pose.setAttribute('aria-label','姿态与旋转');
         pose.addEventListener('change',()=>edit(doc=>{
           const e=resolveObject(doc,selection);

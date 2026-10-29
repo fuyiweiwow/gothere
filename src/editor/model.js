@@ -175,6 +175,7 @@ export function setPhysicalCapability(level,entity,capability,enabled) {
   if(enabled){
     if(entity.pose||entity.transport)throw new Error('矩形碰撞体暂不与姿态或高度通道组合。');
     if(capability==='body'&&entity.motion)throw new Error('请先关闭巡逻，再启用受重力影响。');
+    if(capability==='body'&&entity.supportProbe)throw new Error('请先关闭固定物体的支撑检测，再启用动态重力。');
     entity.collider??={enabled:true};entity.height??=36;
     if(capability==='body')entity.body={type:'dynamic'};
     level.world.physics??={gravity:900,maxFallSpeed:480};
@@ -185,6 +186,16 @@ export function setPhysicalCapability(level,entity,capability,enabled) {
     if(level.rules.some(r=>(r.on.source===entity.id&&events.includes(r.on.type))||(capability==='body'&&r.on.other===entity.id)||used(r.actions))||
       level.entities.some(e=>(e.behaviors??[]).some(b=>used(b.actions))))throw new Error('请先移除引用此能力的事件连线及动作，再移除能力。');
     delete entity[capability];
+  }
+}
+
+export function setSupportProbe(level,entity,enabled) {
+  if(enabled){
+    if(entity.body)throw new Error('动态物体已自动检测支撑，无需固定物体的支撑检测。');
+    entity.supportProbe={at:1};level.world.physics??={gravity:900,maxFallSpeed:480};
+  }else{
+    if(level.rules.some(r=>r.on.source===entity.id&&['supportlost','supportfound'].includes(r.on.type)))throw new Error('请先移除支撑变化的事件连线，再关闭支撑检测。');
+    delete entity.supportProbe;
   }
 }
 

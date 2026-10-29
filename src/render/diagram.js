@@ -3,6 +3,7 @@ import { diagramBounds } from '../core/geometry.js';
 import { verticalTransport, landingX } from '../core/transport.js';
 import { surfaceEndY } from '../core/surfaces.js';
 import { posePoint, posePolygon } from '../core/pose.js';
+import {collectSurfaces,supportAt} from '../core/surfaces.js';
 
 export function drawPosedObject(ctx,object,color='#8baad1') {
   const points=posePolygon(object);ctx.save();ctx.strokeStyle=color;ctx.fillStyle=color+'35';ctx.lineWidth=2;
@@ -37,6 +38,7 @@ export function drawDiagram(ctx, level, snapshot) {
     ctx.moveTo(p.x,y+2);ctx.lineTo(p.x+p.width,end+2);ctx.lineTo(p.x+p.width,end+14);ctx.lineTo(p.x,y+14);ctx.closePath();ctx.fill();
     ctx.strokeStyle='#9eafc3';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(p.x,y);ctx.lineTo(p.x+p.width,end);ctx.stroke();}
   const entities = snapshot ? Object.values(snapshot.entities) : level.entities;
+  const surfaces=collectSurfaces(level,Object.fromEntries(entities.map(e=>[e.id,e])),snapshot?.actor.holding);
   for(const e of entities){
     const b=diagramBounds(e.kind,e), inactive=['inactive','disabled','stopped','folded','open'].includes(e.state);
     const color=colors[e.kind]??'#9cacc1';ctx.save();ctx.strokeStyle=color;ctx.fillStyle=color+'25';ctx.lineWidth=2;
@@ -50,6 +52,14 @@ export function drawDiagram(ctx, level, snapshot) {
     }
     if(e.kind==='lift'){ctx.setLineDash([]);ctx.fillStyle=color;ctx.fillRect(e.x,(e.carY??(e.state==='upper'?e.toY:floorY(e)))-5,b.width,10);}
     if(e.contact?.effect==='lethal'&&!inactive){ctx.fillStyle='#e58b88';ctx.font='bold 16px sans-serif';ctx.fillText('!',b.x+b.width/2-3,b.y+20);}
+    if(e.supportProbe){
+      const p=e.pose?posePoint(e,e.supportProbe.at):{x:e.x+(e.width??28)*e.supportProbe.at,y:floorY(e)};
+      ctx.setLineDash([]);ctx.fillStyle=supportAt(surfaces.filter(s=>s.id!==e.id),p.x,p.y)?'#60d1c7':'#e3b454';
+      ctx.beginPath();ctx.moveTo(p.x,p.y-6);ctx.lineTo(p.x+6,p.y);ctx.lineTo(p.x,p.y+6);ctx.lineTo(p.x-6,p.y);ctx.closePath();ctx.fill();
+    }
+    if(e.carriedPhysics&&snapshot?.actor.holding===e.id&&e.state==='active'){
+      ctx.setLineDash([]);ctx.strokeStyle=colors.actor;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(b.x-8,b.y-4);ctx.lineTo(b.x+b.width/2,b.y-16);ctx.lineTo(b.x+b.width+8,b.y-4);ctx.stroke();
+    }
     ctx.setLineDash([]);ctx.fillStyle=color;ctx.font='12px ui-monospace, Consolas, monospace';ctx.fillText(e.label,b.x,b.y-10);
     ctx.fillStyle='#96a3b5';ctx.font='10px ui-monospace, Consolas, monospace';ctx.fillText(e.state,b.x,b.y+b.height+16);ctx.restore();
   }

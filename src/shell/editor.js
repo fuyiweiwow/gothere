@@ -10,7 +10,7 @@ const standaloneHTML=document.getElementById('standalone-editor')?'<!doctype htm
 let editor,preview=null,previewLevel=null,accumulator=0,last=0,debugLast=0,toastTimer,serial=0;
 const labels={ready:'准备运行',running:'运行中',paused:'已暂停',won:'已到达终点',lost:'模拟结束'};
 function notify(message){clearTimeout(toastTimer);$('toast').textContent=message;$('toast').hidden=false;toastTimer=setTimeout(()=>{$('toast').hidden=true;},4200);}
-function drawDocument(level){drawDiagram(ctx,level);$('stage-note').textContent=level.description;$('document-summary').textContent=`${level.entities.length} 个物体 · ${level.rules.length} 条规则 · schemaVersion ${level.schemaVersion}`;}
+function drawDocument(level){drawDiagram(ctx,level);$('stage-note').textContent=level.description;$('level-hint').textContent=level.hint??'自由编辑地图和物体，运行查看效果。';$('document-summary').textContent=`${level.entities.length} 个物体 · ${level.rules.length} 条规则 · schemaVersion ${level.schemaVersion}`;}
 function updateDebug(){
   if(!preview)return;
   const state=preview.snapshot();
@@ -18,9 +18,9 @@ function updateDebug(){
   $('runtime-status').dataset.status=state.status;
   $('runtime-tick').textContent='tick '+state.tick+' · '+(state.tick/60).toFixed(2)+' s';
   $('preview-toggle').textContent=state.status==='running'?'Ⅱ 暂停':state.status==='paused'||state.status==='ready'?'▶ 运行':'↻ 再次运行';
-  $('runtime-actor').textContent=`X ${state.actor.x.toFixed(1)}  Y ${state.actor.y.toFixed(1)}\n朝向 ${state.actor.direction===1?'右':'左'} · ${state.actor.mode}\n持有 ${state.actor.holding??'无'}`;
+  $('runtime-actor').textContent=`X ${state.actor.x.toFixed(1)}  Y ${state.actor.y.toFixed(1)}\n朝向 ${state.actor.direction===1?'右':'左'} · ${state.actor.mode}\n持有 ${state.actor.holding??'无'}`+(state.actor.vy!==undefined?'\n下落速度 '+state.actor.vy.toFixed(1)+(state.actor.maxLandingSpeed!==undefined?' · 安全上限 '+state.actor.maxLandingSpeed:''):'');
   const list=$('runtime-entities');list.replaceChildren();
-  for(const e of Object.values(state.entities)){const row=document.createElement('div');row.className='runtime-entity';const name=document.createElement('span');name.textContent=e.label;const value=document.createElement('code');value.textContent=e.state+(e.kind==='lift'?' · Y '+e.carY.toFixed(1):'')+(e.pose?' · '+e.pose.angle.toFixed(1)+'°'+(e.rotation?' · 旋转中':''):'')+(e.bodyState?' · Y '+e.y.toFixed(1)+' · '+e.bodyState.mode+' · 支撑 '+(e.bodyState.support??'无'):'')+(e.collider&&!e.collider.enabled?' · 碰撞停用':'');row.append(name,value);list.append(row);}
+  for(const e of Object.values(state.entities)){const row=document.createElement('div');row.className='runtime-entity';const name=document.createElement('span');name.textContent=e.label;const value=document.createElement('code');value.textContent=e.state+(e.kind==='lift'?' · Y '+e.carY.toFixed(1):'')+(e.pose?' · '+e.pose.angle.toFixed(1)+'°'+(e.rotation?' · 旋转中':''):'')+(e.bodyState?' · Y '+e.y.toFixed(1)+' · '+e.bodyState.mode+' · 支撑 '+(e.bodyState.support??'无'):'')+(e.supportState?' · '+e.supportState.mode+' · 支撑 '+(e.supportState.support??'无'):'')+(e.collider&&!e.collider.enabled?' · 碰撞停用':'');row.append(name,value);list.append(row);}
   $('runtime-timers').textContent=state.timers.length?state.timers.map(t=>`tick ${t.due}（余 ${Math.max(0,t.due-state.tick)} 帧）\n${t.actions.map(a=>a.type+(a.target?' → '+a.target:'')).join(', ')}`).join('\n'):'无';
   const log=$('runtime-log');log.replaceChildren();
   for(const e of state.events.slice().reverse()){const li=document.createElement('li');const time=document.createElement('code');time.textContent=String(e.tick).padStart(4,'0');li.append(time,document.createTextNode(' '+e.message));log.append(li);}
@@ -31,7 +31,7 @@ function runPreview(level,{run=true}={}){
   previewLevel=level;preview=createPreview(level);accumulator=0;
   if(run)preview.start();
   const inputs=$('runtime-inputs');inputs.replaceChildren();
-  for(const e of level.entities.filter(e=>eventTypes(e).includes('click'))){const b=document.createElement('button');b.className='button secondary';b.textContent='点击：'+e.label;b.dataset.source=e.id;b.addEventListener('click',()=>{if(preview.click(e.id)){notify('点击已排队：'+e.label);updateDebug();}});inputs.append(b);}
+  for(const e of level.entities.filter(e=>eventTypes(e).includes('click')&&level.rules.some(r=>r.on.source===e.id&&r.on.type==='click'))){const b=document.createElement('button');b.className='button secondary';b.textContent='点击：'+e.label;b.dataset.source=e.id;b.addEventListener('click',()=>{if(preview.click(e.id)){notify('点击已排队：'+e.label);updateDebug();}});inputs.append(b);}
   if(!inputs.children.length)inputs.textContent='没有点击事件源。';
   drawDiagram(ctx,level,preview.snapshot());updateDebug();
 }
@@ -42,7 +42,7 @@ editor=createEditorUI({play:runPreview,leave:()=>{},pause:()=>preview?.pause(),n
     if(!testing){preview=null;previewLevel=null;accumulator=0;$('runtime-status').textContent='编辑中';delete $('runtime-status').dataset.status;$('runtime-tick').textContent='tick 0';$('preview-toggle').textContent='▶ 运行';}}
 });
 const requestedExample=new URL(location.href).searchParams.get('example');
-const initialExample=['logic','floors','creature','slopes','rotation','bodies'].includes(requestedExample)?requestedExample:'logic';
+const initialExample=['logic','floors','creature','slopes','rotation','bodies','first-level'].includes(requestedExample)?requestedExample:'logic';
 editor.open(createEditorExample(initialExample),'starter:'+initialExample);$('example-select').value=initialExample;
 $('load-example').addEventListener('click',()=>{const name=$('example-select').value;editor.openDocument(createEditorExample(name),'example:'+name+':'+Date.now().toString(36)+'-'+serial++);});
 $('preview-toggle').addEventListener('click',()=>{

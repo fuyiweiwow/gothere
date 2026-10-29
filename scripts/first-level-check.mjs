@@ -16,7 +16,7 @@ async function load(p){await p.locator('#example-select').selectOption('first-le
 async function fill(p,id,value){await p.locator(id).fill(String(value));await p.locator(id).press('Enter');}
 async function play(p,omit){await p.locator('#preview-toggle').click();for(const id of ['cloud','antenna','umbrella','prop','pot'])if(id!==omit)await p.locator('[data-source="'+id+'"]').click();
   await p.clock.runFor(52000);assert.match(await p.locator('#runtime-status').textContent(),omit?/模拟结束/:/已到达终点/);
-  if(!omit)assert.match(await p.locator('#runtime-entities').textContent(),/unsupported/);
+  if(!omit){assert.match(await p.locator('#runtime-entities').textContent(),/30\.0°/);assert.match(await p.locator('#runtime-entities').textContent(),/阳台生物inactive/);}
   await p.locator('#editor-return').click();}
 try{
   page.on('pageerror',e=>errors.push(e.message));await freeze(page);
@@ -37,6 +37,16 @@ try{
   await play(page);for(const id of ['cloud','antenna','umbrella','prop','pot'])await play(page,id);
   assert.deepEqual(await draft(page),initial);
   await page.locator('[data-ref="entity:sill"]').click();await page.screenshot({path:new URL('../artifacts/first-level-editor.png',import.meta.url).pathname.replace(/^\/([A-Z]:)/,'$1'),fullPage:true});
+  await page.locator('#editor-tab-library').click();await page.locator('[data-tool="object"]').click();
+  const map=await page.locator('#editor-overlay').boundingBox();await page.mouse.click(map.x+950/1200*map.width,map.y+420/640*map.height);
+  await page.locator('[data-ref="entity:object-1"]').click();await page.locator('#object-support-probe').check();await page.locator('#object-carried-physics').check();
+  await fill(page,'#object-support-at',0.5);await fill(page,'#object-fall-scale',0.5);
+  await page.getByRole('button',{name:'＋ 新行为',exact:true}).click();
+  await page.locator('.event-slot[data-event="supportlost"]').getByRole('button',{name:'接线',exact:true}).click();
+  await page.getByLabel('连线目标',{exact:true}).selectOption('object-1');await page.locator('#wire-connect').click();
+  const made=await draft(page),madeObject=made.entities.find(e=>e.id==='object-1');
+  assert.deepEqual(madeObject.supportProbe,{at:0.5});assert.deepEqual(madeObject.carriedPhysics,{gravityScale:0.5,maxFallSpeed:90});
+  assert.equal(made.rules.at(-1).on.type,'supportlost');assert.equal(made.rules.at(-1).actions[0].target,'object-1');
   const portable=await buildEditor(),offline=await context.newPage(),requests=[];
   offline.on('pageerror',e=>errors.push(e.message));offline.on('request',r=>{if(/^https?:/.test(r.url()))requests.push(r.url());});
   await freeze(offline);await offline.goto(pathToFileURL(portable.path).href);await load(offline);await play(offline);
