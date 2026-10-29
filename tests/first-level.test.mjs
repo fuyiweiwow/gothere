@@ -86,3 +86,17 @@ test('the full reference graybox exists as editable ordinary objects',()=>{
   const l=createEditorExample('first-level');assert.equal(l.id,'editor-first-level');
   assert.equal(validateLevel(l).valid,true);assert.ok(l.entities.some(e=>e.supportProbe));assert.ok(l.entities.some(e=>e.carriedPhysics));
 });
+
+test('first-level route wins through every real mechanic, replays, resets, and each missing intervention fails',()=>{
+  const level=createEditorExample('first-level'),original=structuredClone(level),inputs=['cloud','antenna','umbrella','prop','pot'];
+  const run=(l,omit)=>{const s=createSimulation(l),kinds=new Set();s.start();for(const id of inputs)if(id!==omit)s.click(id);
+    for(let i=0;i<4500&&s.snapshot().status==='running';i++){s.step();for(const e of s.snapshot().events)kinds.add(e.kind);}
+    return {s,kinds};};
+  const {s,kinds}=run(level);assert.equal(s.snapshot().status,'won',JSON.stringify(s.snapshot()));
+  for(const kind of ['rotated','supportlost','actorlanded','landed','impact'])assert.ok(kinds.has(kind),kind);
+  assert.deepEqual(replayRecording(level,s.recording()).snapshot(),s.snapshot());assert.deepEqual(level,original);
+  s.reset();assert.equal(s.snapshot().actor.direction,-1);assert.equal(s.snapshot().entities.creature.state,'active');
+  for(const omitted of inputs){const result=run(level,omitted).s.snapshot();assert.equal(result.status,'lost','missing '+omitted);}
+  const shifted=structuredClone(level);shifted.entities.find(e=>e.id==='pot').x+=120;
+  assert.equal(run(shifted).s.snapshot().reason,'hurt','a misplaced pot must not silence the creature by script');
+});
