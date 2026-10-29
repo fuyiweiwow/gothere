@@ -264,7 +264,7 @@ export function createSimulation(input) {
         if(!touchesSurfacePath(trace,posedSurface(entity)))continue;
       }else if(movementTrace){
         const heights=[entity.y,...(verticalTransport(entity)||entity.kind==='lift'?[(verticalTransport(entity)??entity).toY]:[]),
-          ...(entity.kind==='lift'?[entity.carY]:[])];
+          ...(entity.kind==='lift'?[entity.carY]:[]),...(entity.collider?.enabled?[entity.y-(entity.height??36)]:[])];
         if(!heights.some(y=>touchesFootPath(movementTrace,contactLeft,contactRight,y)))continue;
       }else if(!sameFloor||right<contactLeft||left>contactRight)continue;
       touching.add(entity.id);
