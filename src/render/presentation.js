@@ -11,8 +11,10 @@ export function presentationFrame(entity,tick=0,animate=true) {
 }
 
 export function presentationBounds(entity) {
-  const b=diagramBounds(entity.kind,entity),extra=entity.presentation?.symbol==='umbrella'?22:8;
-  return {x:b.x-8,y:b.y-extra,width:b.width+16,height:b.height+extra+8};
+  const b=diagramBounds(entity.kind,entity),symbol=entity.presentation?.symbol;
+  const extra=symbol==='umbrella'?36:symbol==='pot'?16:8;
+  const side=symbol==='umbrella'?Math.max(8,26-b.width/2):symbol==='cloud'?Math.max(8,b.width*5/84+2):8;
+  return {x:b.x-side,y:b.y-extra,width:b.width+side*2,height:b.height+extra+8};
 }
 
 export function recoveryTicks(entityId,snapshot) {
