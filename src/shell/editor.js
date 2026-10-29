@@ -40,7 +40,9 @@ editor=createEditorUI({play:runPreview,leave:()=>{},pause:()=>preview?.pause(),n
     $('load-example').disabled=testing;$('example-select').disabled=testing;
     if(!testing){preview=null;previewLevel=null;accumulator=0;$('runtime-status').textContent='编辑中';delete $('runtime-status').dataset.status;$('runtime-tick').textContent='tick 0';$('preview-toggle').textContent='▶ 运行';}}
 });
-editor.open(createEditorExample(),'starter:logic');
+const requestedExample=new URL(location.href).searchParams.get('example');
+const initialExample=['logic','floors','creature','slopes'].includes(requestedExample)?requestedExample:'logic';
+editor.open(createEditorExample(initialExample),'starter:'+initialExample);$('example-select').value=initialExample;
 $('load-example').addEventListener('click',()=>{const name=$('example-select').value;editor.openDocument(createEditorExample(name),'example:'+name+':'+Date.now().toString(36)+'-'+serial++);});
 $('preview-toggle').addEventListener('click',()=>{
   if(editor.isEditing()){editor.preview();return;}

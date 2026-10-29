@@ -23,6 +23,7 @@
     "test:workspace": "node scripts/workspace-check.mjs",
     "test:logic-editor": "node scripts/logic-editor-check.mjs",
     "test:interaction": "node scripts/interaction-check.mjs",
+    "test:surfaces": "node scripts/surfaces-check.mjs",
     "test:windows": "node scripts/windows-check.mjs"
   },
   "devDependencies": {

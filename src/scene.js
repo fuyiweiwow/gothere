@@ -1,4 +1,5 @@
 import { verticalTransport } from './core/transport.js';
+import { surfaceEndY } from './core/surfaces.js';
 
 const C = { ink:'#405c43', grass:'#9bac7b', land:'#a6b48b', dark:'#667f59', cream:'#faf4da', wood:'#b9a077', rust:'#b9846e' };
 const noise = (i) => { const value = Math.sin(i * 127.1 + 311.7) * 43758.5453; return value - Math.floor(value); };
@@ -65,6 +66,7 @@ export function createRenderer(canvas) {
   }
   function platform(p) {
     const x=p.x,w=p.width,y=p.y??440;
+    if(p.yEnd!==undefined){const end=surfaceEndY(p);path(q=>{q.moveTo(x,y);q.lineTo(x+w,end);q.lineTo(x+w,end+12);q.lineTo(x,y+12);q.closePath();},'#b9a077','#7f9368');line(x,y,x+w,end,'#d9d4a8',3);return;}
     if(y!==440){rect(x,y,w,12,4,'#b9a077','#7f9368');line(x,y,x+w,y,'#d9d4a8',3);for(let i=0;i<w/55;i++)line(x+i*55,y+3,x+i*55+12,y+10,'#99835f',1);return;}
     const soil=ctx.createLinearGradient(0,y,0,640);soil.addColorStop(0,'#a0b180');soil.addColorStop(1,'#b7c79c');
     path((q)=>{q.moveTo(x,y+4);q.quadraticCurveTo(x+Math.min(w/2,14),y-4,x+26,y-3);q.lineTo(x+w-20,y-3);q.quadraticCurveTo(x+w,y-5,x+w,y+11);q.lineTo(x+w,640);q.lineTo(x,640);q.closePath();},soil);

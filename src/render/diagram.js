@@ -1,6 +1,7 @@
 import { floorY } from '../core/schema.js';
 import { diagramBounds } from '../core/geometry.js';
 import { verticalTransport, landingX } from '../core/transport.js';
+import { surfaceEndY } from '../core/surfaces.js';
 
 const colors = { actor:'#39c3bd', goal:'#e3b454', switch:'#a6a0f0', object:'#8baad1', zone:'#83998b',
   gate:'#d7ad75', bridge:'#d7ad75', ladder:'#9cacc1', lift:'#9cacc1', plate:'#a6a0f0', hazard:'#d88080' };
@@ -15,7 +16,9 @@ export function drawDiagram(ctx, level, snapshot) {
   ctx.font='11px ui-monospace, Consolas, monospace';ctx.fillStyle='#7c8b9f';
   for(let x=100;x<width;x+=100)ctx.fillText(String(x),x+4,17);
   for(let y=100;y<height;y+=100)ctx.fillText(String(y),6,y-5);
-  for(const p of level.platforms){const b=diagramBounds('platform',p);ctx.fillStyle='#596779';ctx.fillRect(b.x,b.y,b.width,b.height);}
+  for(const p of level.platforms){const y=floorY(p),end=surfaceEndY(p);ctx.fillStyle='#596779';ctx.beginPath();
+    ctx.moveTo(p.x,y+2);ctx.lineTo(p.x+p.width,end+2);ctx.lineTo(p.x+p.width,end+14);ctx.lineTo(p.x,y+14);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#9eafc3';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(p.x,y);ctx.lineTo(p.x+p.width,end);ctx.stroke();}
   const entities = snapshot ? Object.values(snapshot.entities) : level.entities;
   for(const e of entities){
     const b=diagramBounds(e.kind,e), inactive=['inactive','disabled','stopped','folded','open'].includes(e.state);

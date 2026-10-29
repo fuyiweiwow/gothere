@@ -133,6 +133,7 @@ test('a closed gate on a slope catches the swept foot path even between tick hei
 test('height channels connect to sampled incline heights rather than the road left endpoint',()=>{
   const level=fixture(),channel={id:'channel',kind:'object',x:310,y:520,width:60,state:'active',label:'通道',
     transport:{type:'vertical',toY:320,speed:90}};
+  level.platforms[3]={x:0,width:1200,y:520};
   level.entities.push(channel);assert.equal(landingX(level,channel,320),320);
   assert.equal(validateLevel(level).valid,true);
   channel.transport.toY=330;snapTransport(level,channel,['upper']);assert.equal(channel.transport.toY,240+140*160/240);

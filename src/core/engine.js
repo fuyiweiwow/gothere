@@ -253,7 +253,8 @@ export function createSimulation(input) {
       }
     }else if (walked && !supported(Math.min(from,to),Math.max(from,to))) { lose('fall', '脚下的路临时请假了。试试先把桥放下来。'); return; }
     for (const entity of Object.values(state.entities)) {
-      if (entity.y!==a.y || Math.max(from,to) + 10 < entity.x || Math.min(from,to) - 10 > entity.x + entity.width) continue;
+      if(movementTrace){if(!touchesFootPath(movementTrace,entity.x-10,entity.x+entity.width+10,entity.y))continue;}
+      else if (entity.y!==a.y || Math.max(from,to) + 10 < entity.x || Math.min(from,to) - 10 > entity.x + entity.width) continue;
       if (entity.kind === 'gate' && entity.state === 'closed') {
         lose('gate', '门：此路暂时不通。先找个办法打开它。'); return;
       }

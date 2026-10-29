@@ -1,5 +1,5 @@
 import { STATES, validateLevel, floorY } from '../core/schema.js';
-import { verticalTransport } from '../core/transport.js';
+import { verticalTransport, landingHeights } from '../core/transport.js';
 import { diagramBounds } from '../core/geometry.js';
 import { surfaceEndY } from '../core/surfaces.js';
 
@@ -139,7 +139,7 @@ const channelConfig=e=>verticalTransport(e)??(e.kind==='lift'?e:null);
 /** Snap authored endpoints to nearby overlapping roads, never invent a landing at runtime. */
 export function snapTransport(level, entity, ends=['lower','upper']) {
   const t=channelConfig(entity);if(!t)return;
-  const rows=level.platforms.filter(p=>p.x<=entity.x+(entity.width??28)&&p.x+p.width>=entity.x).map(floorY);
+  const rows=landingHeights(level,entity);
   const nearest=(value,valid)=>rows.filter(y=>Math.abs(y-value)<=24&&valid(y)).sort((a,b)=>Math.abs(a-value)-Math.abs(b-value)||a-b)[0];
   if(ends.includes('lower')){const y=nearest(floorY(entity),y=>y>=t.toY+40);if(y!==undefined)entity.y=y;}
   if(ends.includes('upper')){const y=nearest(t.toY,y=>y<=floorY(entity)-40);if(y!==undefined)t.toY=y;}
@@ -151,9 +151,9 @@ export function addHeightTransport(level,x,y=440) {
   delete e.appearance;e.width=60;e.x=clamp(x,25,1140);e.label='高度通道'+e.id.slice(7);
   e.transport={type:'vertical',toY:Math.max(160,floorY(e)-180),speed:90};
   snapTransport(level,e,['lower']);
-  const rows=level.platforms.filter(p=>p.x<=e.x+e.width&&p.x+p.width>=e.x&&floorY(p)<=floorY(e)-40);
-  rows.sort((a,b)=>Math.abs(floorY(a)-e.transport.toY)-Math.abs(floorY(b)-e.transport.toY));
-  if(rows.length)e.transport.toY=floorY(rows[0]);
+  const rows=landingHeights(level,e).filter(y=>y<=floorY(e)-40);
+  rows.sort((a,b)=>Math.abs(a-e.transport.toY)-Math.abs(b-e.transport.toY));
+  if(rows.length)e.transport.toY=rows[0];
   return ref;
 }
 

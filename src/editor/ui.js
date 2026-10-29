@@ -5,6 +5,7 @@ import { CATALOG, CATEGORIES, filterCatalog } from './catalog.js';
 import { snapPoint, setWirePoints, routeWire, nearestInsertion } from './routing.js';
 import { diagramBounds } from '../core/geometry.js';
 import { verticalTransport, landingX } from '../core/transport.js';
+import { surfaceEndY } from '../core/surfaces.js';
 import { EDITOR_SHORTCUTS, shortcutCommand, nudgeDelta } from './shortcuts.js';
 
 const $ = id => document.getElementById(id);
@@ -259,6 +260,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
       const el=button(name,()=>{},'edit-object '+kind);el.draggable=false;el.dataset.ref=refKey(ref);el.setAttribute('aria-label','选择：'+name);
       el.setAttribute('aria-pressed',String(Boolean(selection && refKey(selection)===refKey(ref))));
       el.style.left=bounds.x/12+'%';el.style.top=bounds.y/6.4+'%';el.style.width=bounds.width/12+'%';el.style.height=bounds.height/6.4+'%';
+      shapeSurfaceHit(el,kind,p);
       const label=element('span',name);el.replaceChildren(label);
       el.addEventListener('pointerdown',event=>{
         if(tool==='select'||(diagram&&tool!=='wire'&&ref.type!=='platform'))beginDrag(event,ref);
@@ -269,13 +271,19 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     }
     renderResizeHandles(d);
   }
+  function shapeSurfaceHit(el,kind,p) {
+    if(kind!=='platform'||p.yEnd===undefined)return;
+    const b=diagramBounds(kind,p),left=(floorY(p)+2-b.y)/b.height*100,right=(surfaceEndY(p)+2-b.y)/b.height*100,thickness=12/b.height*100;
+    el.style.clipPath=`polygon(0 ${left}%,100% ${right}%,100% ${right+thickness}%,0 ${left+thickness}%)`;
+  }
   function positionResizeHandles(d) {
     const e=resolveObject(d,selection);if(!e)return;
     const b=diagramBounds(e.kind??selection.type,e);
     for(const el of $('editor-overlay').querySelectorAll('[data-resize]')){
       const h=el.dataset.resize;
       el.style.left=(b.x+(h.includes('w')?0:h.includes('e')?b.width:b.width/2))/12+'%';
-      el.style.top=(b.y+(h.includes('n')?0:h.includes('s')?b.height:b.height/2))/6.4+'%';
+      const y=selection.type==='platform'?(h==='w'?floorY(e):surfaceEndY(e))+8:b.y+(h.includes('n')?0:h.includes('s')?b.height:b.height/2);
+      el.style.top=y/6.4+'%';
     }
   }
   function renderResizeHandles(d) {
@@ -283,7 +291,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     if(!selection||!['entity','platform'].includes(selection.type))return;
     const names={n:'上',ne:'右上',e:'右',se:'右下',s:'下',sw:'左下',w:'左',nw:'左上'};
     for(const h of selection.type==='platform'?['w','e']:Object.keys(names)){
-      const el=button('',()=>{},'resize-handle');el.dataset.resize=h;el.setAttribute('aria-label','调整'+names[h]+'边尺寸');
+      const el=button('',()=>{},'resize-handle');el.dataset.resize=h;el.setAttribute('aria-label','调整'+names[h]+(selection.type==='platform'?'端点':'边尺寸'));
       el.addEventListener('click',event=>event.stopPropagation());
       el.addEventListener('pointerdown',event=>{
         if(tool==='select')beginDrag(event,selection,h);
@@ -303,6 +311,12 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
       fields.append(field(label,input(d[key]??'',label,value=>edit(doc=>{if(value||key!=='hint')doc[key]=value;else delete doc.hint;}),{id:'edit-'+key,maxLength:max})));
     }
     fields.append(field('行走速度（单位 / 秒）',input(d.actor.speed,'行走速度',value=>edit(doc=>{doc.actor.speed=value;}),{id:'edit-speed',type:'number',min:15,max:180,step:1})));
+    const physics=element('input');physics.type='checkbox';physics.id='edit-physics';physics.checked=Boolean(d.world.physics);physics.setAttribute('aria-label','重力与落地');
+    physics.addEventListener('change',()=>edit(doc=>{if(physics.checked)doc.world.physics={gravity:900,maxFallSpeed:480};else delete doc.world.physics;}));
+    fields.append(field('重力与落地',physics));
+    if(d.world.physics){
+      for(const [key,label,min,max] of [['gravity','重力加速度',60,3600],['maxFallSpeed','最大下落速度',60,1800]])fields.append(field(label,input(d.world.physics[key],label,value=>edit(doc=>{doc.world.physics[key]=value;}),{id:key==='gravity'?'edit-gravity':'edit-fall-speed',type:'number',min,max,step:1})));
+    }
     const target=resolveObject(d,selection), box=$('object-fields');box.replaceChildren();
     $('object-title').textContent=target ? (target.label??KIND_NAMES[selection.type]) : '未选中物体';
     if(!target){box.append(element('p','在地图或仓库的场景列表中选择物体。','empty-state'));return;}
@@ -313,7 +327,14 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     const geometry={platform:[0,1199],actor:[20,1150],goal:[40,1180],entity:[25,1175]}[selection.type];
     box.append(field('位置 X',input(target.x,'位置 X',value=>update('x',value),{id:'object-x',type:'number',min:geometry[0],max:geometry[1],step:1})));
     if(['platform','entity'].includes(selection.type)) box.append(field('宽度',input(target.width??28,'宽度',value=>update('width',value),{id:'object-width',type:'number',min:selection.type==='platform'?1:8,max:selection.type==='platform'?1200:600,step:1})));
-    if(['platform','entity','actor','goal'].includes(selection.type))box.append(field('脚底高度 Y',input(floorY(target),'脚底高度 Y',value=>update('y',value===440?undefined:value),{id:'object-y',type:'number',min:160,max:560,step:10})));
+    if(['platform','entity','actor','goal'].includes(selection.type))box.append(field(selection.type==='platform'&&target.yEnd!==undefined?'左端高度 Y':'脚底高度 Y',input(floorY(target),'脚底高度 Y',value=>update('y',value===440?undefined:value),{id:'object-y',type:'number',min:160,max:560,step:1})));
+    if(selection.type==='platform'){
+      const slope=element('input');slope.type='checkbox';slope.id='object-slope';slope.checked=target.yEnd!==undefined;slope.setAttribute('aria-label','斜面');
+      slope.addEventListener('change',()=>edit(doc=>{const p=resolveObject(doc,selection);if(slope.checked){p.yEnd=Math.min(560,floorY(p)+80);doc.world.physics??={gravity:900,maxFallSpeed:480};}else delete p.yEnd;}));
+      box.append(field('斜面',slope));
+      if(target.yEnd!==undefined){box.append(field('右端高度 Y',input(target.yEnd,'右端高度 Y',value=>update('yEnd',value),{id:'object-y-end',type:'number',min:160,max:560,step:1})));
+        box.append(element('p','拖动左右端点改变长度与坡度；拖动路面整体移动。','panel-note'));}
+    }
     if(diagram&&selection.type==='entity'&&!verticalTransport(target)&&target.kind!=='lift')box.append(field('高度',input(diagramBounds(target.kind,target).height,'高度',value=>update('height',value),{id:'object-height',type:'number',min:8,max:240,step:1})));
     if(selection.type==='actor') {
       const direction=select([['1','向右'],['-1','向左']],String(target.direction??1),'起始朝向',value=>update('direction',Number(value)));
@@ -497,7 +518,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     drag.dx=Math.round((event.clientX-drag.start)/box.width*1200/10)*10;
     drag.dy=diagram||drag.handle?Math.round((event.clientY-drag.startY)/box.height*640/10)*10:0;
     const d=structuredClone(drag.before);applyDrag(d,drag);const target=resolveObject(d,drag.ref),el=$('editor-overlay').querySelector('[data-ref="'+refKey(drag.ref)+'"]');
-    const b=diagramBounds(target.kind??drag.ref.type,target);el.style.left=b.x/12+'%';el.style.top=b.y/6.4+'%';el.style.width=b.width/12+'%';el.style.height=b.height/6.4+'%';positionResizeHandles(d);onChange(d);renderWires(d);
+    const b=diagramBounds(target.kind??drag.ref.type,target);el.style.left=b.x/12+'%';el.style.top=b.y/6.4+'%';el.style.width=b.width/12+'%';el.style.height=b.height/6.4+'%';shapeSurfaceHit(el,drag.ref.type,target);positionResizeHandles(d);onChange(d);renderWires(d);
   });
   function applyDrag(doc,gesture){
     if(gesture.handle)resizeObject(doc,gesture.ref,gesture.handle,gesture.dx,gesture.dy);
