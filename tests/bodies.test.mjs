@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createSimulation, replayRecording, validateLevel } from '../src/core/engine.js';
 import { createBlankLevel, createEditorStore, deleteObject, copyObject, pasteObject } from '../src/editor/model.js';
+import { createEditorExample } from '../src/editor/starter.js';
 
 const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-7,`${a} != ${b}`);
 const fixture=()=>({...createBlankLevel('body-test'),
@@ -111,4 +112,10 @@ test('falling onto another dynamic body produces the same stack in either declar
     results.push(s.events.map(e=>[e.kind,e.source,e.other,e.tick]));
   }
   assert.deepEqual(results[0],results[1]);
+});
+
+test('the falling object example uses ordinary capability and behavior data to pass its creature',()=>{
+  const level=createEditorExample('bodies');assert.equal(level.id,'editor-bodies');const sim=createSimulation(level);
+  sim.start();sim.click('release');sim.step(3000);assert.equal(sim.snapshot().status,'won');
+  const fail=createSimulation(level);fail.start().step(3000);assert.equal(fail.snapshot().reason,'hurt');
 });
