@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createSimulation, replayRecording, validateLevel } from '../src/core/engine.js';
-import { createBlankLevel, createEditorStore, moveObject, resizeObject } from '../src/editor/model.js';
+import { createBlankLevel, createEditorStore, moveObject, resizeObject, copyObject, pasteObject, snapTransport } from '../src/editor/model.js';
 import { createEditorExample } from '../src/editor/starter.js';
+import { landingX } from '../src/core/transport.js';
 
 const fixture = () => ({ ...createBlankLevel('surface-test'),
   world:{width:1200,height:640,groundY:440,physics:{gravity:900,maxFallSpeed:480}},
@@ -119,7 +120,23 @@ test('slope endpoints resize independently, move as a pair, survive clipboard/hi
   assert.equal(p.y,340);assert.equal(p.yEnd,560);assert.equal(p.x,190);
   store.undo();assert.equal(store.document().platforms[1].y,220);store.redo();
   assert.deepEqual(createEditorStore(store.serialize()).document(),store.document());
+  const copied=store.document(),pasted=pasteObject(copied,copyObject(copied,ref));
+  assert.equal(copied.platforms[pasted.index].yEnd,560);
   assert.throws(()=>store.change(d=>{d.platforms[1].yEnd=NaN;}));
+});
+
+test('a closed gate on a slope catches the swept foot path even between tick heights',()=>{
+  const level=fixture();level.entities=[{id:'door',kind:'gate',x:321,y:240+121*160/240,width:20,state:'closed',label:'坡上门'}];
+  const sim=createSimulation(level);sim.start().step(1000);assert.equal(sim.snapshot().reason,'gate');
+});
+
+test('height channels connect to sampled incline heights rather than the road left endpoint',()=>{
+  const level=fixture(),channel={id:'channel',kind:'object',x:310,y:520,width:60,state:'active',label:'通道',
+    transport:{type:'vertical',toY:320,speed:90}};
+  level.entities.push(channel);assert.equal(landingX(level,channel,320),320);
+  assert.equal(validateLevel(level).valid,true);
+  channel.transport.toY=330;snapTransport(level,channel,['upper']);assert.equal(channel.transport.toY,240+140*160/240);
+  assert.equal(landingX(level,channel,channel.transport.toY),340);
 });
 
 test('new editor example exposes a complete art-free slope and falling route',()=>{
