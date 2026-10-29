@@ -45,6 +45,13 @@ try{
   const h=await page.locator('[data-resize="ne"]').boundingBox();await page.mouse.move(h.x+h.width/2,h.y+h.height/2);await page.mouse.down();
   await page.mouse.move(h.x+h.width/2+20/1200*map.width,h.y+h.height/2-20/640*map.height,{steps:6});await page.mouse.up();
   e=(await draft(page)).entities.find(e=>e.id==='object-1');assert.equal(e.width,68);assert.equal(e.height,68);
+  await page.locator('.event-slot[data-event="landed"]').getByRole('button',{name:'接线',exact:true}).click();
+  await page.getByLabel('连线目标',{exact:true}).selectOption('creature');await page.locator('#wire-connect').click();
+  const created=(await draft(page)).rules.at(-1);assert.deepEqual(created.on,{source:'object-1',type:'landed'});assert.equal(created.actions[0].target,'creature');
+  await page.locator('#editor-tab-object').click();await page.locator('#object-body').uncheck();
+  assert.equal((await draft(page)).entities.find(e=>e.id==='object-1').body.type,'dynamic','referenced capability cannot silently disappear');
+  await page.locator('#editor-tab-logic').click();await page.locator('.rule-card').last().getByRole('button',{name:'删除规则',exact:true}).click();
+  await page.locator('#editor-tab-object').click();
   await page.locator('#object-collider-enabled').uncheck();assert.equal((await draft(page)).entities.find(e=>e.id==='object-1').collider.enabled,false);
   await page.locator('#editor-undo').click();await page.locator('#object-body').uncheck();await page.locator('#object-collider').uncheck();
   e=(await draft(page)).entities.find(e=>e.id==='object-1');assert.equal(e.body,undefined);assert.equal(e.collider,undefined);
