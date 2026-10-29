@@ -233,6 +233,7 @@ export function createSimulation(input) {
     pending = [];
     if (state.status !== 'running') return;
     updateMotion();
+    if(state.status!=='running')return;
     movementTrace=null;reachedPhysicsGoal=false;
     const [from,to,walked]=moveActor(), a=state.actor;
     if(state.status!=='running')return;
