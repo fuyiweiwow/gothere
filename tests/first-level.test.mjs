@@ -113,8 +113,8 @@ test('the full reference graybox exists as editable ordinary objects',()=>{
 
 test('first-level route wins through every real mechanic, replays, resets, and each missing intervention fails',()=>{
   const level=createEditorExample('first-level'),original=structuredClone(level),inputs=['cloud','antenna','umbrella','prop','pot'];
-  const run=(l,omit)=>{const s=createSimulation(l),kinds=new Set();s.start();for(const id of inputs)if(id!==omit)s.click(id);
-    for(let i=0;i<4500&&s.snapshot().status==='running';i++){s.step();for(const e of s.snapshot().events)kinds.add(e.kind);}
+  const run=(l,omit)=>{const s=createSimulation(l),kinds=new Set(),schedule={540:'cloud',750:'antenna',1050:'umbrella',1250:'prop',1650:'pot'};s.start();
+    for(let i=0;i<4500&&s.snapshot().status==='running';i++){if(schedule[i]!==omit&&schedule[i])s.click(schedule[i]);s.step();for(const e of s.snapshot().events)kinds.add(e.kind);}
     return {s,kinds};};
   const {s,kinds}=run(level);assert.equal(s.snapshot().status,'won',JSON.stringify(s.snapshot()));
   for(const kind of ['rotated','supportlost','actorlanded','landed','impact'])assert.ok(kinds.has(kind),kind);
@@ -123,4 +123,18 @@ test('first-level route wins through every real mechanic, replays, resets, and e
   for(const omitted of inputs){const result=run(level,omitted).s.snapshot();assert.equal(result.status,'lost','missing '+omitted);}
   const shifted=structuredClone(level);shifted.entities.find(e=>e.id==='pot').x+=120;
   assert.equal(run(shifted).s.snapshot().reason,'hurt','a misplaced pot must not silence the creature by script');
+});
+
+test('early activations restore, late interventions miss, and edited lifetimes change the playable window',()=>{
+  const level=createEditorExample('first-level'),normal={cloud:540,antenna:750,umbrella:1050,prop:1250,pot:1650};
+  const run=times=>{const s=createSimulation(level);s.start();for(let t=0;t<3000&&s.snapshot().status==='running';t++){for(const [id,when] of Object.entries(times))if(t===when)s.click(id);s.step();}return s;};
+  for(const id of ['cloud','antenna','umbrella','pot'])assert.equal(run({...normal,[id]:0}).snapshot().status,'lost','too early: '+id);
+  for(const [id,late] of [['cloud',750],['antenna',1000],['umbrella',1300],['prop',2000],['pot',2100]])assert.equal(run({...normal,[id]:late}).snapshot().status,'lost','too late: '+id);
+  const s=createSimulation(level);s.start();s.click('cloud');s.click('antenna');s.click('umbrella');s.step(500);
+  assert.equal(s.snapshot().entities.cloud.state,'inactive');assert.equal(s.snapshot().entities.cloud.surface.enabled,false);
+  assert.equal(s.snapshot().entities.antenna.pose.angle,0);assert.equal(s.snapshot().entities.umbrella.state,'inactive');
+  s.reset().start();s.click('cloud');s.step(200);s.click('cloud');s.step(101);
+  assert.equal(s.snapshot().entities.cloud.state,'inactive','repeated clicks cannot stack the active lifetime');
+  const cloud=level.entities.find(e=>e.id==='cloud');cloud.behaviors[0].actions.find(a=>a.type==='after').ticks=1200;
+  assert.equal(run({...normal,cloud:0}).snapshot().status,'won','the time window is authored data');
 });
