@@ -132,7 +132,7 @@ function frame(now){
     sound.setPaused(status==='paused'||status==='ready'||document.hidden);
     if(preview.snapshot().status==='running'){accumulator+=elapsed;const steps=Math.floor(accumulator/(1000/60));if(steps){preview.advance(steps);accumulator-=steps*1000/60;}}
     else accumulator=0;
-    if(['lost','won'].includes(status)&&!document.hidden)endingTicks=Math.min(360,endingTicks+elapsed*60/1000);
+    if(['lost','won'].includes(status)&&!document.hidden)endingTicks=Math.min(960,endingTicks+elapsed*60/1000);
     draw(previewLevel,preview.snapshot());
     if(now-debugLast>=100){updateDebug();debugLast=now;}
   }else if(audition){

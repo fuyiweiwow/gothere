@@ -5,22 +5,23 @@ const hash=text=>{let n=2166136261;for(const c of text)n=Math.imul(n^c.charCodeA
 
 export function motionAt(preset,phase,strength=1) {
   const p=clamp(phase,0,1),m=neutral(),wave=Math.sin(p*Math.PI),decay=1-p;
+  if(strength===0)return m;
   if(preset==='squash'){m.scaleX+=wave*.2*strength;m.scaleY-=wave*.18*strength;}
   if(preset==='shake'){m.dx=Math.sin(p*38)*decay*.08*strength;m.rotation=Math.sin(p*31)*decay*5*strength;}
   if(preset==='hop')m.dy=-wave*.35*strength;
   if(preset==='recoil'){m.rotation=-wave*12*strength;m.dx=-wave*.1*strength;}
   if(preset==='sway')m.rotation=Math.sin(p*Math.PI*2)*4*strength;
   if(preset==='pulse')m.scaleX=m.scaleY=1+wave*.08*strength;
-  if(preset==='fade')m.opacity=1-p;
-  if(preset==='fall'){const ease=1-(1-p)**3;m.rotation=85*ease;m.dy=.12*ease;m.opacity=1-Math.max(0,(p-.65)/.35)*.65;}
+  if(preset==='fade')m.opacity=clamp(1-p*strength,0,1);
+  if(preset==='fall'){const ease=(1-(1-p)**3)*strength;m.rotation=85*ease;m.dy=.12*ease;m.opacity=clamp(1-Math.max(0,(p-.65)/.35)*.65*strength,0,1);}
   return m;
 }
 
 /** Samples independent presentation instances; never advances or mutates the simulation. */
 export function createFeedbackPlayer(level,{onSound=()=>{}}={}) {
-  let instances=[],seen=0,lastTick=-1,lastTime=-1,previewSerial=0;
+  let instances=[],seen=0,lastTick=-1,lastTime=-1,previewSerial=0,terminalEnd=null;
   const slots=level.scene?.feedback??[];
-  const reset=()=>{instances=[];seen=0;lastTick=-1;lastTime=-1;};
+  const reset=()=>{instances=[];seen=0;lastTick=-1;lastTime=-1;terminalEnd=null;};
   const add=(f,signal)=>{
     if(f.policy==='restart')instances=instances.filter(i=>i.slot.id!==f.id);
     if(instances.length>=256)instances.shift();
@@ -31,7 +32,10 @@ export function createFeedbackPlayer(level,{onSound=()=>{}}={}) {
   function sample(snapshot,{endingTicks=0,enabled=true,audible=true}={}) {
     if(snapshot.tick<lastTick)reset();lastTick=snapshot.tick;
     for(const signal of snapshot.signals??[])if(signal.sequence>seen){for(const f of slots)if(matches(f.trigger,signal))add(f,signal);seen=signal.sequence;}
-    const terminal=['lost','won'].includes(snapshot.status),time=snapshot.tick+(terminal?clamp(endingTicks,0,360):0),motions={},particles=[];
+    const terminal=['lost','won'].includes(snapshot.status);
+    if(terminal)terminalEnd??=Math.min(snapshot.tick+960,Math.max(snapshot.tick,...instances.filter(i=>!i.slot.loop).map(i=>i.start+i.slot.duration)));
+    else terminalEnd=null;
+    const time=snapshot.tick+(terminal?clamp(endingTicks,0,terminalEnd-snapshot.tick):0),motions={},particles=[];
     let active=0,tailFinished=true;
     for(const i of instances){
       const f=i.slot,raw=time-i.start;if(raw<0){active++;if(terminal&&!f.loop)tailFinished=false;continue;}

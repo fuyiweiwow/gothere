@@ -32,9 +32,11 @@ export function validateFeedback(level) {
     check(object(f.anchor)&&number(f.anchor.x,0,1)&&number(f.anchor.y,0,1)&&typeof f.color==='string'&&/^#[a-f0-9]{6}$/i.test(f.color),'反馈挂点或颜色无效。');
     const t=f.trigger,e=level.entities?.find(e=>e.id===t?.source);
     check(object(t)&&['start','behavior','state','event','lost','won'].includes(t.type),'反馈触发类型无效。');
+    if(['start','lost','won'].includes(t?.type)&&t.source!==undefined)check(t.source===(t.type==='start'?'scene':'actor'),'反馈生命周期来源无效：'+f.id);
     if(t?.type==='behavior')check(Boolean(e?.behaviors?.some(b=>b.id===t.behavior)),'反馈引用的行为不存在：'+f.id);
     if(t?.type==='state')check(Boolean(e)&&id(t.state),'反馈状态来源无效：'+f.id);
     if(t?.type==='event')check(Boolean(e)&&['click','contact','enter','board','arrive','rotated','supportlost','supportfound','landed','impact','actorlanded','done'].includes(t.event),'反馈事件来源无效：'+f.id);
+    if(t?.type==='event'&&t.behavior!==undefined)check(t.event==='done'&&Boolean(e?.behaviors?.some(b=>b.id===t.behavior)),'反馈完成事件的行为不存在：'+f.id);
     if(t?.reason!==undefined)check(typeof t.reason==='string'&&t.reason.length<=64,'反馈失败原因无效。');
   }
   return errors;
@@ -45,5 +47,5 @@ export function pruneFeedback(level) {
   if(!level.scene?.feedback)return;
   const nodes=new Set(level.scene.nodes.map(n=>n.id)),entities=new Map(level.entities.map(e=>[e.id,e]));
   level.scene.feedback=level.scene.feedback.filter(f=>nodes.has(f.target)&&(!['behavior','state','event'].includes(f.trigger.type)||
-    entities.has(f.trigger.source)&&(f.trigger.type!=='behavior'||entities.get(f.trigger.source).behaviors?.some(b=>b.id===f.trigger.behavior))));
+    entities.has(f.trigger.source)&&(!f.trigger.behavior||entities.get(f.trigger.source).behaviors?.some(b=>b.id===f.trigger.behavior))));
 }
