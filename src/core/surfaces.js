@@ -26,6 +26,8 @@ export function collectSurfaces(level, entities, held = null) {
     ...Object.values(entities).filter(e => e.kind === 'lift')
       .map(e => ({ x:e.x, width:e.width, y:e.carY, id:e.id })),
     ...Object.values(entities).filter(e => e.surface?.enabled && e.id !== held).map(e=>posedSurface(e)),
+    ...Object.values(entities).filter(e => e.collider?.enabled && e.id !== held)
+      .map(e=>({id:e.id,x:e.x,width:e.width??28,y:(e.y??440)-(e.height??36)})),
   ];
 }
 

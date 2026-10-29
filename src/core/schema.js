@@ -12,7 +12,8 @@ export const floorY = (value) => value?.y ?? 440;
 export const eventTypes = (source) => {const kind=typeof source==='string'?source:source?.kind;return [...(kind==='object'?['contact','click']:['switch','hazard'].includes(kind)?['click']:[]),
   ...(kind==='plate'||kind==='zone'?['enter']:[]), ...(['zone','object'].includes(kind)?[]:['contact']),
   ...(kind==='lift'?['board','arrive']:[]), ...(kind==='ladder'||(kind==='object'&&verticalTransport(source))?['arrive']:[]),
-  ...(typeof source==='object'&&source?.pose?['rotated']:[]), 'done'];};
+  ...(typeof source==='object'&&source?.pose?['rotated']:[]),
+  ...(source?.body?['supportlost','landed']:[]),...(source?.collider||source?.surface?['impact']:[]), 'done'];};
 const object = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 const number = (value, min, max) => Number.isFinite(value) && value >= min && value <= max;
 const text = (value, max) => typeof value === 'string' && value.length > 0 && value.length <= max;
@@ -63,6 +64,15 @@ export function validateLevel(input) {
       check(text(entity.label, 30), '实体需要 1～30 字的 label：' + String(entity.id));
       check(entity.y===undefined || number(entity.y,160,560), '实体 y 必须为 160～560：' + String(entity.id));
       check(entity.height===undefined||number(entity.height,8,240),'实体 height 必须为 8～240：'+entity.id);
+      if(entity.collider!==undefined){
+        check(entity.kind==='object'&&object(entity.collider)&&typeof entity.collider.enabled==='boolean','矩形碰撞体需要 collider.enabled 布尔值：'+entity.id);
+        check(entity.pose===undefined&&entity.transport===undefined,'矩形碰撞体暂不与姿态或高度通道组合：'+entity.id);
+        check(Boolean(world?.physics),'矩形碰撞体需要启用重力模式。');
+      }
+      if(entity.body!==undefined){
+        check(entity.kind==='object'&&object(entity.body)&&entity.body.type==='dynamic'&&object(entity.collider),'动态物体需要 body.type=dynamic 和矩形碰撞体：'+entity.id);
+        check(entity.motion===undefined,'动态物体暂不支持左右巡逻：'+entity.id);
+      }
       if(entity.pose!==undefined){
         check(entity.kind==='object'&&object(entity.pose)&&number(entity.pose.angle,-75,75)&&number(entity.pose.pivot,0,1),
           'pose 需要 angle（-75～75 度）和 pivot（0～1 的支点位置）：'+entity.id);
@@ -162,6 +172,9 @@ export function validateLevel(input) {
         check(number(action.angle,-75,75)&&Number.isInteger(action.ticks)&&number(action.ticks,1,3600),
           'rotate 需要 angle（-75～75 度）和 ticks（1～3600 整数）。');
         check(!entity||poseInBounds(entity,action.angle),'rotate 的目标端点超出地图高度范围：'+String(action.target));
+      } else if (action.type === 'enable') {
+        check(['collider','surface'].includes(action.capability)&&object(byId.get(action.target)?.[action.capability])&&typeof action.enabled==='boolean',
+          'enable 需要已定义的 collider/surface 能力和 enabled 布尔值。');
       } else errors.push('未知动作类型：' + String(action.type));
     }
   };
@@ -172,6 +185,7 @@ export function validateLevel(input) {
       const source = object(rule.on) ? byId.get(rule.on.source) : null;
       check(Boolean(source && eventTypes(source).includes(rule.on.type)), 'rules[' + index + '] 的事件源或事件类型无效。');
       if(rule.on?.type==='done')check(Array.isArray(source?.behaviors) && source.behaviors.some(b=>b?.id===rule.on.behavior),'done 需要指定已定义的行为。');
+      if(rule.on?.other!==undefined)check(rule.on.type==='impact'&&Boolean(byId.get(rule.on.other)?.body),'impact.other 需要引用动态物体。');
       if (rule.if !== undefined) conditionsValid(rule.if, 'rules[' + index + ']');
       actionsValid(rule.actions);
     });

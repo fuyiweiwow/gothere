@@ -2,6 +2,7 @@ import { validateLevel, floorY, eventTypes } from './schema.js';
 import { verticalTransport, transportEnabled, landingX } from './transport.js';
 import { collectSurfaces, advanceWalker, touchesFootPath, touchesSurfacePath, surfaceHeight, supportAt } from './surfaces.js';
 import { posePoint, posedSurface } from './pose.js';
+import { initializeBodies, advanceBodies } from './bodies.js';
 export { validateLevel } from './schema.js';
 export const TICKS_PER_SECOND = 60;
 const clone = (value) => structuredClone(value);
@@ -16,8 +17,8 @@ export function createSimulation(input) {
   for(const rule of level.rules)stripLayout(rule.actions);
   for(const entity of level.entities)for(const behavior of entity.behaviors??[])stripLayout(behavior.actions);
   let state, pending, inputs, serial, actionBudget, contacts, connectorLock, invokeDepth, movementTrace, reachedPhysicsGoal;
-  const emit = (message, kind = 'action') => {
-    state.events.push({ tick: state.tick, message, kind });
+  const emit = (message, kind = 'action', detail = {}) => {
+    state.events.push({ tick: state.tick, message, kind, ...detail });
     if (state.events.length > 24) state.events.shift();
   };
   const reset = () => {
@@ -29,6 +30,7 @@ export function createSimulation(input) {
         ...(e.kind==='lift'?{carY:e.state==='upper'?e.toY:floorY(e)}:{}), ...(e.motion?{motionDirection:1}:{}) }])),
       events: [], clicks: 0, timers: [] };
     pending = []; inputs = []; serial = 0; contacts=new Set();connectorLock=null;invokeDepth=0;
+    initializeBodies(level,state.entities);
     return api;
   };
   const actions = (list, invocation=null) => {
@@ -69,6 +71,9 @@ export function createSimulation(input) {
       } else if (action.type==='rotate') {
         const e=state.entities[action.target];
         e.rotation={from:e.pose.angle,to:action.angle,ticks:action.ticks,elapsed:0};
+      } else if (action.type==='enable') {
+        const e=state.entities[action.target];e[action.capability].enabled=action.enabled;
+        emit(e.label+' · '+(action.capability==='collider'?'碰撞':'承托')+(action.enabled?'启用':'停用'));
       } else if (action.type==='after') {
         if(invocation)invocation.remaining++;
         state.timers.push({ due: state.tick + action.ticks, order: serial++, actions: clone(action.actions), ...(invocation?{invocation}:{}) });
@@ -85,11 +90,12 @@ export function createSimulation(input) {
     actions(list,invocation);
     complete(invocation);
   };
-  const trigger = (type, source, behavior) => {
+  const trigger = (type, source, behavior, other) => {
     // Each rule observes the results of earlier rules in declaration order.
     for (const rule of level.rules) {
       if (state.status !== 'running') return;
       if (rule.on.type === type && rule.on.source === source && (type!=='done'||rule.on.behavior===behavior) &&
+        (rule.on.other===undefined||rule.on.other===other) &&
         (rule.if ?? []).every((condition) => Object.hasOwn(condition,'holding') ? state.actor.holding===condition.holding :
           state.entities[condition.entity].state === condition.state)) {
         actions(rule.actions);
@@ -116,9 +122,10 @@ export function createSimulation(input) {
   const syncHeld=()=>{const a=state.actor,e=a.holding===null?null:state.entities[a.holding];if(e){e.x=a.x+a.direction*18-e.width/2;const t=verticalTransport(e);if(t)t.toY+=a.y-e.y;e.y=a.y;}};
   function updateMotion() {
     const a=state.actor,held=a.holding;
-    const support=a.mode==='walking'?supportAt(collectSurfaces(level,state.entities,held),a.x,a.y,a.support):null;
+    const before=collectSurfaces(level,state.entities,held);
+    const support=a.mode==='walking'?supportAt(before,a.x,a.y,a.support):null;
     const carrier=support?state.entities[support.id]:null;
-    const local=carrier?.surface?(a.x-support.x)/support.width:null;
+    const local=carrier&&(carrier.surface||carrier.collider)?(a.x-support.x)/support.width:null;
     const completed=[];
     for(const e of Object.values(state.entities)) {
       e.previousX=e.x;
@@ -135,8 +142,15 @@ export function createSimulation(input) {
         if(r.elapsed===r.ticks){delete e.rotation;completed.push(e.id);}
       }
     }
-    if(local!==null){const point=posePoint(carrier,local);a.x=point.x;a.y=point.y;a.support=carrier.id;}
+    const bodyEvents=level.world.physics?advanceBodies(level,state.entities,held,before):[];
+    if(local!==null){const surface=collectSurfaces(level,state.entities,held).find(s=>s.id===carrier.id);if(surface){a.x=surface.x+surface.width*local;a.y=surfaceHeight(surface,a.x);a.support=carrier.id;}}
     for(const id of completed){emit(state.entities[id].label+' 旋转结束。','rotated');trigger('rotated',id);}
+    for(const event of bodyEvents){
+      if(state.status!=='running')break;
+      const source=state.entities[event.source],other=state.entities[event.other]?.label??'路面';
+      emit(source.label+({supportlost:' 失去支撑。',landed:' 落到 '+other+'。',impact:' 被 '+other+' 撞击。'}[event.type]),event.type,event);
+      trigger(event.type,event.source,undefined,event.other);
+    }
   }
   function finishConnection(e) {
     const a=state.actor,t=verticalTransport(e)??e;
