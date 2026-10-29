@@ -2,7 +2,7 @@ import {floorY} from '../core/schema.js';
 import {surfaceEndY} from '../core/surfaces.js';
 import {posePolygon} from '../core/pose.js';
 import {diagramBounds} from '../core/geometry.js';
-import {presentationFrame} from './presentation.js';
+import {presentationFrame,presentationGeometry} from './presentation.js';
 
 function polygon(ctx,points,fill,stroke){ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke();}}
 function ellipse(ctx,x,y,rx,ry,color){ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,Math.max(1,rx),Math.max(1,ry),0,0,Math.PI*2);ctx.fill();}
@@ -23,8 +23,9 @@ export function drawScene(ctx,level,snapshot,{animate=true}={}) {
   const goal=level.goal,gy=floorY(goal);round(ctx,goal.x-20,gy-48,40,48,3,'#c69249');round(ctx,goal.x-15,gy-43,30,39,2,'#ffe4a0');ctx.strokeStyle='#9f7945';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(goal.x,gy-43);ctx.lineTo(goal.x,gy-4);ctx.moveTo(goal.x-15,gy-24);ctx.lineTo(goal.x+15,gy-24);ctx.stroke();
   for(const e of entities){
     if(e.kind==='zone')continue;
-    const b=diagramBounds(e.kind,e),f=presentationFrame(e,tick,animate),symbol=e.presentation?.symbol??'block',color=e.presentation?.color??'#9db9ad';
+    const b=presentationGeometry(e),f=presentationFrame(e,tick,animate),symbol=e.presentation?.symbol??'block',color=e.presentation?.color??'#9db9ad';
     ctx.save();ctx.globalAlpha=f.opacity;ctx.translate(0,f.offsetY);
+    if(e.pose){const px=e.x+(e.width??28)*e.pose.pivot,py=floorY(e);ctx.translate(px,py);ctx.rotate(e.pose.angle*Math.PI/180);ctx.translate(-px,-py);}
     if(symbol==='cloud'){
       const y=floorY(e);for(let i=0;i<6;i++)ellipse(ctx,e.x+e.width*(i+.5)/6,y+4-((i%3)*2),e.width/7,8,color);
       if(e.surface?.enabled){ctx.strokeStyle='#effbf1';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(e.x,y);ctx.lineTo(e.x+e.width,y);ctx.stroke();}
@@ -39,10 +40,10 @@ export function drawScene(ctx,level,snapshot,{animate=true}={}) {
     }else if(symbol==='pot'){
       polygon(ctx,[{x:b.x+2,y:b.y+5},{x:b.x+b.width-2,y:b.y+5},{x:b.x+b.width-6,y:b.y+b.height},{x:b.x+6,y:b.y+b.height}],color,'#efcd9b');round(ctx,b.x,b.y,b.width,7,2,'#e9c093');
       ctx.strokeStyle='#9bbb89';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(b.x+b.width/2,b.y);ctx.lineTo(b.x+b.width/2,b.y-12);ctx.stroke();ellipse(ctx,b.x+b.width/2+5,b.y-10,6,3,'#a6c090');
-    }else if(e.pose){polygon(ctx,posePolygon(e),color,'#e6d4ad');}
+    }else if(e.pose){polygon(ctx,posePolygon({...e,pose:{...e.pose,angle:0}}),color,'#e6d4ad');}
     else{round(ctx,b.x,b.y,b.width,b.height,3,color);ctx.strokeStyle='#d9ddbf';ctx.lineWidth=2;ctx.strokeRect(b.x,b.y,b.width,b.height);}
     if(e.collider&&!e.collider.enabled){ctx.strokeStyle='#d9d0ad';ctx.setLineDash([4,4]);ctx.strokeRect(b.x,b.y,b.width,b.height);}
-    ctx.globalAlpha=1;ctx.font='11px "Microsoft YaHei",sans-serif';ctx.fillStyle='#e7e9d6';ctx.fillText(e.label,b.x,Math.max(26,b.y-12));ctx.restore();
+    ctx.restore();const label=diagramBounds(e.kind,e);ctx.font='11px "Microsoft YaHei",sans-serif';ctx.fillStyle='#e7e9d6';ctx.fillText(e.label,label.x,Math.max(26,label.y-12));
   }
   const a=snapshot?.actor??level.actor,x=a.x,y=floorY(a),walking=a.mode!=='falling',phase=animate&&walking?Math.sin(tick*.35)*4:0;
   ctx.save();ctx.translate(x,y);ctx.scale(a.direction??1,1);ctx.strokeStyle='#e3ba83';ctx.lineWidth=4;ctx.lineCap='round';
