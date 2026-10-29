@@ -20,13 +20,13 @@ export function createFeedbackUI({change,preview,stop,notify}) {
       const update=(key,value)=>change(d=>{d.scene.feedback.find(s=>s.id===f.id)[key]=value;});
       const field=(label,key,value,options={})=>{const w=el('label'),title=el('span',label),input=el('input');w.className='edit-field';input.dataset.feedbackField=key;input.type=options.type??'number';input.value=value;
         for(const k of ['min','max','step','maxLength'])if(options[k]!==undefined)input[k]=options[k];
-        input.onchange=()=>{if(!input.checkValidity()||input.type==='number'&&(!input.value||!Number.isFinite(Number(input.value)))){input.reportValidity();return;}update(key,input.type==='number'?Number(input.value)*(options.factor??1):input.value);};
+        input.onchange=()=>{if(!input.checkValidity()||input.type==='number'&&(!input.value||!Number.isFinite(Number(input.value)))){input.reportValidity();return;}update(key,input.type==='number'?(options.factor?Math.round(Number(input.value)*options.factor):Number(input.value)):input.value);};
         input.onkeydown=e=>{if(['Enter','Escape'].includes(e.key)&&!e.isComposing){e.stopPropagation();e.preventDefault();if(e.key==='Escape')input.value=value;input.blur();}};w.append(title,input);card.append(w);};
       const select=(label,key,items,value,fn=v=>update(key,v))=>{const w=el('label'),s=el('select');w.className='edit-field';s.dataset.feedbackField=key;for(const [id,label]of items){const o=el('option',label);o.value=id;s.append(o);}s.value=value;s.onchange=()=>fn(s.value);w.append(el('span',label),s);card.append(w);};
       const check=(label,key)=>{const w=el('label'),c=el('input');w.className='resource-check';c.type='checkbox';c.checked=f[key]??false;c.dataset.feedbackField=key;c.onchange=()=>update(key,c.checked);w.append(c,document.createTextNode(label));card.append(w);};
       field('反馈名称','label',f.label,{type:'text',maxLength:60});
       const types=[['start','场景开始'],['behavior','行为开始'],['event','物体事件'],['state','状态变为'],['lost','主角死亡'],['won','到达终点']].filter(([type])=>!['state','event','behavior'].includes(type)||level.entities.some(e=>type!=='behavior'||e.behaviors?.length));
-      const setTrigger=(type,source)=>{const e=level.entities.find(e=>e.id===source)??level.entities.find(e=>type!=='behavior'||e.behaviors?.length);
+      const setTrigger=(type,source)=>{const eligible=e=>type!=='behavior'||e.behaviors?.length,e=level.entities.find(e=>e.id===source&&eligible(e))??level.entities.find(eligible);
         update('trigger',['start','lost','won'].includes(type)?{type}:{type,source:e.id,...(type==='behavior'?{behavior:e.behaviors[0].id}:type==='state'?{state:e.state}:{event:eventTypes(e)[0]})});};
       select('触发时机','trigger-type',types,f.trigger.type,type=>setTrigger(type,f.trigger.source));
       if(['behavior','state','event'].includes(f.trigger.type)){

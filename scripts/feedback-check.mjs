@@ -12,13 +12,15 @@ const draft=p=>p.evaluate(()=>{const s=JSON.parse(localStorage.getItem('gothere.
 async function pageAt(url){const p=await context.newPage();p.on('pageerror',e=>errors.push(e.message));p.setDefaultTimeout(7000);await p.clock.install({time:new Date('2026-10-29T00:00:00Z')});await p.clock.pauseAt(new Date('2026-10-29T00:00:01Z'));await p.goto(url);await p.locator('#scene[data-assets=ready]').waitFor();return p;}
 async function chooseArt(p,label){await p.locator('#layer-search').fill(label);await p.locator('#resource-layers .resource-layer').first().click();}
 try{
- const p=await pageAt('http://127.0.0.1:'+server.address().port+'/');await p.locator('#display-mode').selectOption('scene');await chooseArt(p,'可落下花盆资源');
+ const p=await pageAt('http://127.0.0.1:'+server.address().port+'/');await p.locator('#display-mode').selectOption('scene');
+ const imported=await draft(p);imported.entities.push({id:'feedback-zone',kind:'zone',label:'测试感应区',x:30,y:560,width:8,height:8,state:'enabled'});
+ await p.locator('#open-data').click();await p.locator('#level-json').fill(JSON.stringify(imported));await p.locator('#apply-level').click();await chooseArt(p,'可落下花盆资源');
  await p.locator('#feedback-panel').waitFor({state:'visible',timeout:3000});const initial=await draft(p);assert.ok(initial.scene.feedback.length>=12);
  await p.locator('#feedback-add').click();let slot=p.locator('.feedback-slot').last();await slot.locator('[data-feedback-field="motion"]').selectOption('shake');await slot.locator('[data-feedback-field="particles"]').selectOption('smoke');
  await slot.locator('[data-feedback-field="sound"]').selectOption('puff');const configured=await draft(p);assert.equal(configured.scene.feedback.at(-1).motion,'shake');assert.deepEqual(configured.entities,initial.entities);
  await slot.locator('[data-feedback-preview]').click();await p.clock.runFor(180);assert.ok(Number(await p.locator('#scene').getAttribute('data-feedback-particles'))>0);await p.clock.runFor(2500);assert.equal(await p.locator('#scene').getAttribute('data-feedback-active'),'0');
  await slot.locator('[data-feedback-field="duration"]').fill('2.3');await slot.locator('[data-feedback-field="duration"]').dispatchEvent('change');assert.equal((await draft(p)).scene.feedback.at(-1).duration,138);
- await slot.locator('[data-feedback-field="trigger-type"]').selectOption('event');await slot.locator('[data-feedback-field="trigger-source"]').selectOption('window-sensor');
+ await slot.locator('[data-feedback-field="trigger-type"]').selectOption('event');await slot.locator('[data-feedback-field="trigger-source"]').selectOption('feedback-zone');
  await slot.locator('[data-feedback-field="trigger-type"]').selectOption('behavior');assert.ok((await draft(p)).scene.feedback.at(-1).trigger.behavior,'switching from a sensor chooses an eligible behavior source');
  await slot.locator('[data-feedback-field="trigger-type"]').selectOption('start');
  configured.scene.feedback=(await draft(p)).scene.feedback;
