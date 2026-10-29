@@ -136,3 +136,14 @@ export function touchesFootPath(segments, left, right, y) {
     });
   });
 }
+
+/** Express the same foot path relative to a transformed object's baseline. */
+export function touchesSurfacePath(segments, surface, padding=10) {
+  const slope=(surfaceEndY(surface)-surface.y)/surface.width;
+  const relative=segments.map(segment=>{
+    const {from,to}=segment,duration=segment.end-segment.start;
+    const height=p=>({x:p.x,y:p.y-slope*(p.x-surface.x)});
+    return {...segment,from:height(from),to:height(to),vy:segment.vy-slope*(duration?(to.x-from.x)/duration:0)};
+  });
+  return touchesFootPath(relative,surface.x-padding,surface.x+surface.width+padding,surface.y);
+}

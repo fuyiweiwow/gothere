@@ -20,7 +20,8 @@ const shape = (level) => Boolean(level && level.schemaVersion === 1 && level.wor
     (e.motion === undefined || (Number.isFinite(e.motion?.minX) && Number.isFinite(e.motion?.maxX)))) &&
   Array.isArray(level.rules) && level.rules.length <= 128 &&
   // Geometry can be unfinished; references, states and action trees must remain safe to edit.
-  validateLevel({...level, actor:{...level.actor,x:95,y:440,speed:68}, goal:{x:1100},
+  validateLevel({...level, world:{...level.world,...(level.world.physics===undefined&&level.entities.some(e=>e.surface)?{physics:{gravity:900,maxFallSpeed:480}}:{})},
+    actor:{...level.actor,x:95,y:440,speed:68}, goal:{x:1100},
     platforms:[{x:0,width:1200},{x:0,width:1200,y:260}],
     entities:level.entities.map(e=>({...e,x:25,width:8,y:440,
       ...(['ladder','lift'].includes(e.kind)?{toY:260}:{}),

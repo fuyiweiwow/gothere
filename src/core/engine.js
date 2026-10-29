@@ -1,7 +1,7 @@
 import { validateLevel, floorY, eventTypes } from './schema.js';
 import { verticalTransport, transportEnabled, landingX } from './transport.js';
-import { collectSurfaces, advanceWalker, touchesFootPath, supportAt } from './surfaces.js';
-import { posePoint } from './pose.js';
+import { collectSurfaces, advanceWalker, touchesFootPath, touchesSurfacePath, surfaceHeight, supportAt } from './surfaces.js';
+import { posePoint, posedSurface } from './pose.js';
 export { validateLevel } from './schema.js';
 export const TICKS_PER_SECOND = 60;
 const clone = (value) => structuredClone(value);
@@ -46,7 +46,9 @@ export function createSimulation(input) {
         }
       } else if (action.type==='hold') {
         const e=state.entities[action.target], a=state.actor;
-        if (a.holding===null && a.connector!==e.id && e.state==='active' && a.y===e.y && a.x+24>=e.x && a.x-24<=e.x+e.width) {
+        const s=e.pose?posedSurface(e):{x:e.x,y:e.y,width:e.width};
+        const height=surfaceHeight(s,Math.max(s.x,Math.min(s.x+s.width,a.x)));
+        if (a.holding===null && a.connector!==e.id && e.state==='active' && Math.abs(a.y-height)<1e-7 && a.x+24>=s.x && a.x-24<=s.x+s.width) {
           a.holding=e.id;emit('拿上了'+e.label);
         }
       } else if (action.type==='drop') {
@@ -242,7 +244,10 @@ export function createSimulation(input) {
       if(entity.id===a.holding || (entity.kind==='object' && entity.state!=='active') || (entity.kind==='zone' && entity.state!=='enabled'))continue;
       const left=Math.min(from,to),right=Math.max(from,to);
       const contactLeft=Math.min(entity.previousX,entity.x)-10,contactRight=Math.max(entity.previousX,entity.x)+entity.width+10;
-      if(movementTrace){
+      if(entity.pose){
+        const trace=movementTrace??[{from:{x:from,y:a.y},to:{x:to,y:a.y},start:0,end:1/60,mode:'walking'}];
+        if(!touchesSurfacePath(trace,posedSurface(entity)))continue;
+      }else if(movementTrace){
         const heights=[entity.y,...(verticalTransport(entity)||entity.kind==='lift'?[(verticalTransport(entity)??entity).toY]:[]),
           ...(entity.kind==='lift'?[entity.carY]:[])];
         if(!heights.some(y=>touchesFootPath(movementTrace,contactLeft,contactRight,y)))continue;
