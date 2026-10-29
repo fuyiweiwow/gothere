@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createSimulation, replayRecording, validateLevel } from '../src/core/engine.js';
 import { collectSurfaces, surfaceHeight } from '../src/core/surfaces.js';
 import { createBlankLevel, createEditorStore, resizeObject, moveObject, copyObject, pasteObject, deleteObject } from '../src/editor/model.js';
+import { createEditorExample } from '../src/editor/starter.js';
 
 const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-6,`${a} != ${b}`);
 const fixture=()=>({...createBlankLevel('rotation-test'),
@@ -81,4 +82,10 @@ test('rotated endpoint resizing preserves the opposite endpoint, pivot and compl
   const doc=store.document(),pasted=pasteObject(doc,copyObject(doc,ref)),copy=doc.entities.find(e=>e.id===pasted.id);
   near(copy.pose.angle,30);assert.equal(copy.behaviors[0].actions[0].target,copy.id);
   deleteObject(doc,ref);assert.equal(doc.rules.length,0);
+});
+
+test('rotation example is authored with ordinary capabilities and needs its event chain to win',()=>{
+  const level=createEditorExample('rotation');assert.equal(level.id,'editor-rotation');
+  const pass=createSimulation(level);pass.start();pass.click('release');pass.step(3000);assert.equal(pass.snapshot().status,'won');
+  const fail=createSimulation(level);fail.start().step(3000);assert.equal(fail.snapshot().status,'lost');
 });
