@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createSimulation, replayRecording, validateLevel } from '../src/core/engine.js';
-import { createBlankLevel, createEditorStore, deleteObject, copyObject, pasteObject } from '../src/editor/model.js';
+import { createBlankLevel, createEditorStore, deleteObject, copyObject, pasteObject, setPhysicalCapability } from '../src/editor/model.js';
 import { createEditorExample } from '../src/editor/starter.js';
 
 const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-7,`${a} != ${b}`);
@@ -127,4 +127,31 @@ test('an overhanging upright body follows the contact point of a rotating suppor
   level.rules=[{on:{type:'click',source:'beam'},actions:[{type:'rotate',target:'beam',angle:0,ticks:1}]}];
   const sim=createSimulation(level);sim.start();sim.click('beam');sim.step();const e=sim.snapshot().entities.weight;
   assert.ok(Number.isFinite(e.x)&&Number.isFinite(e.y));near(e.y,260);assert.equal(e.bodyState.support,'beam');
+});
+
+test('support enable actions work for sloped surfaces as well as boxes, without changing active state',()=>{
+  const level=fixture();level.entities=level.entities.filter(e=>!['shelf','receiver'].includes(e.id));
+  const weight=level.entities.find(e=>e.id==='weight');weight.y=280;
+  level.entities.push({id:'beam',kind:'object',label:'梁',x:350,y:280,width:100,state:'inactive',pose:{angle:0,pivot:1},surface:{enabled:true}});
+  level.rules=[{on:{type:'click',source:'beam'},actions:[{type:'enable',target:'beam',capability:'surface',enabled:false}]}];
+  const sim=createSimulation(level);sim.start();sim.click('beam');sim.step();let s=sim.snapshot();
+  assert.equal(s.entities.weight.bodyState.mode,'falling');assert.equal(s.entities.beam.state,'inactive');
+  assert.equal(s.events.filter(e=>e.kind==='supportlost').length,1);sim.step(100);near(sim.snapshot().entities.weight.y,520);
+});
+
+test('physical capability controls preserve referenced definitions and reject incompatible motion',()=>{
+  const level=fixture(),weight=level.entities.find(e=>e.id==='weight'),shelf=level.entities.find(e=>e.id==='shelf');
+  assert.throws(()=>setPhysicalCapability(level,weight,'body',false),/引用/);
+  assert.throws(()=>setPhysicalCapability(level,weight,'collider',false),/重力/);
+  assert.throws(()=>setPhysicalCapability(level,shelf,'collider',false),/引用/);
+  const e={id:'new',kind:'object',x:700,y:300,width:40,label:'新物体',state:'active'};level.entities.push(e);
+  e.pose={angle:0,pivot:0};assert.throws(()=>setPhysicalCapability(level,e,'body',true),/组合/);delete e.pose;
+  e.motion={type:'patrol',minX:600,maxX:800,speed:30};assert.throws(()=>setPhysicalCapability(level,e,'body',true),/巡逻/);delete e.motion;
+  setPhysicalCapability(level,e,'body',true);assert.equal(e.height,36);assert.equal(e.collider.enabled,true);
+  setPhysicalCapability(level,e,'body',false);setPhysicalCapability(level,e,'collider',false);assert.equal(e.collider,undefined);
+});
+
+test('standing on a collider top counts as contact and respects ordinary contact effects',()=>{
+  const level=fixture();level.actor={x:385,y:230,speed:15};level.entities.find(e=>e.id==='weight').contact={effect:'lethal'};
+  const sim=createSimulation(level);sim.start().step();assert.equal(sim.snapshot().reason,'hurt');
 });
