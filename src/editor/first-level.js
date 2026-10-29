@@ -5,7 +5,7 @@ export function createFirstLevel() {
   const enable=(target,capability,enabled)=>({type:'enable',target,capability,enabled});
   const level={schemaVersion:1,id:'editor-first-level',name:'第一关 · 屋顶到亮窗',
     description:'从右上屋顶向左走，经临时通路和天线桥到塔顶；持有缓降物落到左下檐面，再沿放下的斜面经过生物，走向右侧亮窗。',
-    hint:'运行后可直接点物体，也可用右侧按钮：①启用云桥 → ②放下天线桥 → ③展开缓降物 → ④抽去檐面支撑 → ⑤释放落物。可提前布置；云桥持续15秒。',
+    hint:'按主角的位置操作，过早会恢复，过晚会错过。参考：9秒云桥（持续5秒）→12.5秒天线（6秒后收回）→17.5秒展开缓降物（6秒）→20.8秒抽支撑→27.5秒放落物（生物只休息6秒）。暂停和单步可用于观察。',
     world:{width:1200,height:640,groundY:440,physics:{gravity:900,maxFallSpeed:480}},
     actor:{x:1100,y:200,direction:-1,speed:45,maxLandingSpeed:330},goal:{x:1100,y:560},
     platforms:[{x:800,y:200,width:380},{x:700,y:280,width:100,yEnd:200},{x:660,y:280,width:40},
@@ -13,12 +13,15 @@ export function createFirstLevel() {
       {x:760,y:530,width:140,yEnd:560},{x:900,y:560,width:280}],
     entities:[
       {id:'cloud',kind:'object',label:'① 临时通路',x:480,y:280,width:180,height:12,state:'inactive',pose:{angle:0,pivot:0},surface:{enabled:false},
-        behaviors:[{id:'appear',label:'出现15秒',actions:[{type:'set',target:'cloud',state:'active'},enable('cloud','surface',true),
-          {type:'after',ticks:900,actions:[enable('cloud','surface',false),{type:'set',target:'cloud',state:'inactive'}]}]}]},
-      {id:'antenna',kind:'object',label:'② 天线桥',x:480-length,y:280,width:length,height:12,state:'active',pose:{angle:0,pivot:1},surface:{enabled:true},
-        behaviors:[{id:'tilt',label:'搭向塔顶',actions:[{type:'rotate',target:'antenna',angle,ticks:90}]}]},
+        behaviors:[{id:'appear',label:'出现5秒后恢复',actions:[{type:'set',target:'cloud',state:'active'},enable('cloud','surface',true),
+          {type:'after',ticks:300,actions:[enable('cloud','surface',false),{type:'set',target:'cloud',state:'inactive'}]}]}]},
+      {id:'antenna',kind:'object',label:'② 天线桥',x:480-length,y:280,width:length,height:12,state:'inactive',pose:{angle:0,pivot:1},surface:{enabled:true},
+        behaviors:[{id:'tilt',label:'搭桥，6秒后收回',actions:[{type:'set',target:'antenna',state:'active'},{type:'rotate',target:'antenna',angle,ticks:90},
+          {type:'after',ticks:360,actions:[{type:'rotate',target:'antenna',angle:0,ticks:90}]}]},
+          {id:'ready',label:'恢复可触发',actions:[{type:'set',target:'antenna',state:'inactive'}]}]},
       {id:'umbrella',kind:'object',label:'③ 缓降物',x:235,y:180,width:30,height:30,state:'inactive',carriedPhysics:{gravityScale:0.25,maxFallSpeed:90},
-        behaviors:[{id:'open',label:'展开',actions:[{type:'set',target:'umbrella',state:'active'}]},
+        behaviors:[{id:'open',label:'展开6秒',actions:[{type:'set',target:'umbrella',state:'active'},
+          {type:'after',ticks:360,actions:[{type:'set',target:'umbrella',state:'inactive'}]}]},
           {id:'pickup',label:'持有',actions:[{type:'hold',target:'umbrella'}]},
           {id:'fold',label:'落地收起',actions:[{type:'set',target:'umbrella',state:'inactive'},{type:'drop'}]}]},
       {id:'sill',kind:'object',label:'可倾斜檐面',x:40,y:360,width:240,height:12,state:'active',pose:{angle:0,pivot:0},surface:{enabled:true},supportProbe:{at:1},
@@ -31,19 +34,21 @@ export function createFirstLevel() {
       {id:'pot',kind:'object',label:'⑤ 落物',x:414,y:300,width:30,height:30,state:'active',collider:{enabled:true},body:{type:'dynamic'},
         behaviors:[{id:'release',label:'释放落物',actions:[invoke('pot-shelf','release')]}]},
       {id:'creature',kind:'object',label:'阳台生物',x:390,y:480,width:80,height:60,state:'active',collider:{enabled:true},
-        behaviors:[{id:'rest',label:'趴下休息',actions:[{type:'set',target:'creature',state:'inactive'}]},
+        behaviors:[{id:'rest',label:'休息6秒后醒来',actions:[{type:'set',target:'creature',state:'inactive'},
+          {type:'after',ticks:360,actions:[{type:'set',target:'creature',state:'active'}]}]},
           {id:'attack',label:'攻击',actions:[{type:'hurt',message:'阳台生物还醒着。让上方落物真正撞到它，触发休息行为。'}]}]},
     ],
     rules:[{on:{type:'click',source:'cloud'},if:[{entity:'cloud',state:'inactive'}],actions:[invoke('cloud','appear')]},
-      {on:{type:'click',source:'antenna'},actions:[invoke('antenna','tilt')]},
-      {on:{type:'click',source:'umbrella'},actions:[invoke('umbrella','open')]},
+      {on:{type:'click',source:'antenna'},if:[{entity:'antenna',state:'inactive'}],actions:[invoke('antenna','tilt')]},
+      {on:{type:'click',source:'umbrella'},if:[{entity:'umbrella',state:'inactive'}],actions:[invoke('umbrella','open')]},
       {on:{type:'contact',source:'umbrella'},actions:[invoke('umbrella','pickup')]},
       {on:{type:'click',source:'prop'},actions:[invoke('prop','remove')]},
       {on:{type:'supportlost',source:'sill'},actions:[invoke('sill','lower')]},
       {on:{type:'actorlanded',source:'sill'},actions:[invoke('sill','land')]},
       {on:{type:'click',source:'pot'},actions:[invoke('pot','release')]},
       {on:{type:'impact',source:'creature',other:'pot'},actions:[invoke('creature','rest')]},
-      {on:{type:'contact',source:'creature'},actions:[invoke('creature','attack')]}]};
+      {on:{type:'contact',source:'creature'},actions:[invoke('creature','attack')]},
+      {on:{type:'done',source:'antenna',behavior:'tilt'},actions:[{type:'after',ticks:90,actions:[invoke('antenna','ready')]}]}]};
   // Ordinary saved reroute points keep the example's self-connections near their objects.
   const routes=[[[680,286],[680,325],[465,325],[465,286]],
     [[495,286],[495,240],[280,240],[280,286]],[[280,165],[280,125],[220,125],[220,165]],
@@ -51,6 +56,6 @@ export function createFirstLevel() {
     [[300,366],[300,420],[30,420],[30,366]],[[310,366],[310,440],[25,440],[25,366]],
     [[460,285],[460,250],[400,250],[400,285]],[[490,450],[490,410],[375,410],[375,450]],
     [[500,450],[500,505],[365,505],[365,450]]];
-  level.rules.forEach((rule,i)=>{rule.actions[0].editor={waypoints:routes[i].map(([x,y])=>({x,y}))};});
+  level.rules.forEach((rule,i)=>{if(routes[i])rule.actions[0].editor={waypoints:routes[i].map(([x,y])=>({x,y}))};});
   return level;
 }
