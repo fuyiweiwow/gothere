@@ -90,3 +90,24 @@ test('sound playback obeys mute, reset and asynchronous decode cancellation',asy
   const count=started.length;await audio.play({sound:'pop',volume:.2});assert.equal(started.length,count);audio.setMuted(false);
   const pending=audio.play({sound:'custom',volume:.2});await Promise.resolve();audio.stop();resolveDecode({duration:1});await pending;assert.equal(started.length,count,'reset discards a pending decoded sound');
 });
+
+test('all motion presets respect zero strength and stay finite on arbitrary artwork',async()=>{
+  const {motionAt}=await import('../src/render/feedback.js');const {MOTIONS}=await import('../src/content/feedback-presets.js');
+  for(const preset of Object.keys(MOTIONS))for(const phase of [0,.25,.5,1]){
+    assert.deepEqual(motionAt(preset,phase,0),{dx:0,dy:0,rotation:0,scaleX:1,scaleY:1,opacity:1},preset);
+    assert.ok(Object.values(motionAt(preset,phase,2)).every(Number.isFinite));
+  }
+});
+
+test('terminal presentation waits for delayed feedback then freezes ambient loops without rewinding',async()=>{
+  const {createFeedbackPlayer}=await import('../src/render/feedback.js');const l=createFirstLevel();l.scene.feedback=[slot(l,{id:'loop',trigger:{type:'start'},motion:'sway',loop:true}),slot(l,{trigger:{type:'lost'},delay:600})];
+  const p=createFeedbackPlayer(l),s=state(200,[{sequence:1,tick:0,type:'start'},{sequence:2,tick:200,type:'lost',source:'actor'}],'lost');
+  assert.equal(p.sample(s,{endingTicks:601}).tailFinished,false);const done=p.sample(s,{endingTicks:700});assert.equal(done.tailFinished,true);
+  assert.deepEqual(done,p.sample(s,{endingTicks:900}),'ambient loops freeze at the end of the longest one-shot');
+});
+
+test('malformed feedback sources cannot create silently unreachable subscriptions',()=>{
+  for(const trigger of [{type:'lost',source:'pipe'},{type:'start',source:'missing'},{type:'event',source:'pipe',event:'done',behavior:'missing'}]){
+    const l=createFirstLevel();l.scene.feedback=[slot(l,{trigger})];assert.equal(validateLevel(l).valid,false);
+  }
+});
