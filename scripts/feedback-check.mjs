@@ -11,6 +11,7 @@ const context=await browser.newContext({viewport:{width:1600,height:1150}}),erro
 const draft=p=>p.evaluate(()=>{const s=JSON.parse(localStorage.getItem('gothere.studio.v1'));return s.documents.find(d=>d.key===s.activeKey).level;});
 async function pageAt(url){const p=await context.newPage();p.on('pageerror',e=>errors.push(e.message));p.setDefaultTimeout(7000);await p.clock.install({time:new Date('2026-10-29T00:00:00Z')});await p.clock.pauseAt(new Date('2026-10-29T00:00:01Z'));await p.goto(url);await p.locator('#scene[data-assets=ready]').waitFor();return p;}
 async function chooseArt(p,label){await p.locator('#layer-search').fill(label);await p.locator('#resource-layers .resource-layer').first().click();}
+function shortWav(){const count=1600,b=Buffer.alloc(44+count*2);b.write('RIFF');b.writeUInt32LE(b.length-8,4);b.write('WAVEfmt ',8);b.writeUInt32LE(16,16);b.writeUInt16LE(1,20);b.writeUInt16LE(1,22);b.writeUInt32LE(8000,24);b.writeUInt32LE(16000,28);b.writeUInt16LE(2,32);b.writeUInt16LE(16,34);b.write('data',36);b.writeUInt32LE(count*2,40);for(let i=0;i<count;i++)b.writeInt16LE(Math.round(Math.sin(i*.3)*2000),44+i*2);return b;}
 try{
  const p=await pageAt('http://127.0.0.1:'+server.address().port+'/');await p.locator('#display-mode').selectOption('scene');
  const imported=await draft(p);imported.entities.push({id:'feedback-zone',kind:'zone',label:'测试感应区',x:30,y:560,width:8,height:8,state:'enabled'});
@@ -18,12 +19,21 @@ try{
  await p.locator('#feedback-panel').waitFor({state:'visible',timeout:3000});const initial=await draft(p);assert.ok(initial.scene.feedback.length>=12);
  await p.locator('#feedback-add').click();let slot=p.locator('.feedback-slot').last();await slot.locator('[data-feedback-field="motion"]').selectOption('shake');await slot.locator('[data-feedback-field="particles"]').selectOption('smoke');
  await slot.locator('[data-feedback-field="sound"]').selectOption('puff');const configured=await draft(p);assert.equal(configured.scene.feedback.at(-1).motion,'shake');assert.deepEqual(configured.entities,initial.entities);
- await slot.locator('[data-feedback-preview]').click();await p.clock.runFor(180);assert.ok(Number(await p.locator('#scene').getAttribute('data-feedback-particles'))>0);await p.clock.runFor(2500);assert.equal(await p.locator('#scene').getAttribute('data-feedback-active'),'0');
+ await slot.locator('[data-feedback-preview]').click();await p.clock.runFor(180);assert.ok(Number(await p.locator('#scene').getAttribute('data-feedback-particles'))>0);
+ await p.locator('#animation-toggle').uncheck();assert.equal(await p.locator('#scene').getAttribute('data-feedback-particles'),'0','the animation toggle also controls editor auditions');await p.locator('#animation-toggle').check();
+ await p.clock.runFor(2500);assert.equal(await p.locator('#scene').getAttribute('data-feedback-active'),'0');
  await slot.locator('[data-feedback-field="duration"]').fill('2.3');await slot.locator('[data-feedback-field="duration"]').dispatchEvent('change');assert.equal((await draft(p)).scene.feedback.at(-1).duration,138);
  await slot.locator('[data-feedback-field="trigger-type"]').selectOption('event');await slot.locator('[data-feedback-field="trigger-source"]').selectOption('feedback-zone');
  await slot.locator('[data-feedback-field="trigger-type"]').selectOption('behavior');assert.ok((await draft(p)).scene.feedback.at(-1).trigger.behavior,'switching from a sensor chooses an eligible behavior source');
  await slot.locator('[data-feedback-field="trigger-type"]').selectOption('start');
- configured.scene.feedback=(await draft(p)).scene.feedback;
+ await p.locator('#sound-file').setInputFiles({name:'短提示.wav',mimeType:'audio/wav',buffer:shortWav()});
+ await slot.locator('[data-feedback-field="sound"] option[value="sound-1"]').waitFor({state:'attached'});await slot.locator('[data-feedback-field="sound"]').selectOption('sound-1');
+ const heard=Number(await p.locator('#scene').getAttribute('data-audio-played'));await slot.locator('[data-feedback-preview]').click();
+ for(let i=0;i<10&&Number(await p.locator('#scene').getAttribute('data-audio-played'))===heard;i++){await p.clock.runFor(50);await new Promise(r=>setTimeout(r,20));}
+ assert.ok(Number(await p.locator('#scene').getAttribute('data-audio-played'))>heard,'an imported sound decodes and plays during preview');
+ await p.locator('#feedback-stop').click();const target=(await draft(p)).scene.nodes.find(n=>n.label==='绿楼烟囱').id;
+ await slot.locator('[data-feedback-field="copy-target"]').selectOption(target);const copied=await draft(p);assert.equal(copied.scene.feedback.at(-1).target,target);assert.equal(copied.scene.feedback.at(-1).sound,'sound-1');
+ configured.scene.feedback=copied.scene.feedback;configured.scene.sounds=copied.scene.sounds;
  await p.locator('#feedback-stop').click();await p.reload();await p.locator('#scene[data-assets=ready]').waitFor();assert.deepEqual(await draft(p),configured);
  await p.locator('#preview-toggle').click();await p.clock.runFor(1000);assert.ok(Number(await p.locator('#scene').getAttribute('data-feedback-particles'))>0,'ambient smoke runs from authored start slots');
  await p.locator('#scene-interactions [data-source="chimney"]').click();await p.clock.runFor(250);assert.ok(Number(await p.locator('#scene').getAttribute('data-audio-played'))>0,'a behavior plays its sound once');
