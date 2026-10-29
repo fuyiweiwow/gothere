@@ -112,8 +112,8 @@ test('the full reference graybox exists as editable ordinary objects',()=>{
 });
 
 test('first-level route wins through every real mechanic, replays, resets, and each missing intervention fails',()=>{
-  const level=createEditorExample('first-level'),original=structuredClone(level),inputs=['cloud','antenna','umbrella','prop','pot'];
-  const run=(l,omit)=>{const s=createSimulation(l),kinds=new Set(),schedule={540:'cloud',750:'antenna',1050:'umbrella',1250:'prop',1650:'pot'};s.start();
+  const level=createEditorExample('first-level'),original=structuredClone(level),inputs=['pipe','cloud','antenna','umbrella','prop','pot','window'];
+  const run=(l,omit)=>{const s=createSimulation(l),kinds=new Set(),schedule={300:'pipe',540:'cloud',750:'antenna',1050:'umbrella',1250:'prop',1650:'pot',2490:'window'};s.start();
     for(let i=0;i<4500&&s.snapshot().status==='running';i++){if(schedule[i]!==omit&&schedule[i])s.click(schedule[i]);s.step();for(const e of s.snapshot().events)kinds.add(e.kind);}
     return {s,kinds};};
   const {s,kinds}=run(level);assert.equal(s.snapshot().status,'won',JSON.stringify(s.snapshot()));
@@ -126,7 +126,7 @@ test('first-level route wins through every real mechanic, replays, resets, and e
 });
 
 test('early activations restore, late interventions miss, and edited lifetimes change the playable window',()=>{
-  const level=createEditorExample('first-level'),normal={cloud:540,antenna:750,umbrella:1050,prop:1250,pot:1650};
+  const level=createEditorExample('first-level'),normal={pipe:300,cloud:540,antenna:750,umbrella:1050,prop:1250,pot:1650,window:2490};
   const run=times=>{const s=createSimulation(level);s.start();for(let t=0;t<3000&&s.snapshot().status==='running';t++){for(const [id,when] of Object.entries(times))if(t===when)s.click(id);s.step();}return s;};
   for(const id of ['cloud','antenna','umbrella','pot'])assert.equal(run({...normal,[id]:0}).snapshot().status,'lost','too early: '+id);
   for(const [id,late] of [['cloud',750],['antenna',1000],['umbrella',1300],['prop',2000],['pot',2100]])assert.equal(run({...normal,[id]:late}).snapshot().status,'lost','too late: '+id);
@@ -137,4 +137,19 @@ test('early activations restore, late interventions miss, and edited lifetimes c
   assert.equal(s.snapshot().entities.cloud.state,'inactive','repeated clicks cannot stack the active lifetime');
   const cloud=level.entities.find(e=>e.id==='cloud');cloud.behaviors[0].actions.find(a=>a.type==='after').ticks=1200;
   assert.equal(run({...normal,cloud:0}).snapshot().status,'won','the time window is authored data');
+});
+
+test('the water pipe forms a real rotated surface and the proximity window is an editable event chain',()=>{
+  const l=createEditorExample('first-level'),pipe=l.entities.find(e=>e.id==='pipe');
+  assert.equal(pipe.surface.enabled,false);assert.equal(pipe.pose.angle,-65);
+  assert.ok(!l.platforms.some(p=>p.x===700&&p.width===100),'there is no substitute prebuilt slope');
+  const s=createSimulation(l);s.start();s.click('pipe');s.step(59);assert.equal(s.snapshot().entities.pipe.surface.enabled,false);
+  s.step();assert.equal(s.snapshot().entities.pipe.surface.enabled,true);assert.ok(Math.abs(s.snapshot().entities.pipe.pose.angle-Math.atan2(-80,100)*180/Math.PI)<1e-8);
+  const zone=l.entities.find(e=>e.id==='window-zone');assert.equal(zone.kind,'zone');
+  assert.ok(l.rules.some(r=>r.on.source===zone.id&&r.on.type==='enter'));
+  // The same chain works at another position and with renamed objects, without engine branches.
+  const rename={pipe:'hinge',window:'panel','window-zone':'detector'};
+  const renamed=JSON.parse(JSON.stringify(l),(k,v)=>typeof v==='string'&&rename[v]?rename[v]:v);
+  assert.equal(validateLevel(renamed).valid,true);const other=createSimulation(renamed);other.start();other.click('hinge');other.step(60);
+  assert.equal(other.snapshot().entities.hinge.surface.enabled,true);
 });

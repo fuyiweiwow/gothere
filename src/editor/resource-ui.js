@@ -1,14 +1,16 @@
-import {assetLibrary,artTransform,artCorners} from '../render/resources.js';
+import {assetLibrary,artTransform,artCorners,artBounds} from '../render/resources.js';
 import {ensureScene,addArt,moveArt,resizeArt,deleteArt,duplicateArt,bindArt} from './resources.js';
 import {STATES} from '../core/schema.js';
+import {alignMove,drawGuides} from './alignment.js';
 
 const $=id=>document.getElementById(id);
 const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
 const button=(text,fn,cls='button secondary')=>{const b=el('button',text,cls);b.type='button';b.addEventListener('click',fn);return b;};
 
 /** Resource authoring uses the same document/history, with its own visual selection and gestures. */
-export function createResourceUI({editor,notify,preview}) {
+export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspectLogic=()=>{}}) {
   let selected=null,tool=null,tab='library',query='',category='全部',variant='',gesture=null,suppress=false,current;
+  const hiddenLayers=new Set(),lockedLayers=new Set();
   const panel=$('resource-panel'),overlay=$('resource-overlay');overlay.tabIndex=0;
   panel.innerHTML='<div class="resource-title"><h2>资源场景</h2><span>图片与判定独立</span></div><div class="editor-tabs"><button id="resource-library-tab" class="editor-tab">资源库</button><button id="resource-inspect-tab" class="editor-tab">选中资源</button></div><div id="resource-content" class="resource-content"></div><div class="resource-layers"><div class="resource-layer-heading"><strong>场景图层</strong><button id="art-select" class="text-button">选择 · Esc</button></div><input id="layer-search" type="search" placeholder="筛选图层名称…" aria-label="筛选资源图层"><div id="resource-layers"></div></div>';
   let layerQuery='';$('layer-search').addEventListener('input',()=>{layerQuery=$('layer-search').value;renderLayers(current);});
@@ -62,6 +64,10 @@ export function createResourceUI({editor,notify,preview}) {
     const bindings=[['','独立布景（无逻辑）'],['actor','主角'],['goal','终点'],...d.entities.map(e=>['entity:'+e.id,e.label]),...d.platforms.map((_,i)=>['platform:'+i,'路面 '+(i+1)])];
     const b=n.bind,value=b?.type==='entity'?'entity:'+b.id:b?.type==='platform'?'platform:'+b.index:b?.type??'';
     box.append(select('跟随逻辑对象',bindings,value,v=>{variant='';change(doc=>bindArt(doc,selected,!v?null:v.startsWith('entity:')?{type:'entity',id:v.slice(7)}:v.startsWith('platform:')?{type:'platform',index:Number(v.slice(9))}:{type:v}));},'art-bind'));
+    const bindActions=el('div',undefined,'resource-actions');
+    const pick=button('在画布中点选绑定',()=>requestBind(selected));pick.id='pick-art-binding';bindActions.append(pick);
+    if(n.bind){const inspect=button('查看逻辑实体',()=>inspectLogic(n.bind));inspect.id='inspect-art-logic';bindActions.append(inspect);}
+    box.append(bindActions);
     if(n.bind?.type==='entity'){const e=d.entities.find(e=>e.id===n.bind.id);box.append(select('编辑状态变体',[['','基础资源'],...[...new Set([...STATES[e.kind],...Object.keys(n.variants??{})])].map(s=>[s,s])],variant,v=>{variant=v;render(current);preview(current);},'art-state'));
       if(variant)box.append(button('移除此状态覆盖',()=>{const state=variant;variant='';change(doc=>{const node=doc.scene.nodes.find(n=>n.id===selected);if(node.variants)delete node.variants[state];});},'text-button'));
     }
@@ -88,31 +94,38 @@ export function createResourceUI({editor,notify,preview}) {
     const actions=el('div',undefined,'resource-actions');actions.append(button('复制图层',()=>{let id;change(doc=>{id=duplicateArt(doc,selected);});choose(id);}),button('删除图片',()=>{const id=selected;selected=null;change(doc=>deleteArt(doc,id));},'button danger'));box.append(actions);
   }
   function renderLayers(d){const list=$('resource-layers');list.replaceChildren();for(const n of [...(d.scene?.nodes??[])].sort((a,b)=>b.layer-a.layer).filter(n=>(n.label+' '+n.id).toLowerCase().includes(layerQuery.toLowerCase()))){
-    const b=button('',()=>choose(n.id),'resource-layer');b.dataset.artId=n.id;b.setAttribute('aria-pressed',String(selected===n.id));b.append(el('code',String(n.layer)),el('span',n.label),el('small',n.bind?'↔':'·'));list.append(b);
+    const row=el('div',undefined,'resource-layer-row'),b=button('',()=>choose(n.id),'resource-layer');b.dataset.artId=n.id;b.setAttribute('aria-pressed',String(selected===n.id));b.append(el('code',String(n.layer)),el('span',n.label),el('small',n.bind?'↔':'·'));
+    const eye=button(hiddenLayers.has(n.id)?'隐':'显',()=>{if(hiddenLayers.has(n.id))hiddenLayers.delete(n.id);else hiddenLayers.add(n.id);render(current);preview(current);},'layer-visibility');eye.title='仅在编辑时隐藏此图层';eye.dataset.layerVisibility=n.id;eye.setAttribute('aria-pressed',String(!hiddenLayers.has(n.id)));
+    const lock=button(lockedLayers.has(n.id)?'锁':'解',()=>{if(lockedLayers.has(n.id))lockedLayers.delete(n.id);else lockedLayers.add(n.id);render(current);},'layer-lock');lock.title='锁定画布和快捷键操作；仍可在属性面板编辑';lock.dataset.layerLock=n.id;lock.setAttribute('aria-pressed',String(lockedLayers.has(n.id)));
+    row.append(b,eye,lock);list.append(row);
   }}
   function renderOverlay(d){overlay.replaceChildren();
     for(const n of [...(d.scene?.nodes??[])].sort((a,b)=>a.layer-b.layer)){
-      const t=artTransform(n,d,undefined,{variant:selected===n.id?variant:undefined});if(t.visible===false&&selected!==n.id)continue;
+      const t=artTransform(n,d,undefined,{variant:selected===n.id?variant:undefined});if((t.visible===false&&selected!==n.id)||hiddenLayers.has(n.id)||lockedLayers.has(n.id))continue;
       const b=button('',()=>{},'art-object');b.dataset.art=n.id;b.title=n.label;b.setAttribute('aria-label','选择资源：'+n.label);b.setAttribute('aria-pressed',String(n.id===selected));
       Object.assign(b.style,{left:t.x/12+'%',top:t.y/6.4+'%',width:t.width/12+'%',height:t.height/6.4+'%',transform:'rotate('+t.rotation+'deg)',zIndex:String(n.layer+101)});
       b.onpointerdown=e=>{if(tool||e.button!==0)return;e.preventDefault();e.stopPropagation();begin(e,n.id);};
       b.onclick=e=>{if(tool)return;if(suppress){suppress=false;return;}e.stopPropagation();choose(n.id);};overlay.append(b);
     }
-    const n=d.scene?.nodes.find(n=>n.id===selected);if(n&&!tool){const corners=artCorners(n,d,undefined,{variant});for(const h of ['nw','ne','se','sw']){const handle=button('',()=>{},'resize-handle art-resize');handle.dataset.artResize=h;handle.setAttribute('aria-label','缩放资源 '+h);handle.style.left=corners[h].x/12+'%';handle.style.top=corners[h].y/6.4+'%';handle.style.zIndex='205';handle.onpointerdown=e=>{e.preventDefault();e.stopPropagation();begin(e,n.id,h);};overlay.append(handle);}}
+    const n=d.scene?.nodes.find(n=>n.id===selected);if(n&&!tool&&!hiddenLayers.has(n.id)&&!lockedLayers.has(n.id)){const corners=artCorners(n,d,undefined,{variant});for(const h of ['nw','ne','se','sw']){const handle=button('',()=>{},'resize-handle art-resize');handle.dataset.artResize=h;handle.setAttribute('aria-label','缩放资源 '+h);handle.style.left=corners[h].x/12+'%';handle.style.top=corners[h].y/6.4+'%';handle.style.zIndex='205';handle.onpointerdown=e=>{e.preventDefault();e.stopPropagation();begin(e,n.id,h);};overlay.append(handle);}}
     overlay.dataset.placing=String(Boolean(tool));
   }
-  function begin(event,id,handle){document.activeElement?.blur();if(selected!==id)variant='';selected=id;tool=null;tab='inspect';gesture={id,handle,variant,startX:event.clientX,startY:event.clientY,dx:0,dy:0,before:editor.document(),pointerId:event.pointerId};overlay.setPointerCapture(event.pointerId);render(editor.document());preview(current);overlay.focus({preventScroll:true});}
+  function begin(event,id,handle){document.activeElement?.blur();if(selected!==id)variant='';selected=id;tool=null;tab='inspect';const before=editor.document();gesture={id,handle,variant,startX:event.clientX,startY:event.clientY,dx:0,dy:0,before,pointerId:event.pointerId,
+    box:artBounds(before.scene.nodes.find(n=>n.id===id),before,undefined,{variant}),targets:before.scene.nodes.filter(n=>n.id!==id&&!hiddenLayers.has(n.id)&&artTransform(n,before).visible!==false).map(n=>artBounds(n,before))};overlay.setPointerCapture(event.pointerId);overlay.dataset.dragging='true';render(editor.document());preview(current);overlay.focus({preventScroll:true});}
   const apply=(d,g)=>g.handle?resizeArt(d,g.id,g.handle,g.dx,g.dy,g.variant):moveArt(d,g.id,g.dx,g.dy,g.variant);
-  overlay.addEventListener('pointermove',e=>{if(!gesture||gesture.pointerId!==e.pointerId)return;const b=overlay.getBoundingClientRect();gesture.dx=Math.round((e.clientX-gesture.startX)/b.width*1200);gesture.dy=Math.round((e.clientY-gesture.startY)/b.height*640);const d=structuredClone(gesture.before);apply(d,gesture);renderOverlay(d);preview(d);});
-  overlay.addEventListener('pointerup',e=>{if(!gesture||gesture.pointerId!==e.pointerId)return;const g=gesture;gesture=null;overlay.releasePointerCapture(e.pointerId);suppress=true;if(g.dx||g.dy)change(d=>apply(d,g));else render(current);});
-  const cancel=()=>{if(!gesture)return;const id=gesture.pointerId;gesture=null;if(overlay.hasPointerCapture(id))overlay.releasePointerCapture(id);render(editor.document());preview(editor.document());};
+  overlay.addEventListener('pointermove',e=>{if(!gesture||gesture.pointerId!==e.pointerId)return;const b=overlay.getBoundingClientRect();gesture.dx=Math.round((e.clientX-gesture.startX)/b.width*12000)/10;gesture.dy=Math.round((e.clientY-gesture.startY)/b.height*6400)/10;
+    let guides=[];if(!gesture.handle){const aligned=alignMove(gesture.box,gesture.targets,gesture.dx,gesture.dy,{threshold:6*1200/b.width,disabled:e.altKey||!$('snap-enabled').checked});gesture.dx=aligned.dx;gesture.dy=aligned.dy;guides=aligned.guides;}drawGuides($('alignment-guides'),guides);
+    const d=structuredClone(gesture.before);apply(d,gesture);renderOverlay(d);preview(d);});
+  overlay.addEventListener('pointerup',e=>{if(!gesture||gesture.pointerId!==e.pointerId)return;const g=gesture;gesture=null;delete overlay.dataset.dragging;drawGuides($('alignment-guides'),[]);overlay.releasePointerCapture(e.pointerId);suppress=true;if(g.dx||g.dy)change(d=>apply(d,g));else render(current);});
+  const cancel=()=>{if(!gesture)return;const id=gesture.pointerId;gesture=null;delete overlay.dataset.dragging;drawGuides($('alignment-guides'),[]);if(overlay.hasPointerCapture(id))overlay.releasePointerCapture(id);render(editor.document());preview(editor.document());};
   overlay.addEventListener('pointerdown',()=>{suppress=false;},{capture:true});
   overlay.addEventListener('lostpointercapture',cancel);overlay.addEventListener('pointercancel',cancel);window.addEventListener('blur',cancel);
   overlay.addEventListener('click',e=>{if(suppress){suppress=false;return;}if(!tool){selected=null;variant='';render(current);preview(current);return;}const b=overlay.getBoundingClientRect(),asset=assetLibrary(editor.document()).find(a=>a.id===tool);change(d=>addArt(d,asset,Math.round((e.clientX-b.left)/b.width*1200),Math.round((e.clientY-b.top)/b.height*640)));});
   document.addEventListener('keydown',e=>{
-    if(document.body.dataset.display!=='scene'||!editor.isEditing()||e.isComposing||e.target.matches('input,select,textarea')||document.querySelector('dialog[open]'))return;
+    if(document.body.dataset.editTarget!=='art'||!editor.isEditing()||e.isComposing||e.target.matches('input,select,textarea')||document.querySelector('dialog[open]'))return;
     if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();cancel();tool=null;selected=null;variant='';render(editor.document());preview(current);return;}
     if(gesture){if(e.ctrlKey&&e.key.toLowerCase()==='z'){e.preventDefault();e.stopImmediatePropagation();cancel();}return;}
+    if(selected&&lockedLayers.has(selected)&&(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Delete','Backspace'].includes(e.key)||e.ctrlKey&&e.key.toLowerCase()==='d')){e.preventDefault();e.stopImmediatePropagation();return;}
     if(selected&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Delete','Backspace'].includes(e.key)){e.preventDefault();e.stopImmediatePropagation();const id=selected;if(['Delete','Backspace'].includes(e.key)){selected=null;change(d=>deleteArt(d,id));}else change(d=>moveArt(d,id,(e.key==='ArrowLeft'?-1:e.key==='ArrowRight'?1:0)*(e.shiftKey?10:1),(e.key==='ArrowUp'?-1:e.key==='ArrowDown'?1:0)*(e.shiftKey?10:1),variant));}
     if(selected&&e.ctrlKey&&e.key.toLowerCase()==='d'){e.preventDefault();let id;change(d=>{id=duplicateArt(d,selected);});choose(id);}
     if(e.ctrlKey&&e.key.toLowerCase()==='f'){e.preventDefault();e.stopImmediatePropagation();tab='library';render(current);$('asset-search').focus();$('asset-search').select();}
@@ -123,5 +136,5 @@ export function createResourceUI({editor,notify,preview}) {
     $('resource-library-tab').setAttribute('aria-selected',String(tab==='library'));$('resource-inspect-tab').setAttribute('aria-selected',String(tab==='inspect'));
     const box=$('resource-content');box.replaceChildren();if(tab==='library')renderLibrary(d,box);else renderInspector(d,box);renderLayers(d);renderOverlay(d);
   }
-  return {render,select:choose,cancel,variant:()=>selected?{id:selected,state:variant}:null};
+  return {render,select:choose,cancel,selected:()=>selected,hiddenLayers:()=>hiddenLayers,variant:()=>selected?{id:selected,state:variant}:null};
 }

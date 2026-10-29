@@ -17,7 +17,7 @@ async function play(p,mode,{early=false}={}){
   if(early){for(const id of ['cloud','antenna','umbrella','prop','pot'])await p.locator('#scene-interactions [data-source="'+id+'"]').click();await p.clock.runFor(52000);assert.match(await p.locator('#runtime-status').textContent(),/模拟结束/);}
   else{
     let previous=0;
-    for(const [ms,id] of [[9000,'cloud'],[12500,'antenna'],[17500,'umbrella'],[20833,'prop'],[27500,'pot']]){
+    for(const [ms,id] of [[5000,'pipe'],[9000,'cloud'],[12500,'antenna'],[17500,'umbrella'],[20833,'prop'],[27500,'pot'],[41500,'window']]){
       await p.clock.runFor(ms-previous);previous=ms;await p.locator('#scene-interactions [data-source="'+id+'"]').click();
       if(id==='cloud'){
         const moving=await p.locator('#scene').evaluate(c=>c.toDataURL());

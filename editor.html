@@ -10,18 +10,22 @@
 </head>
 <body class="editor-app">
   <header class="app-header">
-    <div class="app-brand"><span class="brand-symbol" aria-hidden="true">▦</span><div><h1>一定要到达那里</h1><span>关卡编辑器 <b>0.14.0</b></span></div></div>
+    <div class="app-brand"><span class="brand-symbol" aria-hidden="true">▦</span><div><h1>一定要到达那里</h1><span>关卡编辑器 <b>0.15.0</b></span></div></div>
     <div class="document-actions"><button id="reset-level" class="button secondary">新建首关副本</button><button id="open-data" class="button secondary">JSON 导入 / 导出</button><button id="download-editor" class="button secondary">下载离线编辑器</button></div>
   </header>
   <main id="editor-workspace">
     <section id="editor-toolbar" class="editor-toolbar" aria-label="创作工具" hidden></section>
     <section class="map-shell" aria-label="地图与模拟">
-      <div class="map-heading"><h2 id="scene-title">地图</h2><span id="scene-tag-text">正在创作</span><div class="display-controls"><label for="display-mode">编辑</label><select id="display-mode" aria-label="地图显示方式"><option value="logic">逻辑实体</option><option value="scene">美术资源</option></select><label title="控制资源动画；机关的真实运动和判定继续运行"><input id="animation-toggle" type="checkbox" checked>动画</label></div></div>
-      <div class="map-scroll"><div class="viewport" id="viewport">
+      <div class="map-heading"><h2 id="scene-title">地图</h2><span id="scene-tag-text">正在创作</span><div class="display-controls"><label for="display-mode">编辑</label><select id="display-mode" aria-label="地图显示方式"><option value="logic">逻辑实体</option><option value="scene">美术资源</option><option value="binding">绑定校准</option></select><label title="控制资源动画；机关的真实运动和判定继续运行"><input id="animation-toggle" type="checkbox" checked>动画</label></div></div>
+      <div class="canvas-tools" aria-label="画布工具"><button id="zoom-out" title="缩小画布">−</button><button id="zoom-level" title="恢复100%">100%</button><button id="zoom-in" title="放大画布">＋</button><button id="zoom-fit">适合窗口</button><label><input id="snap-enabled" type="checkbox" checked>对齐吸附</label><span>滚轮缩放 · 空格/中键拖动画布 · Alt 暂停吸附</span></div>
+      <div id="calibration-controls" class="calibration-controls" hidden><label>编辑 <select id="binding-target"><option value="art">美术资源</option><option value="logic">逻辑实体</option></select></label><label>美术 <input id="calibration-art-opacity" type="range" min="0" max="1" step="0.05" value="0.55"></label><label>逻辑 <input id="logic-opacity" type="range" min="0" max="1" step="0.05" value="1"></label><span id="binding-hint">图片与逻辑叠加校准</span><button id="cancel-binding" class="text-button">取消点选</button></div>
+      <div class="map-scroll" id="map-scroll"><div class="viewport" id="viewport">
         <canvas id="scene" width="1200" height="640" aria-label="关卡地图：路面、主角、终点和机关"></canvas>
         <div id="scene-interactions" class="scene-interactions" aria-label="场景机关" hidden></div>
         <div id="editor-overlay" class="editor-overlay" aria-label="点击放置或拖动逻辑物体" hidden></div>
         <div id="resource-overlay" class="resource-overlay" aria-label="移动和缩放美术资源" hidden></div>
+        <svg id="binding-overlay" viewBox="0 0 1200 640" aria-label="逻辑与图片绑定校准" hidden></svg>
+        <div id="alignment-guides" aria-hidden="true"></div>
       </div></div>
       <div class="preview-controls" aria-label="模拟控制"><button id="preview-toggle" class="button primary">▶ 运行</button><button id="preview-step" class="button secondary" title="暂停并推进一个 tick">单步</button><button id="preview-reset" class="button secondary" disabled>重置模拟</button><span id="runtime-status" role="status">编辑中</span><output id="runtime-tick">tick 0</output></div>
       <p class="map-note" id="stage-note"></p>
@@ -40,7 +44,7 @@
       <h3>事件记录</h3><ol id="runtime-log"></ol>
     </aside>
   </main>
-  <footer class="app-footer"><span id="document-summary">schemaVersion 1</span><span>两种视图 · 同一地图与模拟 · 草稿在本机保存</span></footer>
+  <footer class="app-footer"><span id="document-summary">schemaVersion 1</span><span>逻辑 · 资源 · 绑定校准 · 草稿在本机保存</span></footer>
   <dialog id="data-dialog" aria-labelledby="data-title"><div class="dialog-heading"><h2 id="data-title">关卡 JSON</h2><button id="close-data" class="button secondary" aria-label="关闭关卡数据">关闭</button></div><p class="panel-note">编辑与模拟共用同一数据格式。导入会新增草稿；模拟不会改变编辑内容。含图片的 JSON 最多 1 MiB。</p><label for="level-json">当前草稿 · schemaVersion 1</label><textarea id="level-json" spellcheck="false" maxlength="1048576"></textarea><p id="data-error" class="data-error" role="alert" hidden></p><div class="dialog-actions"><button id="import-level" class="button secondary">选择 JSON 文件</button><button id="export-level" class="button secondary">导出当前草稿</button><button id="apply-level" class="button primary">导入为新草稿</button></div><input id="level-file" type="file" accept=".json,application/json" hidden></dialog>
   <div id="toast" class="toast" role="status" hidden></div>
   <script type="module" src="/src/shell/editor.js"></script>

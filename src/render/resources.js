@@ -58,8 +58,9 @@ export function drawResources(ctx,level,snapshot,options={}) {
   const library=new Map(assetLibrary(level).map(a=>[a.id,a]));
   ctx.fillStyle=level.scene.background;ctx.fillRect(0,0,1200,640);
   for(const node of [...level.scene.nodes].sort((a,b)=>a.layer-b.layer)){
+    if(options.hiddenLayers?.has(node.id))continue;
     const n=artTransform(node,level,snapshot,{...options,variant:options.previewVariant?.id===node.id?options.previewVariant.state:undefined});if(n.visible===false)continue;
-    const image=assetImage(library.get(n.asset));ctx.save();ctx.translate(n.x,n.y);ctx.rotate(n.rotation*Math.PI/180);ctx.globalAlpha=n.opacity??1;
+    const image=assetImage(library.get(n.asset));ctx.save();ctx.translate(n.x,n.y);ctx.rotate(n.rotation*Math.PI/180);ctx.globalAlpha=(n.opacity??1)*(options.artOpacity??1);
     if(n.flipX){ctx.translate(n.width,0);ctx.scale(-1,1);}
     if(image&&n.tile){ctx.beginPath();ctx.rect(0,0,n.width,n.height);ctx.clip();for(let y=0;y<n.height;y+=n.tile.height)for(let x=0;x<n.width;x+=n.tile.width)ctx.drawImage(image,x,y,n.tile.width,n.tile.height);}
     else if(image)ctx.drawImage(image,0,0,n.width,n.height);

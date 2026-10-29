@@ -60,9 +60,13 @@ test('ordinary object resizes around the opposite corner, clamps bounds, and per
   store.change(d=>resizeObject(d,r,'se',5000,5000));e=store.document().entities[0];assert.ok(e.x+e.width<=1200);assert.ok(e.height<=240);assert.ok(e.y<=560);
   assert.equal(validateLevel(store.document()).valid,true);
 });
-test('roads resize only horizontally; channel handles edit and snap endpoints independently',()=>{
-  const level=journey();resizeObject(level,{type:'platform',index:0},'e',-20,100);assert.equal(level.platforms[0].width,265);assert.equal(level.platforms[0].y,undefined);
-  level.platforms[0].width=285;resizeObject(level,ref,'n',0,18);assert.equal(level.entities[0].transport.toY,260);
+test('roads resize length and endpoint height independently',()=>{
+  const level=journey();resizeObject(level,{type:'platform',index:0},'e',-20,100);
+  assert.equal(level.platforms[0].width,265);assert.equal(level.platforms[0].y,undefined);assert.equal(level.platforms[0].yEnd,540);assert.ok(level.world.physics);
+});
+
+test('channel handles edit and snap endpoints independently',()=>{
+  const level=journey();resizeObject(level,ref,'n',0,18);assert.equal(level.entities[0].transport.toY,260);
   resizeObject(level,ref,'s',0,50);assert.equal(level.entities[0].y,490);assert.equal(level.entities[0].transport.toY,260);
   resizeObject(level,ref,'n',0,999);assert.equal(level.entities[0].transport.toY,440);assert.ok(diagramBounds('object',level.entities[0]).height>=64);
 });

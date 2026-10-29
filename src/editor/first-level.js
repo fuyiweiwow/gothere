@@ -5,11 +5,11 @@ export function createFirstLevel() {
   const invoke=(target,behavior)=>({type:'invoke',target,behavior});
   const enable=(target,capability,enabled)=>({type:'enable',target,capability,enabled});
   const level={schemaVersion:1,id:'editor-first-level',name:'第一关 · 屋顶到亮窗',
-    description:'从右上屋顶向左走，经临时通路和天线桥到塔顶；持有缓降物落到左下檐面，再沿放下的斜面经过生物，走向右侧亮窗。',
-    hint:'按主角的位置操作，过早会恢复，过晚会错过。参考：9秒云桥（持续5秒）→12.5秒天线（6秒后收回）→17.5秒展开缓降物（6秒）→20.8秒抽支撑→27.5秒放落物（生物只休息6秒）。暂停和单步可用于观察。',
+    description:'拉下水管接通屋顶，经云桥和天线到塔顶；撑伞落到左下檐面，放下檐面、落物处理生物，最后在窗户打开后关上它，走向亮窗。',
+    hint:'按主角的位置操作，过早会恢复，过晚会错过。参考：5秒拉水管→9秒云桥（5秒）→12.5秒天线（6秒后收回）→17.5秒撑伞（6秒）→20.8秒抽支撑→27.5秒放落物（生物休息6秒）→接近右侧时，窗户自动打开后及时关闭。暂停和单步可用于观察。',
     world:{width:1200,height:640,groundY:440,physics:{gravity:900,maxFallSpeed:480}},
     actor:{x:1100,y:200,direction:-1,speed:45,maxLandingSpeed:330},goal:{x:1100,y:560},
-    platforms:[{x:800,y:200,width:380},{x:700,y:280,width:100,yEnd:200},{x:660,y:280,width:40},
+    platforms:[{x:800,y:200,width:380},{x:660,y:280,width:40},
       {x:200,y:180,width:120},{x:rampEnd,y:480,width:530-rampEnd},{x:540,y:530,width:220},
       {x:760,y:530,width:140,yEnd:560},{x:900,y:560,width:280}],
     entities:[
@@ -38,6 +38,14 @@ export function createFirstLevel() {
         behaviors:[{id:'rest',label:'休息6秒后醒来',actions:[{type:'set',target:'creature',state:'inactive'},
           {type:'after',ticks:360,actions:[{type:'set',target:'creature',state:'active'}]}]},
           {id:'attack',label:'攻击',actions:[{type:'hurt',message:'阳台生物还醒着。让上方落物真正撞到它，触发休息行为。'}]}]},
+      {id:'pipe',kind:'object',label:'⓪ 可拉下水管',x:700,y:280,width:Math.hypot(100,80),height:10,state:'inactive',pose:{angle:-65,pivot:0},surface:{enabled:false},
+        behaviors:[{id:'lower',label:'拉下成为通路',actions:[{type:'set',target:'pipe',state:'active'},{type:'rotate',target:'pipe',angle:Math.atan2(-80,100)*180/Math.PI,ticks:60}]},
+          {id:'support',label:'连接完成可行走',actions:[enable('pipe','surface',true)]}]},
+      {id:'window',kind:'object',label:'⑥ 会打开的窗户',x:970,y:560,width:45,height:90,state:'inactive',contact:{effect:'lethal',message:'打开的窗户挡住了去路。走近触发开窗后，及时把它关上。'},
+        behaviors:[{id:'open',label:'打开窗户',actions:[{type:'set',target:'window',state:'active'}]},
+          {id:'close',label:'关闭窗户',actions:[{type:'set',target:'window',state:'inactive'}]}]},
+      {id:'window-zone',kind:'zone',label:'开窗位置感应',x:910,y:560,width:20,height:30,state:'enabled',
+        behaviors:[{id:'once',label:'感应一次后停用',actions:[invoke('window','open'),{type:'set',target:'window-zone',state:'disabled'}]}]},
     ],
     rules:[{on:{type:'click',source:'cloud'},if:[{entity:'cloud',state:'inactive'}],actions:[invoke('cloud','appear')]},
       {on:{type:'click',source:'antenna'},if:[{entity:'antenna',state:'inactive'}],actions:[invoke('antenna','tilt')]},
@@ -49,7 +57,11 @@ export function createFirstLevel() {
       {on:{type:'click',source:'pot'},actions:[invoke('pot','release')]},
       {on:{type:'impact',source:'creature',other:'pot'},actions:[invoke('creature','rest')]},
       {on:{type:'contact',source:'creature'},actions:[invoke('creature','attack')]},
-      {on:{type:'done',source:'antenna',behavior:'tilt'},actions:[{type:'after',ticks:90,actions:[invoke('antenna','ready')]}]}]};
+      {on:{type:'done',source:'antenna',behavior:'tilt'},actions:[{type:'after',ticks:90,actions:[invoke('antenna','ready')]}]},
+      {on:{type:'click',source:'pipe'},if:[{entity:'pipe',state:'inactive'}],actions:[invoke('pipe','lower')]},
+      {on:{type:'rotated',source:'pipe'},actions:[invoke('pipe','support')]},
+      {on:{type:'enter',source:'window-zone'},actions:[invoke('window-zone','once')]},
+      {on:{type:'click',source:'window'},if:[{entity:'window',state:'active'}],actions:[invoke('window','close')]}]};
   // Ordinary saved reroute points keep the example's self-connections near their objects.
   const routes=[[[680,286],[680,325],[465,325],[465,286]],
     [[495,286],[495,240],[280,240],[280,286]],[[280,165],[280,125],[220,125],[220,165]],
@@ -59,7 +71,7 @@ export function createFirstLevel() {
     [[500,450],[500,505],[365,505],[365,450]]];
   level.rules.forEach((rule,i)=>{if(routes[i])rule.actions[0].editor={waypoints:routes[i].map(([x,y])=>({x,y}))};});
   const visuals=[['cloud','#b9dad2','bob'],['beam','#a7bdb1','none'],['umbrella','#edb864','none'],['beam','#9ab6b6','none'],
-    ['support','#b08d6f','none'],['beam','#8eaca5','none'],['pot','#bd795f','none'],['creature','#91a87f','none']];
+    ['support','#b08d6f','none'],['beam','#8eaca5','none'],['pot','#bd795f','none'],['creature','#91a87f','none'],['beam','#9caed0','none'],['block','#86b9cb','none'],['block','#86b9cb','none']];
   level.entities.forEach((e,i)=>{const [symbol,color,animation]=visuals[i];e.presentation={symbol,color,animation};});
   level.scene=createFirstScene(level);return level;
 }

@@ -8,6 +8,7 @@ import { verticalTransport, landingX } from '../core/transport.js';
 import { surfaceEndY } from '../core/surfaces.js';
 import { posePoint, posePolygon } from '../core/pose.js';
 import { EDITOR_SHORTCUTS, shortcutCommand, nudgeDelta } from './shortcuts.js';
+import {alignMove,drawGuides} from './alignment.js';
 
 const $ = id => document.getElementById(id);
 const STORAGE = 'gothere.editor.v1';
@@ -37,7 +38,7 @@ const availableEvents=e=>eventTypes(e).filter(t=>t!=='done'||e.behaviors?.length
 const actionList = (actions,path) => {for(const index of path)actions=actions[index].actions;return actions;};
 
 /** DOM adapter only: the draft store and simulation do not depend on this interface. */
-export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagram=false,onChange=()=>{},onMode=()=>{}}) {
+export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagram=false,onChange=()=>{},onPreview=onChange,onMode=()=>{},editResources=()=>{}}) {
   let store=createEditorStore(), restored=false, mode='closed', selection=null, tool='select', drag=null, serial=0,placementY=440;
   let placementMode=diagram?'cursor':'fixed';
   let suppressClick=false;
@@ -64,13 +65,16 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
   function flushField(){const active=document.activeElement;if(active?.matches('input,textarea,select,[contenteditable="true"]'))active.blur();}
   function capturePointer(event){$('editor-overlay').setPointerCapture(event.pointerId);$('editor-overlay').dataset.dragging='true';}
   function releasePointer(pointerId){const overlay=$('editor-overlay');delete overlay.dataset.dragging;if(overlay.hasPointerCapture(pointerId))overlay.releasePointerCapture(pointerId);}
-  function cancelGesture(){const active=drag??routeDrag;if(!active)return false;drag=null;routeDrag=null;releasePointer(active.pointerId);suppressClick=true;render();return true;}
+  function cancelGesture(){const active=drag??routeDrag;if(!active)return false;drag=null;routeDrag=null;releasePointer(active.pointerId);suppressClick=true;drawGuides($('alignment-guides'),[]);render();return true;}
   function beginDrag(event,ref,handle){
     if(event.button!==0)return;
     event.preventDefault();event.stopPropagation();
     // Commit pending field edits before reading the gesture's immutable starting document.
     capturePointer(event);flushField();selection=ref;selectedWire=null;tool='select';showTab('object');render();
-    drag={ref:structuredClone(ref),handle,start:event.clientX,startY:event.clientY,dx:0,dy:0,pointerId:event.pointerId,before:store.document()};
+    const before=store.document();
+    const objects=[...before.entities.map(e=>({ref:{type:'entity',id:e.id},e})),...before.platforms.map((e,index)=>({ref:{type:'platform',index},e})),{ref:{type:'actor'},e:before.actor},{ref:{type:'goal'},e:before.goal}];
+    drag={ref:structuredClone(ref),handle,start:event.clientX,startY:event.clientY,dx:0,dy:0,pointerId:event.pointerId,before,
+      box:diagramBounds(resolveObject(before,ref).kind??ref.type,resolveObject(before,ref)),targets:objects.filter(o=>refKey(o.ref)!==refKey(ref)).map(o=>diagramBounds(o.e.kind??o.ref.type,o.e))};
     $('editor-overlay').focus({preventScroll:true});
   }
   $('editor-overlay').tabIndex=0;
@@ -326,17 +330,15 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     const definition=element('div',undefined,'object-definition');definition.append(element('strong',KIND_NAMES[target.kind??selection.type]),element('code',target.id??selection.type));box.append(definition);
     if(selection.type==='entity')renderSlots(d,target,box);
     box.append(element('h3','属性','inspector-heading'));
-    const update=(key,value)=>edit(doc=>{const e=resolveObject(doc,selection);e[key]=value;if(diagram&&['x','y','width','toY'].includes(key))snapTransport(doc,e);});
+    const update=(key,value)=>edit(doc=>{const e=resolveObject(doc,selection);e[key]=value;if(key==='yEnd')doc.world.physics??={gravity:900,maxFallSpeed:480};if(diagram&&['x','y','width','toY'].includes(key))snapTransport(doc,e);});
     const geometry={platform:[0,1199],actor:[20,1150],goal:[40,1180],entity:[25,1175]}[selection.type];
     box.append(field('位置 X',input(target.x,'位置 X',value=>update('x',value),{id:'object-x',type:'number',min:geometry[0],max:geometry[1],step:1})));
     if(['platform','entity'].includes(selection.type)) box.append(field('宽度',input(target.width??28,'宽度',value=>update('width',value),{id:'object-width',type:'number',min:selection.type==='platform'?1:8,max:selection.type==='platform'?1200:600,step:1})));
     if(['platform','entity','actor','goal'].includes(selection.type))box.append(field(selection.type==='platform'&&target.yEnd!==undefined?'左端高度 Y':'脚底高度 Y',input(floorY(target),'脚底高度 Y',value=>update('y',value===440?undefined:value),{id:'object-y',type:'number',min:160,max:560,step:1})));
     if(selection.type==='platform'){
-      const slope=element('input');slope.type='checkbox';slope.id='object-slope';slope.checked=target.yEnd!==undefined;slope.setAttribute('aria-label','斜面');
-      slope.addEventListener('change',()=>edit(doc=>{const p=resolveObject(doc,selection);if(slope.checked){p.yEnd=Math.min(560,floorY(p)+80);doc.world.physics??={gravity:900,maxFallSpeed:480};}else delete p.yEnd;}));
-      box.append(field('斜面',slope));
-      if(target.yEnd!==undefined){box.append(field('右端高度 Y',input(target.yEnd,'右端高度 Y',value=>update('yEnd',value),{id:'object-y-end',type:'number',min:160,max:560,step:1})));
-        box.append(element('p','拖动左右端点改变长度与坡度；拖动路面整体移动。','panel-note'));}
+      box.append(field('右端高度 Y',input(surfaceEndY(target),'右端高度 Y',value=>update('yEnd',value),{id:'object-y-end',type:'number',min:160,max:560,step:1})));
+      box.append(button('两端等高',()=>edit(doc=>{const p=resolveObject(doc,selection);delete p.yEnd;}),'text-button'));
+      box.append(element('p','路面由两个端点确定，端点不等高就自然倾斜。可旋转的机关请使用物体的姿态与承托能力。','panel-note'));
     }
     if(diagram&&selection.type==='entity'&&!verticalTransport(target)&&target.kind!=='lift')box.append(field('高度',input(target.pose?(target.height??(target.surface?12:36)):diagramBounds(target.kind,target).height,'高度',value=>update('height',value),{id:'object-height',type:'number',min:8,max:240,step:1})));
     if(selection.type==='actor') {
@@ -431,6 +433,11 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
       if((target.behaviors??[]).length<16)behaviorBox.append(button('＋ 新行为',()=>edit(doc=>addBehavior(resolveObject(doc,selection))),'text-button'));
       box.append(behaviorBox);
     }
+    const art=d.scene?.nodes.filter(n=>n.bind?.type===selection.type&&(selection.type==='entity'?n.bind.id===selection.id:selection.type==='platform'?n.bind.index===selection.index:true))??[];
+    box.append(element('h3','关联美术资源','inspector-heading'));
+    if(!art.length)box.append(element('p','尚未绑定图片。可进入绑定校准，点选要跟随此实体的图片。','panel-note'));
+    for(const node of art){const b=button(node.label,()=>editResources(selection,node.id),'bound-resource');b.dataset.boundArt=node.id;box.append(b);}
+    box.append(button('打开绑定校准',()=>editResources(selection,null),'button secondary'));
     if(['platform','entity'].includes(selection.type)) {
       const remove=button('删除物件',()=>edit(doc=>{deleteObject(doc,selection);selection=null;}),'button danger');remove.id='object-delete';box.append(remove);
     }
@@ -570,10 +577,13 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
   window.addEventListener('pointermove',event=>{
     if(routeDrag && event.pointerId===routeDrag.pointerId){const point=overlayPoint(event),old=routeDrag.points[routeDrag.index];if(point.x===old.x&&point.y===old.y)return;capturePointer(event);routeDrag.points[routeDrag.index]=point;const d=store.document();setWirePoints(d,routeDrag.wire,routeDrag.points);renderWires(d);return;}
     if(!drag || event.pointerId!==drag.pointerId)return;const box=$('editor-overlay').getBoundingClientRect();
-    drag.dx=Math.round((event.clientX-drag.start)/box.width*1200/10)*10;
-    drag.dy=diagram||drag.handle?Math.round((event.clientY-drag.startY)/box.height*640/10)*10:0;
+    drag.dx=Math.round((event.clientX-drag.start)/box.width*12000)/10;
+    drag.dy=diagram||drag.handle?Math.round((event.clientY-drag.startY)/box.height*6400)/10:0;
+    let guides=[];
+    if(!drag.handle){const aligned=alignMove(drag.box,drag.targets,drag.dx,drag.dy,{threshold:6*1200/box.width,disabled:event.altKey||!$('snap-enabled').checked});drag.dx=aligned.dx;drag.dy=aligned.dy;guides=aligned.guides;}
+    drawGuides($('alignment-guides'),guides);
     const d=structuredClone(drag.before);applyDrag(d,drag);const target=resolveObject(d,drag.ref),el=$('editor-overlay').querySelector('[data-ref="'+refKey(drag.ref)+'"]');
-    const b=diagramBounds(target.kind??drag.ref.type,target);el.style.left=b.x/12+'%';el.style.top=b.y/6.4+'%';el.style.width=b.width/12+'%';el.style.height=b.height/6.4+'%';shapeSurfaceHit(el,drag.ref.type,target);positionResizeHandles(d);onChange(d);renderWires(d);
+    const b=diagramBounds(target.kind??drag.ref.type,target);el.style.left=b.x/12+'%';el.style.top=b.y/6.4+'%';el.style.width=b.width/12+'%';el.style.height=b.height/6.4+'%';shapeSurfaceHit(el,drag.ref.type,target);positionResizeHandles(d);onPreview(d);renderWires(d);
   });
   function applyDrag(doc,gesture){
     if(gesture.handle)resizeObject(doc,gesture.ref,gesture.handle,gesture.dx,gesture.dy);
@@ -582,7 +592,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
   window.addEventListener('pointerup',event=>{
     if(routeDrag && event.pointerId===routeDrag.pointerId){const moved=routeDrag;routeDrag=null;releasePointer(event.pointerId);if(JSON.stringify(moved.points)!==JSON.stringify(moved.wire.points)){suppressClick=true;edit(doc=>setWirePoints(doc,moved.wire,moved.points));}return;}
     if(!drag || event.pointerId!==drag.pointerId)return;const moved=drag;drag=null;
-    releasePointer(event.pointerId);suppressClick=true;
+    releasePointer(event.pointerId);suppressClick=true;drawGuides($('alignment-guides'),[]);
     if(!moved.dx&&!moved.dy)return;
     edit(doc=>applyDrag(doc,moved));
   });
@@ -606,7 +616,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
       target?{type:'set',target:target.id,state:target.state}:{type:'set',target:source.id,state:source.state};
     doc.rules.push({on:{type:availableEvents(source)[0],source:source.id},actions:[action]});
   }));
-  function preview({run=true}={}) {flushField();const d=store.document();if(!validateLevel(d).valid){notify('请先修正地图中的校验问题。');return false;}setMode('testing');play(d,{run});return true;}
+  function preview({run=true}={}) {cancelGesture();flushField();const d=store.document();if(!validateLevel(d).valid){notify('请先修正地图中的校验问题。');return false;}setMode('testing');play(d,{run});return true;}
   $('editor-test').addEventListener('click',()=>preview());
   $('editor-return').addEventListener('click',()=>{pause();setMode('editing');});
   $('editor-exit').addEventListener('click',()=>{pause();const d=store.document();setMode('closed');leave(validateLevel(d).valid?d:null);});
@@ -614,7 +624,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     if(mode==='closed'||document.querySelector('dialog[open]'))return;
     const typing=event.target.matches('input,textarea,select,[contenteditable="true"]');
     const command=shortcutCommand(event,{typing,testing:mode==='testing',diagram});if(!command)return;
-    if(mode==='editing'&&document.body.dataset.display==='scene'&&!['save','help','undo','redo','new','data','run','step','toggle'].includes(command))return;
+    if(mode==='editing'&&document.body.dataset.editTarget==='art'&&!['save','help','undo','redo','new','data','run','step','toggle'].includes(command))return;
     event.preventDefault();event.stopPropagation();
     if(drag||routeDrag){if(command==='cancel')cancelGesture();return;}
     if(event.repeat&&command!=='nudge')return;
@@ -654,8 +664,15 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
   return {
     active:()=>mode!=='closed',isEditing:()=>mode==='editing',document:()=>store.document(),
     change:edit,
+    cancel:cancelGesture,
+    select:chooseObject,selection:()=>selection?structuredClone(selection):null,
     preview,
-    open(level,key){if(restored){pause();restored=false;setMode('editing');}else openDocument(level,key);},
+    open(level,key,{updateSample=false}={}){if(restored){
+      restored=false;
+      // Open the updated sample once, preserving every existing slot and subsequent edits.
+      if(updateSample&&store.document().id===level.id&&!store.entries().some(e=>e.key===key)&&store.entries().length<32){openDocument(level,key);return;}
+      pause();setMode('editing');
+    }else openDocument(level,key);},
     openDocument,
     importDocument(level){if(!openDocument(level,'import:'+Date.now().toString(36)+'-'+serial++))throw new Error('无法创建导入草稿，请检查草稿数量。');},
     snapshot(){const d=store.document();return {tick:0,status:'ready',reason:null,actor:{x:d.actor.x,y:floorY(d.actor),direction:d.actor.direction??1,holding:null,mode:'walking'},

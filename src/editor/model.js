@@ -220,7 +220,8 @@ export function resizeObject(level,ref,handle,dx,dy) {
     const right=e.x+(e.width??28),left=clamp(e.x+dx,Math.max(minX,right-maxWidth,e.motion?.minX??minX),Math.min(right-minWidth,e.motion?.maxX??(road?1199:1175)));
     e.x=left;e.width=right-left;
   }else if(handle.includes('e'))e.width=clamp((e.width??28)+dx,minWidth,Math.min(maxWidth,1200-e.x));
-  if(road&&e.yEnd!==undefined){
+  if(road&&(e.yEnd!==undefined||dy)){
+    e.yEnd??=floorY(e);level.world.physics??={gravity:900,maxFallSpeed:480};
     if(handle==='w')e.y=clamp(floorY(e)+dy,160,560);
     if(handle==='e')e.yEnd=clamp(e.yEnd+dy,160,560);
   }

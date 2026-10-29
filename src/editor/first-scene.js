@@ -64,6 +64,8 @@ export function createFirstScene(level) {
   bind('pot-shelf','cornice','落物承托窗沿资源',-5,-20,66,13,{variants:{inactive:{opacity:.25}}});
   bind('pot','flowerPot','可落下花盆资源',-5,-55,40,55);
   bind('creature','catAwake','生物资源',-3,-63,87,68,{variants:{inactive:{asset:'catRest',y:-39,height:43}}});
+  bind('pipe','drainpipe','可拉下水管资源',0,-5,10,Math.hypot(100,80),{rotation:-90});
+  bind('window','windowNight','可开闭窗户资源',-6,-139,57,139,{variants:{active:{asset:'windowOpen',x:-17,width:79,animation:{frames:['windowOpen','windowLowOpen'],fps:3}}}});
   add('windowGlow','目的地亮窗资源',-34,-149,68,149,20,{bind:{type:'goal'}});
   add('travelerIdle','主角资源',-15,-46,30,46,30,{bind:{type:'actor'},flipWithDirection:true,
     animation:{frames:['travelerWalk1','travelerWalk2','travelerWalk3','travelerWalk2'],fps:8}});

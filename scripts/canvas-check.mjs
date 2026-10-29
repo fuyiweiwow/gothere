@@ -1,0 +1,65 @@
+import assert from 'node:assert/strict';
+import {existsSync} from 'node:fs';
+import {mkdir} from 'node:fs/promises';
+import {pathToFileURL} from 'node:url';
+import {chromium} from 'playwright';
+import {makeServer} from '../server.mjs';
+import {buildEditor} from './build.mjs';
+import {artTransform} from '../src/render/resources.js';
+
+await mkdir('artifacts',{recursive:true});const server=makeServer();await new Promise(r=>server.listen(0,'127.0.0.1',r));
+const browser=await chromium.launch({headless:true,...(!existsSync(chromium.executablePath())?{channel:'msedge'}:{})});
+const context=await browser.newContext({viewport:{width:1600,height:1150}}),errors=[];
+const draft=p=>p.evaluate(()=>{const s=JSON.parse(localStorage.getItem('gothere.studio.v1'));return s.documents.find(d=>d.key===s.activeKey).level;});
+const near=(a,b,message,tolerance=.15)=>assert.ok(Math.abs(a-b)<tolerance,message+': '+a+' / '+b);
+async function open(url){const p=await context.newPage();p.on('pageerror',e=>errors.push(e.message));await p.goto(url);await p.locator('#scene[data-assets=ready]').waitFor();return p;}
+async function chooseArt(p,label){await p.locator('#layer-search').fill(label);await p.locator('#resource-layers .resource-layer').first().click();}
+try{
+  const p=await open(process.argv[2]??'http://127.0.0.1:'+server.address().port+'/'),initial=await draft(p);
+  await p.locator('#display-mode').selectOption('logic');await p.locator('#snap-enabled').uncheck();await p.locator('[data-ref="entity:prop"]').click();
+  let box=await p.locator('[data-ref="entity:prop"]').boundingBox(),map=await p.locator('#editor-overlay').boundingBox();
+  const initialImage=await p.locator('#scene').evaluate(c=>c.toDataURL());
+  await p.mouse.move(box.x+box.width/2,box.y+box.height/2);await p.mouse.down();await p.mouse.move(box.x+box.width/2+37.4/1200*map.width,box.y+box.height/2+12.8/640*map.height,{steps:13});
+  const preview=await p.locator('#scene').evaluate(c=>c.toDataURL());assert.notEqual(preview,initialImage);await p.waitForTimeout(180);
+  assert.equal(await p.locator('#scene').evaluate(c=>c.toDataURL()),preview,'async image readiness cannot repaint the old document during a drag');assert.deepEqual(await draft(p),initial,'drag preview is not saved');
+  await p.mouse.up();let prop=(await draft(p)).entities.find(e=>e.id==='prop');near(prop.x,302.4,'smooth drag X');near(prop.y,392.8,'smooth drag Y');await p.keyboard.press('Control+z');assert.deepEqual(await draft(p),initial);
+  await p.locator('#snap-enabled').check();box=await p.locator('[data-ref="entity:prop"]').boundingBox();
+  await p.mouse.move(box.x+box.width/2,box.y+box.height/2);await p.mouse.down();await p.mouse.move(box.x+box.width/2+2,box.y+box.height/2+2);
+  assert.ok(await p.locator('.alignment-guide').count()>0,'alignment guides appear');await p.keyboard.down('Alt');await p.mouse.move(box.x+box.width/2+3,box.y+box.height/2+3);assert.equal(await p.locator('.alignment-guide').count(),0);await p.keyboard.up('Alt');await p.keyboard.press('Escape');await p.mouse.up();assert.deepEqual(await draft(p),initial);
+  const scroll=await p.locator('#map-scroll').boundingBox(),anchor={x:scroll.x+scroll.width/2,y:scroll.y+scroll.height/2};
+  const worldBefore=await p.locator('#viewport').evaluate((e,a)=>{const b=e.getBoundingClientRect();return {x:(a.x-b.left)/b.width*1200,y:(a.y-b.top)/b.height*640};},anchor);
+  await p.mouse.move(anchor.x,anchor.y);await p.mouse.wheel(0,-300);await p.waitForTimeout(80);
+  const worldAfter=await p.locator('#viewport').evaluate((e,a)=>{const b=e.getBoundingClientRect();return {x:(a.x-b.left)/b.width*1200,y:(a.y-b.top)/b.height*640};},anchor);near(worldBefore.x,worldAfter.x,'zoom keeps pointer X',.8);near(worldBefore.y,worldAfter.y,'zoom keeps pointer Y',.8);
+  await p.mouse.move(anchor.x,anchor.y);await p.mouse.down({button:'middle'});await p.mouse.move(anchor.x-70,anchor.y-35,{steps:5});await p.mouse.up({button:'middle'});
+  assert.ok(await p.locator('#map-scroll').evaluate(e=>e.scrollLeft)>50);assert.deepEqual(await draft(p),initial,'panning never moves map objects');
+  await p.locator('#zoom-fit').click();assert.equal(await p.locator('#zoom-level').textContent(),'100%');
+  await p.locator('#snap-enabled').uncheck();await p.locator('#zoom-in').click();await p.locator('[data-ref="entity:prop"]').click();
+  box=await p.locator('[data-ref="entity:prop"]').boundingBox();map=await p.locator('#editor-overlay').boundingBox();
+  await p.mouse.move(box.x+box.width/2,box.y+box.height/2);await p.mouse.down();await p.mouse.move(box.x+box.width/2+20/1200*map.width,box.y+box.height/2+10/640*map.height,{steps:6});await p.mouse.up();
+  prop=(await draft(p)).entities.find(e=>e.id==='prop');near(prop.x,285,'zoomed drag X');near(prop.y,390,'zoomed drag Y');
+  const handle=await p.locator('[data-resize="e"]').boundingBox();await p.mouse.move(handle.x+handle.width/2,handle.y+handle.height/2);await p.mouse.down();await p.mouse.move(handle.x+handle.width/2+15/1200*map.width,handle.y+handle.height/2,{steps:5});await p.mouse.up();near((await draft(p)).entities.find(e=>e.id==='prop').width,prop.width+15,'zoomed resize');
+  await p.keyboard.press('Control+z');await p.keyboard.press('Control+z');assert.deepEqual(await draft(p),initial);
+  await p.mouse.move(anchor.x,anchor.y);await p.keyboard.down('Space');await p.mouse.down();await p.mouse.move(anchor.x-40,anchor.y-20,{steps:4});await p.mouse.up();await p.keyboard.up('Space');assert.deepEqual(await draft(p),initial,'Space pan cannot select or edit an object');await p.locator('#zoom-fit').click();
+  await p.locator('#display-mode').selectOption('scene');await chooseArt(p,'可落下花盆资源');const artId=initial.scene.nodes.find(n=>n.label==='可落下花盆资源').id;
+  await p.locator('#inspect-art-logic').click();assert.equal(await p.locator('#display-mode').inputValue(),'binding');assert.equal(await p.locator('#binding-target').inputValue(),'logic');assert.equal(await p.locator('#object-width').inputValue(),'30');
+  await p.locator('[data-bound-art="'+artId+'"]').click();assert.equal(await p.locator('#binding-target').inputValue(),'art');assert.equal(await p.locator('#art-bind').inputValue(),'entity:pot');
+  const before=artTransform(initial.scene.nodes.find(n=>n.id===artId),initial);await p.locator('#pick-art-binding').click();
+  await p.locator('[data-binding-ref="entity:umbrella"]').click();const linked=await draft(p),node=linked.scene.nodes.find(n=>n.id===artId),after=artTransform(node,linked);
+  assert.equal(node.bind.id,'umbrella');near(before.x,after.x,'rebind keeps image X');near(before.y,after.y,'rebind keeps image Y');assert.deepEqual(linked.entities,initial.entities);
+  await p.locator('#editor-undo').click();assert.deepEqual(await draft(p),initial);
+  await p.locator('#pick-art-binding').click();await p.keyboard.press('Escape');assert.equal(await p.locator('#binding-overlay').getAttribute('data-picking'),'false');assert.deepEqual(await draft(p),initial);
+  await p.locator('#layer-search').fill('可落下花盆资源');await p.locator('[data-layer-visibility="'+artId+'"]').click();assert.equal(await p.locator('[data-art="'+artId+'"]').count(),0);assert.deepEqual(await draft(p),initial);
+  await p.locator('[data-layer-visibility="'+artId+'"]').click();await p.locator('[data-layer-lock="'+artId+'"]').click();assert.equal(await p.locator('[data-art="'+artId+'"]').count(),0);
+  await p.locator('#resource-overlay').focus();await p.keyboard.press('ArrowRight');await p.keyboard.press('Delete');assert.deepEqual(await draft(p),initial,'locked layer ignores accidental move/delete shortcuts');
+  await p.locator('[data-layer-lock="'+artId+'"]').click();assert.equal(await p.locator('[data-art="'+artId+'"]').count(),1);
+  await p.locator('#calibration-art-opacity').fill('0.3');await p.locator('#logic-opacity').fill('0.7');assert.deepEqual(await draft(p),initial,'calibration visibility is editor-only');
+  await p.screenshot({path:'artifacts/binding-calibration.png',fullPage:true});
+  await p.locator('#pick-art-binding').click();await p.locator('#preview-toggle').click();assert.equal(await p.locator('#binding-overlay').getAttribute('data-picking'),'false');assert.equal(await p.locator('[data-binding-ref][role=button]').count(),0);assert.deepEqual(await draft(p),initial,'simulation cancels binding edits');await p.locator('#editor-return').click();
+  const old=structuredClone(initial);old.name='保留的旧版首关草稿';
+  await p.evaluate(level=>localStorage.setItem('gothere.studio.v1',JSON.stringify({version:1,activeKey:'first-level:v014',documents:[{key:'first-level:v014',level}]})),old);await p.reload();await p.locator('#scene[data-assets=ready]').waitFor();
+  let saved=await p.evaluate(()=>JSON.parse(localStorage.getItem('gothere.studio.v1')));assert.equal(saved.activeKey,'first-level:v015');assert.deepEqual(saved.documents.find(d=>d.key==='first-level:v014').level,old,'opening the new sample preserves the previous draft');
+  await p.evaluate(()=>{const s=JSON.parse(localStorage.getItem('gothere.studio.v1'));s.documents.find(d=>d.key===s.activeKey).level.name='新版中的修改';localStorage.setItem('gothere.studio.v1',JSON.stringify(s));});await p.reload();await p.locator('#scene[data-assets=ready]').waitFor();assert.equal((await draft(p)).name,'新版中的修改','reload never resets an updated sample');
+  const built=await buildEditor(),offline=await open(pathToFileURL(built.path).href);await offline.locator('#display-mode').selectOption('binding');await offline.locator('#zoom-in').click();assert.notEqual(await offline.locator('#zoom-level').textContent(),'100%');
+  await offline.locator('#zoom-fit').click();await chooseArt(offline,'可落下花盆资源');await offline.locator('#pick-art-binding').click();await offline.locator('[data-binding-ref="entity:prop"]').click();assert.equal((await draft(offline)).scene.nodes.find(n=>n.id===artId).bind.id,'prop');
+  assert.deepEqual(errors,[]);console.log('PASS canvas: stable fractional dragging, screen-sized alignment/Alt bypass, anchored zoom, panning, binding calibration, rebind without visual jumps, related inspectors, editor-only visibility/locks and offline authoring.');
+}finally{await context.close();await browser.close();await new Promise(r=>server.close(r));}

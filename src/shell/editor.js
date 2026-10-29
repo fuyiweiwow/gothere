@@ -9,26 +9,38 @@ import {presentationBounds,recoveryTicks} from '../render/presentation.js';
 import {createResourceUI} from '../editor/resource-ui.js';
 import {loadResources,entityArtBounds} from '../render/resources.js';
 import {createFirstScene} from '../editor/first-scene.js';
+import {createViewport} from '../editor/viewport.js';
+import {createBindingUI} from '../editor/binding-ui.js';
 
 const $=id=>document.getElementById(id),canvas=$('scene'),ctx=canvas.getContext('2d');
 const standaloneHTML=document.getElementById('standalone-editor')?'<!doctype html>\n'+document.documentElement.outerHTML:null;
-let editor,resourceUI,preview=null,previewLevel=null,accumulator=0,last=0,debugLast=0,toastTimer,serial=0;
+let editor,resourceUI,bindingUI,lastDraft,loadSerial=0,preview=null,previewLevel=null,accumulator=0,last=0,debugLast=0,toastTimer,serial=0;
 let displayMode='scene';
 try{displayMode=localStorage.getItem('gothere.studio.display')??'scene';}catch{}
-if(!['logic','scene'].includes(displayMode))displayMode='scene';
+if(!['logic','scene','binding'].includes(displayMode))displayMode='scene';
 $('display-mode').value=displayMode;
 $('animation-toggle').checked=!matchMedia('(prefers-reduced-motion: reduce)').matches;
 function draw(level,state){
+  if(!state)lastDraft=level;
   canvas.dataset.view=displayMode;
-  if(displayMode==='scene')drawScene(ctx,level,state,{animate:$('animation-toggle').checked,previewVariant:state?null:resourceUI?.variant()});else drawDiagram(ctx,level,state);
+  if(displayMode!=='logic')drawScene(ctx,level,state,{animate:$('animation-toggle').checked,previewVariant:state?null:resourceUI?.variant(),
+    hiddenLayers:state?null:resourceUI?.hiddenLayers(),artOpacity:displayMode==='binding'?Number($('calibration-art-opacity').value):1});else drawDiagram(ctx,level,state);
+  if(displayMode==='binding')bindingUI?.render(level,state);
   if(state)updateInteractions(state);
 }
-function workspace(){document.body.dataset.display=displayMode;const editing=editor?.isEditing()??false;$('resource-panel').hidden=!editing||displayMode!=='scene';$('resource-overlay').hidden=!editing||displayMode!=='scene';}
-$('display-mode').addEventListener('change',()=>{resourceUI?.cancel();displayMode=$('display-mode').value;try{localStorage.setItem('gothere.studio.display',displayMode);}catch{}workspace();if(preview)draw(previewLevel,preview.snapshot());else draw(editor.document());});
+function workspace(){document.body.dataset.display=displayMode;const editing=editor?.isEditing()??false,target=displayMode==='binding'?$('binding-target').value:displayMode==='logic'?'logic':'art';
+  document.body.dataset.editTarget=target;$('resource-panel').hidden=!editing||target!=='art';$('resource-overlay').hidden=!editing||target!=='art';$('editor-panel').hidden=!editing||target!=='logic';$('editor-overlay').hidden=!editing||target!=='logic';
+  $('calibration-controls').hidden=displayMode!=='binding';$('binding-overlay').toggleAttribute('hidden',displayMode!=='binding');
+  $('binding-target').disabled=!editing;$('cancel-binding').disabled=!editing;
+}
+function changeDisplay(mode,target){editor?.cancel();resourceUI?.cancel();bindingUI?.cancel();displayMode=mode;$('display-mode').value=mode;if(target)$('binding-target').value=target;try{localStorage.setItem('gothere.studio.display',mode);}catch{}workspace();if(preview)draw(previewLevel,preview.snapshot());else draw(editor.document());}
+$('display-mode').addEventListener('change',()=>changeDisplay($('display-mode').value));
+$('binding-target').addEventListener('change',()=>changeDisplay('binding'));
+for(const id of ['calibration-art-opacity','logic-opacity'])$(id).addEventListener('input',()=>{if(preview)draw(previewLevel,preview.snapshot());else draw(editor.document());});
 $('animation-toggle').addEventListener('change',()=>{if(preview)draw(previewLevel,preview.snapshot());else draw(editor.document());});
 const labels={ready:'准备运行',running:'运行中',paused:'已暂停',won:'已到达终点',lost:'模拟结束'};
 function notify(message){clearTimeout(toastTimer);$('toast').textContent=message;$('toast').hidden=false;toastTimer=setTimeout(()=>{$('toast').hidden=true;},4200);}
-function drawDocument(level){draw(level);resourceUI?.render(level);canvas.dataset.assets='loading';loadResources(level).then(()=>{canvas.dataset.assets='ready';if(editor?.isEditing())draw(editor.document());});$('stage-note').textContent=level.description;$('level-hint').textContent=level.hint??'自由编辑地图和物体，运行查看效果。';$('document-summary').textContent=`${level.entities.length} 个逻辑物体 · ${level.scene?.nodes.length??0} 个资源图层 · ${level.rules.length} 条规则`;}
+function drawDocument(level){bindingUI?.cancel();draw(level);resourceUI?.render(level);workspace();const request=++loadSerial;canvas.dataset.assets='loading';loadResources(level).then(()=>{if(request!==loadSerial)return;canvas.dataset.assets='ready';if(editor?.isEditing())draw(lastDraft);});$('stage-note').textContent=level.description;$('level-hint').textContent=level.hint??'自由编辑地图和物体，运行查看效果。';$('document-summary').textContent=`${level.entities.length} 个逻辑物体 · ${level.scene?.nodes.length??0} 个资源图层 · ${level.rules.length} 条规则`;}
 function canClick(id,state){return previewLevel.rules.some(r=>r.on.source===id&&r.on.type==='click'&&(r.if??[]).every(c=>Object.hasOwn(c,'holding')?state.actor.holding===c.holding:state.entities[c.entity].state===c.state));}
 function updateInteractions(state){
   for(const button of document.querySelectorAll('#scene-interactions button,#runtime-inputs button')){
@@ -36,7 +48,7 @@ function updateInteractions(state){
     button.disabled=disabled;const status=remaining===null?(disabled?'暂不可触发':'可触发'):'剩余 '+(remaining/60).toFixed(1)+'秒 · 恢复';
     button.title=e.label+' · '+status;
     if(button.parentElement.id==='scene-interactions'){
-      const b=displayMode==='scene'?(entityArtBounds(previewLevel,state,e.id)??presentationBounds(e)):diagramBounds(e.kind,e);
+      const b=displayMode!=='logic'?(entityArtBounds(previewLevel,state,e.id)??presentationBounds(e)):diagramBounds(e.kind,e);
       button.style.left=(b.x-4)/12+'%';button.style.top=(b.y-4)/6.4+'%';button.style.width=(b.width+8)/12+'%';button.style.height=Math.max(24,b.height+8)/6.4+'%';
       button.setAttribute('aria-label','触发 '+e.label+' · '+status);
     }else button.querySelector('small').textContent=status;
@@ -72,17 +84,24 @@ function runPreview(level,{run=true}={}){
   draw(level,preview.snapshot());updateDebug();
 }
 editor=createEditorUI({play:runPreview,leave:()=>{},pause:()=>preview?.pause(),notify,diagram:true,
-  storageKey:'gothere.studio.v1',onChange:drawDocument,
-  onMode:mode=>{const testing=mode==='testing';$('simulation-panel').hidden=!testing;$('preview-reset').disabled=!testing;$('scene-tag-text').textContent=testing?'模拟中':'正在创作';
+  storageKey:'gothere.studio.v1',onChange:drawDocument,onPreview:draw,
+  editResources:(ref,id)=>{changeDisplay('binding','art');resourceUI.select(id??editor.document().scene?.nodes.find(n=>n.bind?.type===ref.type&&(ref.type==='entity'?n.bind.id===ref.id:ref.type==='platform'?n.bind.index===ref.index:true))?.id??null);},
+  onMode:mode=>{const testing=mode==='testing';resourceUI?.cancel();bindingUI?.cancel();$('simulation-panel').hidden=!testing;$('preview-reset').disabled=!testing;$('scene-tag-text').textContent=testing?'模拟中':'正在创作';
     workspace();
     $('scene-interactions').hidden=!testing;
     $('reset-level').disabled=testing;
     if(!testing){preview=null;previewLevel=null;accumulator=0;$('runtime-status').textContent='编辑中';delete $('runtime-status').dataset.status;$('runtime-tick').textContent='tick 0';$('preview-toggle').textContent='▶ 运行';}}
 });
-resourceUI=createResourceUI({editor,notify,preview:draw});
-editor.open(createFirstLevel(),'first-level:v014');
+resourceUI=createResourceUI({editor,notify,preview:draw,requestBind:id=>{changeDisplay('binding','art');bindingUI.start(id);},inspectLogic:ref=>{changeDisplay('binding','logic');editor.select(ref);}});
+bindingUI=createBindingUI({editor,resources:resourceUI,paint:draw,notify});
+editor.open(createFirstLevel(),'first-level:v015',{updateSample:true});
 if(editor.document().id==='editor-first-level'&&!editor.document().scene)editor.change(d=>{d.scene=createFirstScene(d);});
 workspace();resourceUI.render(editor.document());
+createViewport({isEditing:()=>editor.isEditing(),onChange:()=>{
+  const scale=Math.max(1,Math.min(3,$('viewport').getBoundingClientRect().width/1200*(devicePixelRatio||1)));
+  const width=Math.round(1200*scale),height=Math.round(640*scale);if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;ctx.setTransform(width/1200,0,0,height/640,0,0);}
+  if(preview)draw(previewLevel,preview.snapshot());else draw(lastDraft??editor.document());
+}});
 $('reset-level').addEventListener('click',()=>editor.openDocument(createFirstLevel(),'first-level:'+Date.now().toString(36)+'-'+serial++));
 $('preview-toggle').addEventListener('click',()=>{
   if(editor.isEditing()){editor.preview();return;}
