@@ -41,7 +41,9 @@ try{
   await page.reload();await page.locator('#editor-overlay').waitFor();assert.deepEqual(await draft(page),initial);
   await page.locator('#preview-toggle').click();await page.clock.runFor(5000);
   assert.match(await page.locator('#runtime-actor').textContent(),/falling/);assert.match(await page.locator('#runtime-status').textContent(),/运行中/);
+  await page.locator('#preview-toggle').click();
   await page.screenshot({path:new URL('../artifacts/slopes-falling.png',import.meta.url).pathname.replace(/^\/([A-Z]:)/,'$1'),fullPage:true});
+  await page.locator('#preview-toggle').click();
   await page.clock.runFor(10000);assert.match(await page.locator('#runtime-status').textContent(),/已到达终点/);
   assert.match(await page.locator('#runtime-log').textContent(),/落到/);
   await page.locator('#editor-return').click();assert.deepEqual(await draft(page),initial);

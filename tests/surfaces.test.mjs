@@ -42,6 +42,13 @@ test('falling sweeps a narrow landing between horizontal tick endpoints instead 
   assert.equal(sim.snapshot().actor.x,253.8);assert.equal(sim.snapshot().actor.y,400);
 });
 
+test('landing exactly on the goal at a road endpoint completes before leaving the edge',()=>{
+  const level=fixture();level.world.physics={gravity:1280,maxFallSpeed:1800};
+  level.platforms=[{x:0,width:200,y:240},{x:259,width:1,y:400}];level.goal={x:260,y:400};
+  const sim=createSimulation(level);sim.start().step(1000);assert.equal(sim.snapshot().status,'won');
+  assert.equal(sim.snapshot().actor.x,260);assert.equal(sim.snapshot().actor.y,400);
+});
+
 test('a small gap is support loss, while a road above the feet cannot pull the walker upward',()=>{
   const gap=fixture();gap.platforms=[{x:0,width:200,y:240},{x:201,width:999,y:240}];gap.goal={x:1100,y:240};
   const missed=createSimulation(gap);missed.start().step(1000);assert.equal(missed.snapshot().status,'lost');
