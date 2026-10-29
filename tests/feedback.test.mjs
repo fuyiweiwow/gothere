@@ -69,3 +69,24 @@ test('deleting/duplicating art and renaming/removing behaviors keep feedback ref
   deleteObject(l,{type:'entity',id:'pipe'});assert.equal(validateLevel(l).valid,true);
   const store=createEditorStore();store.open('feedback',l);store.change(d=>d.scene.feedback=[]);assert.deepEqual(createEditorStore(store.serialize()).document(),store.document());
 });
+
+test('visual motion changes art only and preserves the bottom-center pivot under existing rotations',async()=>{
+  const {artTransform}=await import('../src/render/resources.js');const l=createFirstLevel(),n=l.scene.nodes.find(n=>n.bind?.id==='pot'),before=artTransform(n,l);
+  const physics=structuredClone(l.entities),m={dx:0,dy:0,rotation:45,scaleX:1.2,scaleY:.8,opacity:.5};
+  const after=artTransform(n,l,undefined,{feedback:{motions:{[n.id]:m}}});assert.equal(after.rotation,before.rotation+45);assert.equal(after.opacity,.5);
+  const pivot=v=>{const r=v.rotation*Math.PI/180;return {x:v.x+v.width*.5*Math.cos(r)-v.height*Math.sin(r),y:v.y+v.width*.5*Math.sin(r)+v.height*Math.cos(r)};};
+  assert.ok(Math.hypot(pivot(before).x-pivot(after).x,pivot(before).y-pivot(after).y)<1e-8);assert.deepEqual(l.entities,physics);
+});
+
+test('sound playback obeys mute, reset and asynchronous decode cancellation',async()=>{
+  const {createSoundPlayer}=await import('../src/render/audio.js');const started=[],stopped=[];
+  const param=()=>({value:0,setValueAtTime(){},exponentialRampToValueAtTime(){}});
+  const source=()=>({connect(){},start(){started.push(this);},stop(){stopped.push(this);},frequency:param(),onended:null});
+  let resolveDecode;const context={state:'running',currentTime:0,sampleRate:8000,destination:{},resume:async()=>{},suspend:async()=>{},
+    createGain:()=>({gain:param(),connect(){}}),createOscillator:source,createBufferSource:source,
+    createBuffer:(_,n)=>({getChannelData:()=>new Float32Array(n)}),decodeAudioData:()=>new Promise(r=>resolveDecode=r)};
+  const audio=createSoundPlayer({contextFactory:()=>context});await audio.unlock();audio.setLevel({scene:{sounds:[{id:'custom',src:'data:audio/wav;base64,AAAA'}]}});
+  await audio.play({sound:'pop',volume:.2});assert.ok(started.length>0);audio.setMuted(true);assert.ok(stopped.length>0);
+  const count=started.length;await audio.play({sound:'pop',volume:.2});assert.equal(started.length,count);audio.setMuted(false);
+  const pending=audio.play({sound:'custom',volume:.2});await Promise.resolve();audio.stop();resolveDecode({duration:1});await pending;assert.equal(started.length,count,'reset discards a pending decoded sound');
+});
