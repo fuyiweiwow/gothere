@@ -13,7 +13,8 @@ export const eventTypes = (source) => {const kind=typeof source==='string'?sourc
   ...(kind==='plate'||kind==='zone'?['enter']:[]), ...(['zone','object'].includes(kind)?[]:['contact']),
   ...(kind==='lift'?['board','arrive']:[]), ...(kind==='ladder'||(kind==='object'&&verticalTransport(source))?['arrive']:[]),
   ...(typeof source==='object'&&source?.pose?['rotated']:[]),
-  ...(source?.body?['supportlost','landed']:[]),...(source?.collider||source?.surface?['impact']:[]), 'done'];};
+  ...(source?.body||source?.supportProbe?['supportlost']:[]),...(source?.body?['landed']:[]),
+  ...(source?.supportProbe?['supportfound']:[]),...(source?.collider||source?.surface?['impact','actorlanded']:[]), 'done'];};
 const object = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 const number = (value, min, max) => Number.isFinite(value) && value >= min && value <= max;
 const text = (value, max) => typeof value === 'string' && value.length > 0 && value.length <= max;
@@ -41,6 +42,8 @@ export function validateLevel(input) {
     check(object(value) && (value.y===undefined || number(value.y,160,560)), name + '.y 必须为 160～560 的脚底高度（默认 440）。');
   }
   check(input.actor?.direction === undefined || [-1,1].includes(input.actor.direction), 'actor.direction 必须为 -1 或 1。');
+  check(input.actor?.maxLandingSpeed===undefined || (Boolean(world?.physics)&&number(input.actor.maxLandingSpeed,60,1800)),
+    '安全落地速度需要重力模式及 60～1800 的数值。');
   const platforms = input.platforms;
   check(Array.isArray(platforms) && platforms.length > 0 && platforms.length <= 64, 'platforms 必须包含 1～64 段地面。');
   if (Array.isArray(platforms)) {
@@ -64,6 +67,10 @@ export function validateLevel(input) {
       check(text(entity.label, 30), '实体需要 1～30 字的 label：' + String(entity.id));
       check(entity.y===undefined || number(entity.y,160,560), '实体 y 必须为 160～560：' + String(entity.id));
       check(entity.height===undefined||number(entity.height,8,240),'实体 height 必须为 8～240：'+entity.id);
+      if(entity.supportProbe!==undefined)check(entity.kind==='object'&&object(entity.supportProbe)&&number(entity.supportProbe.at,0,1)&&
+        entity.body===undefined&&Boolean(world?.physics),'支撑检测需要 at（0～1），不与动态重力组合，并需要重力模式：'+entity.id);
+      if(entity.carriedPhysics!==undefined)check(entity.kind==='object'&&object(entity.carriedPhysics)&&number(entity.carriedPhysics.gravityScale,0.05,1)&&
+        number(entity.carriedPhysics.maxFallSpeed,60,1800)&&Boolean(world?.physics),'持有时下落需要 gravityScale（0.05～1）、maxFallSpeed（60～1800）及重力模式：'+entity.id);
       if(entity.collider!==undefined){
         check(entity.kind==='object'&&object(entity.collider)&&typeof entity.collider.enabled==='boolean','矩形碰撞体需要 collider.enabled 布尔值：'+entity.id);
         check(entity.pose===undefined&&entity.transport===undefined,'矩形碰撞体暂不与姿态或高度通道组合：'+entity.id);

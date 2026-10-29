@@ -68,7 +68,7 @@ function firstLanding(surfaces, actor, vx, gravity, duration) {
 
 /** Pure fixed-step motion. Traces include seams, edge departure and landing within one tick. */
 export function advanceWalker(actor, surfaces, speed, physics, goal) {
-  const next = { ...actor, vy:actor.vy ?? 0 }, segments = [], landings = [];
+  const next = { ...actor, vy:Math.min(actor.vy ?? 0,physics.maxFallSpeed) }, segments = [], landings = [];
   const vx = next.direction * speed;
   let elapsed = 0, goalReached = false;
   const append = (from, duration, mode, gravity = 0, vy = 0) => {
@@ -106,8 +106,10 @@ export function advanceWalker(actor, surfaces, speed, physics, goal) {
       append(from,time,'falling',gravity,vy);
       if (hit) {
         next.y=lineHeight(hit.surface,next.x);segments.at(-1).to.y=next.y;
+        const speed=next.vy;
         next.mode='walking';next.support=hit.surface.id;next.vy=0;
-        landings.push({time:elapsed,x:next.x,y:next.y,support:next.support});
+        landings.push({time:elapsed,x:next.x,y:next.y,support:next.support,speed});
+        if(actor.maxLandingSpeed!==undefined&&speed>actor.maxLandingSpeed+EPSILON)break;
         if(goal&&Math.abs(next.x-goal.x)<EPSILON&&Math.abs(next.y-(goal.y??440))<EPSILON){next.x=goal.x;goalReached=true;break;}
       }
     }

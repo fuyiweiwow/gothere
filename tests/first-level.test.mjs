@@ -43,7 +43,7 @@ test('support probes sample transformed arbitrary ratios, same-height replacemen
 });
 
 const fallFixture=()=>({...createBlankLevel('carried-physics'),world:{width:1200,height:640,groundY:440,physics:{gravity:900,maxFallSpeed:480}},
-  actor:{x:300,y:180,speed:45,maxLandingSpeed:220},goal:{x:1100,y:520},platforms:[{x:250,width:100,y:180},{x:0,width:1200,y:520}],
+  actor:{x:300,y:180,speed:45,maxLandingSpeed:220},goal:{x:1100,y:520},platforms:[{x:250,width:100,y:180},{x:0,width:350,y:520},{x:590,width:610,y:520}],
   entities:[{id:'item',kind:'object',label:'缓降物',x:310,y:180,width:30,state:'inactive',carriedPhysics:{gravityScale:0.25,maxFallSpeed:90},
     behaviors:[{id:'open',label:'打开并持有',actions:[{type:'set',target:'item',state:'active'},{type:'hold',target:'item'}]}]},
     {id:'landing',kind:'object',label:'落点',x:350,y:520,width:240,state:'active',pose:{angle:0,pivot:0},surface:{enabled:true}}],

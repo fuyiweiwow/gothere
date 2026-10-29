@@ -1,5 +1,8 @@
+import {createFirstLevel} from './first-level.js';
+
 /** Content examples use only geometry and rules. They require no artwork or game shell. */
 export function createEditorExample(name='logic') {
+  if(name==='first-level')return createFirstLevel();
   const common = { schemaVersion:1, world:{width:1200,height:640,groundY:440} };
   if(name==='bodies')return {...common,id:'editor-bodies',name:'失去支撑与落物撞击',
     description:'运行后点「撤去支撑」：落物自行掉落，撞击事件让生物休息。物体、碰撞体、重力和反应行为均可独立编辑。',

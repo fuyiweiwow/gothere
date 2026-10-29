@@ -1,0 +1,47 @@
+/** Reference mechanics, authored entirely with the public object/behavior DSL. No artwork. */
+export function createFirstLevel() {
+  const angle=Math.atan2(100,160)*180/Math.PI,length=Math.hypot(160,100),rampEnd=40+240*Math.cos(Math.PI/6);
+  const invoke=(target,behavior)=>({type:'invoke',target,behavior});
+  const enable=(target,capability,enabled)=>({type:'enable',target,capability,enabled});
+  return {schemaVersion:1,id:'editor-first-level',name:'第一关 · 屋顶到亮窗',
+    description:'从右上屋顶向左走，经临时通路和天线桥到塔顶；持有缓降物落到左下檐面，再沿放下的斜面经过生物，走向右侧亮窗。',
+    hint:'运行后可直接点物体，也可用右侧按钮：①启用云桥 → ②放下天线桥 → ③展开缓降物 → ④抽去檐面支撑 → ⑤释放落物。可提前布置；云桥持续15秒。',
+    world:{width:1200,height:640,groundY:440,physics:{gravity:900,maxFallSpeed:480}},
+    actor:{x:1100,y:200,direction:-1,speed:45,maxLandingSpeed:330},goal:{x:1100,y:560},
+    platforms:[{x:800,y:200,width:380},{x:700,y:280,width:100,yEnd:200},{x:660,y:280,width:40},
+      {x:200,y:180,width:120},{x:rampEnd,y:480,width:530-rampEnd},{x:540,y:530,width:220},
+      {x:760,y:530,width:140,yEnd:560},{x:900,y:560,width:280}],
+    entities:[
+      {id:'cloud',kind:'object',label:'① 临时通路',x:480,y:280,width:180,height:12,state:'inactive',pose:{angle:0,pivot:0},surface:{enabled:false},
+        behaviors:[{id:'appear',label:'出现15秒',actions:[{type:'set',target:'cloud',state:'active'},enable('cloud','surface',true),
+          {type:'after',ticks:900,actions:[enable('cloud','surface',false),{type:'set',target:'cloud',state:'inactive'}]}]}]},
+      {id:'antenna',kind:'object',label:'② 天线桥',x:480-length,y:280,width:length,height:12,state:'active',pose:{angle:0,pivot:1},surface:{enabled:true},
+        behaviors:[{id:'tilt',label:'搭向塔顶',actions:[{type:'rotate',target:'antenna',angle,ticks:90}]}]},
+      {id:'umbrella',kind:'object',label:'③ 缓降物',x:235,y:180,width:30,height:30,state:'inactive',carriedPhysics:{gravityScale:0.25,maxFallSpeed:90},
+        behaviors:[{id:'open',label:'展开',actions:[{type:'set',target:'umbrella',state:'active'}]},
+          {id:'pickup',label:'持有',actions:[{type:'hold',target:'umbrella'}]},
+          {id:'fold',label:'落地收起',actions:[{type:'set',target:'umbrella',state:'inactive'},{type:'drop'}]}]},
+      {id:'sill',kind:'object',label:'可倾斜檐面',x:40,y:360,width:240,height:12,state:'active',pose:{angle:0,pivot:0},surface:{enabled:true},supportProbe:{at:1},
+        behaviors:[{id:'lower',label:'右端落下',actions:[{type:'rotate',target:'sill',angle:30,ticks:75}]},
+          {id:'land',label:'落地后向右',actions:[{type:'turn',direction:1},invoke('umbrella','fold')]}]},
+      {id:'prop',kind:'object',label:'④ 檐面支撑',x:265,y:380,width:30,height:20,state:'active',collider:{enabled:true},
+        behaviors:[{id:'remove',label:'抽去支撑',actions:[enable('prop','collider',false),{type:'set',target:'prop',state:'inactive'}]}]},
+      {id:'pot-shelf',kind:'object',label:'落物支撑',x:402,y:320,width:56,height:20,state:'active',collider:{enabled:true},
+        behaviors:[{id:'release',label:'撤去承托',actions:[enable('pot-shelf','collider',false)]}]},
+      {id:'pot',kind:'object',label:'⑤ 落物',x:414,y:300,width:30,height:30,state:'active',collider:{enabled:true},body:{type:'dynamic'},
+        behaviors:[{id:'release',label:'释放落物',actions:[invoke('pot-shelf','release')]}]},
+      {id:'creature',kind:'object',label:'阳台生物',x:390,y:480,width:80,height:60,state:'active',collider:{enabled:true},
+        behaviors:[{id:'rest',label:'趴下休息',actions:[{type:'set',target:'creature',state:'inactive'}]},
+          {id:'attack',label:'攻击',actions:[{type:'hurt',message:'阳台生物还醒着。让上方落物真正撞到它，触发休息行为。'}]}]},
+    ],
+    rules:[{on:{type:'click',source:'cloud'},if:[{entity:'cloud',state:'inactive'}],actions:[invoke('cloud','appear')]},
+      {on:{type:'click',source:'antenna'},actions:[invoke('antenna','tilt')]},
+      {on:{type:'click',source:'umbrella'},actions:[invoke('umbrella','open')]},
+      {on:{type:'contact',source:'umbrella'},actions:[invoke('umbrella','pickup')]},
+      {on:{type:'click',source:'prop'},actions:[invoke('prop','remove')]},
+      {on:{type:'supportlost',source:'sill'},actions:[invoke('sill','lower')]},
+      {on:{type:'actorlanded',source:'sill'},actions:[invoke('sill','land')]},
+      {on:{type:'click',source:'pot'},actions:[invoke('pot','release')]},
+      {on:{type:'impact',source:'creature',other:'pot'},actions:[invoke('creature','rest')]},
+      {on:{type:'contact',source:'creature'},actions:[invoke('creature','attack')]}]};
+}

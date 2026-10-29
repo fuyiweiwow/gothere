@@ -3,6 +3,7 @@ import { verticalTransport, transportEnabled, landingX } from './transport.js';
 import { collectSurfaces, advanceWalker, touchesFootPath, touchesSurfacePath, surfaceHeight, supportAt } from './surfaces.js';
 import { posedSurface } from './pose.js';
 import { initializeBodies, advanceBodies } from './bodies.js';
+import { updateSupportProbes } from './support.js';
 export { validateLevel } from './schema.js';
 export const TICKS_PER_SECOND = 60;
 const clone = (value) => structuredClone(value);
@@ -24,6 +25,7 @@ export function createSimulation(input) {
   const reset = () => {
     state = { tick: 0, status: 'ready', reason: null,
       actor: { x: level.actor.x, y:floorY(level.actor), direction:level.actor.direction??1, holding:null, mode:'walking', connector:null,
+        ...(level.actor.maxLandingSpeed!==undefined?{maxLandingSpeed:level.actor.maxLandingSpeed}:{}),
         ...(level.world.physics?{vy:0,support:null}:{}) },
       entities: Object.fromEntries(level.entities.map((e) => [e.id, { ...clone(e), y:floorY(e), width: e.width ?? 28,
         ...(e.kind==='hazard'?{contact:{effect:'lethal'}}:{}),
@@ -31,6 +33,7 @@ export function createSimulation(input) {
       events: [], clicks: 0, timers: [] };
     pending = []; inputs = []; serial = 0; contacts=new Set();connectorLock=null;invokeDepth=0;
     initializeBodies(level,state.entities);
+    updateSupportProbes(level,state.entities,null,true);
     return api;
   };
   const actions = (list, invocation=null) => {
@@ -142,13 +145,13 @@ export function createSimulation(input) {
         if(r.elapsed===r.ticks){delete e.rotation;completed.push(e.id);}
       }
     }
-    const bodyEvents=level.world.physics?advanceBodies(level,state.entities,held,before):[];
+    const bodyEvents=level.world.physics?[...advanceBodies(level,state.entities,held,before),...updateSupportProbes(level,state.entities,held)]:[];
     if(local!==null){const surface=collectSurfaces(level,state.entities,held).find(s=>s.id===carrier.id);if(surface){a.x=surface.x+surface.width*local;a.y=surfaceHeight(surface,a.x);a.support=carrier.id;}}
     for(const id of completed){emit(state.entities[id].label+' 旋转结束。','rotated');trigger('rotated',id);}
     for(const event of bodyEvents){
       if(state.status!=='running')break;
       const source=state.entities[event.source],other=state.entities[event.other]?.label??'路面';
-      emit(source.label+({supportlost:' 失去支撑。',landed:' 落到 '+other+'。',impact:' 被 '+other+' 撞击。'}[event.type]),event.type,event);
+      emit(source.label+({supportlost:' 失去支撑。',supportfound:' 获得支撑。',landed:' 落到 '+other+'。',impact:' 被 '+other+' 撞击。'}[event.type]),event.type,event);
       trigger(event.type,event.source,undefined,event.other);
     }
   }
@@ -169,7 +172,9 @@ export function createSimulation(input) {
     }
   }
   function movePhysicsActor() {
-    const a=state.actor,from=a.x,result=advanceWalker(a,collectSurfaces(level,state.entities,a.holding),level.actor.speed,level.world.physics,level.goal);
+    const a=state.actor,from=a.x,item=state.entities[a.holding],effect=item?.state==='active'?item.carriedPhysics:null;
+    const physics=effect?{gravity:level.world.physics.gravity*effect.gravityScale,maxFallSpeed:Math.min(level.world.physics.maxFallSpeed,effect.maxFallSpeed)}:level.world.physics;
+    const result=advanceWalker(a,collectSurfaces(level,state.entities,a.holding),level.actor.speed,physics,level.goal);
     let first=null;
     // Explicit transports can only intercept a supported portion of this tick's path.
     for(const e of Object.values(state.entities)) {
@@ -195,7 +200,15 @@ export function createSimulation(input) {
       movementTrace=movementTrace.slice(0,first.index+1);
       movementTrace.at(-1).to={x:a.x,y:a.y};movementTrace.at(-1).end=first.time;
     }
-    for(const landing of result.landings.filter(l=>!first||l.time<=first.time))emit('落到 Y='+Number(landing.y.toFixed(1))+' 的路面。','land');
+    for(const landing of result.landings.filter(l=>!first||l.time<=first.time)){
+      emit('落到 Y='+Number(landing.y.toFixed(1))+' 的路面。','land',landing);
+      if(a.maxLandingSpeed!==undefined&&landing.speed>a.maxLandingSpeed+1e-7){lose('hard-landing','落地太快了。试试持有并启用缓降物，或调整落差。');break;}
+      if(state.entities[landing.support]){
+        emit('主角落到 '+state.entities[landing.support].label+'。','actorlanded',{source:landing.support,speed:landing.speed});
+        trigger('actorlanded',landing.support);
+      }
+      if(state.status!=='running')break;
+    }
     if(first)beginConnection(first.entity);
     return [from,a.x,true];
   }
