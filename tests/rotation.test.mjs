@@ -4,6 +4,8 @@ import { createSimulation, replayRecording, validateLevel } from '../src/core/en
 import { collectSurfaces, surfaceHeight } from '../src/core/surfaces.js';
 import { createBlankLevel, createEditorStore, resizeObject, moveObject, copyObject, pasteObject, deleteObject } from '../src/editor/model.js';
 import { createEditorExample } from '../src/editor/starter.js';
+import { diagramBounds } from '../src/core/geometry.js';
+import { posePoint, posePolygon } from '../src/core/pose.js';
 
 const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-6,`${a} != ${b}`);
 const fixture=()=>({...createBlankLevel('rotation-test'),
@@ -88,4 +90,36 @@ test('rotation example is authored with ordinary capabilities and needs its even
   const level=createEditorExample('rotation');assert.equal(level.id,'editor-rotation');
   const pass=createSimulation(level);pass.start();pass.click('release');pass.step(3000);assert.equal(pass.snapshot().status,'won');
   const fail=createSimulation(level);fail.start().step(3000);assert.equal(fail.snapshot().status,'lost');
+});
+
+test('a sloped object contact uses its transformed baseline and can invoke a hurt behavior',()=>{
+  const level=fixture(),panel=level.entities[0];panel.pose.angle=30;
+  level.actor={x:300,y:260+100*Math.tan(Math.PI/6),speed:60};
+  panel.behaviors.push({id:'attack',label:'攻击',actions:[{type:'hurt',message:'坡面接触'}]});
+  level.rules.push({on:{type:'contact',source:'panel'},actions:[{type:'invoke',target:'panel',behavior:'attack'}]});
+  const sim=createSimulation(level);sim.start().step();assert.equal(sim.snapshot().reason,'hurt');
+  assert.equal(sim.snapshot().events.at(-1).message,'坡面接触');
+});
+
+test('drafts retain references while gravity is temporarily disabled and report a run validation error',()=>{
+  const store=createEditorStore();store.open('rotation',fixture());store.change(d=>delete d.world.physics);
+  assert.equal(validateLevel(store.document()).valid,false);store.undo();assert.equal(validateLevel(store.document()).valid,true);
+});
+
+test('pivot geometry bounds contain the actual polygon and west resizing preserves the far endpoint',()=>{
+  const level=fixture(),panel=level.entities[0];panel.pose={angle:-20,pivot:0.5};delete panel.surface;
+  const b=diagramBounds('object',panel);
+  for(const p of posePolygon(panel))assert.ok(p.x>=b.x&&p.x<=b.x+b.width&&p.y>=b.y&&p.y<=b.y+b.height);
+  const end=posePoint(panel,1);resizeObject(level,{type:'entity',id:'panel'},'w',20,10);
+  near(posePoint(panel,1).x,end.x);near(posePoint(panel,1).y,end.y);near(panel.pose.pivot,0.5);
+});
+
+test('translation and rotation compose on a patrolling surface and a rotated event may start another turn',()=>{
+  const level=fixture(),panel=level.entities[0];level.actor.x=220;level.actor.speed=15;
+  panel.motion={type:'patrol',minX:200,maxX:300,speed:30};
+  level.rules[1].actions=[{type:'rotate',target:'panel',angle:-10,ticks:60},{type:'set',target:'lamp',state:'on'}];
+  const sim=createSimulation(level);sim.start();sim.click('panel');sim.step(60);
+  assert.ok(sim.snapshot().entities.panel.rotation);sim.step(60);near(sim.snapshot().entities.panel.pose.angle,-10);
+  const state=sim.snapshot(),s=collectSurfaces(level,state.entities).find(s=>s.id==='panel');
+  near(state.actor.y,surfaceHeight(s,state.actor.x));assert.equal(state.actor.mode,'walking');
 });
