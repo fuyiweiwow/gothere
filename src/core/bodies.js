@@ -69,6 +69,6 @@ export function advanceBodies(level,entities,held,previousSurfaces) {
     }
     visiting.delete(e.id);visited.add(e.id);
   };
-  for(const entity of Object.values(entities))visit(entity);
+  for(const entity of Object.values(entities).sort((a,b)=>b.y-a.y||a.id.localeCompare(b.id)))visit(entity);
   return events;
 }

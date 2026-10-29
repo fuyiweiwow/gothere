@@ -1,7 +1,7 @@
 import { validateLevel, floorY, eventTypes } from './schema.js';
 import { verticalTransport, transportEnabled, landingX } from './transport.js';
 import { collectSurfaces, advanceWalker, touchesFootPath, touchesSurfacePath, surfaceHeight, supportAt } from './surfaces.js';
-import { posePoint, posedSurface } from './pose.js';
+import { posedSurface } from './pose.js';
 import { initializeBodies, advanceBodies } from './bodies.js';
 export { validateLevel } from './schema.js';
 export const TICKS_PER_SECOND = 60;
