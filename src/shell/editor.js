@@ -27,7 +27,7 @@ $('animation-toggle').checked=!matchMedia('(prefers-reduced-motion: reduce)').ma
 function draw(level,state){
   if(!state)lastDraft=level;
   feedbackFrame=state&&feedback?state.status==='ready'?null:feedback.sample(state,{endingTicks,enabled:$('animation-toggle').checked,audible:$('sound-toggle').checked}):
-    audition?audition.player.sample({tick:Math.floor(audition.tick),status:'running',signals:[]},{audible:$('sound-toggle').checked}):null;
+    audition?audition.player.sample({tick:Math.floor(audition.tick),status:'running',signals:[]},{enabled:$('animation-toggle').checked,audible:$('sound-toggle').checked}):null;
   canvas.dataset.feedbackActive=String(feedbackFrame?.active??0);canvas.dataset.feedbackParticles=String(feedbackFrame?.particles.length??0);canvas.dataset.feedbackEnded=String(feedbackFrame?.tailFinished??true);
   canvas.dataset.view=displayMode;
   if(displayMode!=='logic')drawScene(ctx,level,state,{animate:$('animation-toggle').checked,previewVariant:state?null:resourceUI?.variant(),
