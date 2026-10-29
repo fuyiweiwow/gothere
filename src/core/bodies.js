@@ -38,8 +38,10 @@ export function advanceBodies(level,entities,held,previousSurfaces) {
       if(e.collider.enabled&&oldSupport){
         support=surfaces.find(s=>s.id===oldSupport.id);
         if(support){
-          const local=(e.x+(e.width??28)/2-oldSupport.x)/oldSupport.width;
-          e.x=support.x+support.width*local-(e.width??28)/2;
+          const left=Math.max(oldSupport.x,e.x),right=Math.min(oldSupport.x+oldSupport.width,e.x+(e.width??28));
+          const contact=(oldSupport.yEnd??oldSupport.y)>=oldSupport.y?left:right;
+          const local=(contact-oldSupport.x)/oldSupport.width;
+          e.x+=support.x+support.width*local-contact;
           e.y=footprintHeight(support,e);
         }
       }
@@ -69,6 +71,6 @@ export function advanceBodies(level,entities,held,previousSurfaces) {
     }
     visiting.delete(e.id);visited.add(e.id);
   };
-  for(const entity of Object.values(entities).sort((a,b)=>b.y-a.y||a.id.localeCompare(b.id)))visit(entity);
+  for(const entity of Object.values(entities).sort((a,b)=>b.y-a.y||(a.id<b.id?-1:a.id>b.id?1:0)))visit(entity);
   return events;
 }
