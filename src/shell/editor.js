@@ -83,12 +83,6 @@ $('preview-toggle').addEventListener('click',()=>{
 });
 $('preview-step').addEventListener('click',()=>{if(editor.isEditing()&&!editor.preview({run:false}))return;preview.step();accumulator=0;draw(previewLevel,preview.snapshot());updateDebug();});
 $('preview-reset').addEventListener('click',()=>{preview.reset();accumulator=0;draw(previewLevel,preview.snapshot());updateDebug();});
-canvas.addEventListener('click',event=>{
-  if(editor.isEditing()||!preview)return;
-  const box=canvas.getBoundingClientRect(),x=(event.clientX-box.left)/box.width*1200,y=(event.clientY-box.top)/box.height*640;
-  const entity=Object.values(preview.snapshot().entities).reverse().find(e=>{const b=diagramBounds(e.kind,e);return eventTypes(e).includes('click')&&x>=b.x-8&&x<=b.x+b.width+8&&y>=b.y-8&&y<=b.y+b.height+8;});
-  if(entity&&preview.click(entity.id))updateDebug();
-});
 function frame(now){
   const elapsed=last?Math.min(250,now-last):0;last=now;
   if(preview){

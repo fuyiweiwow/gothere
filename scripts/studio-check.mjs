@@ -13,17 +13,21 @@ const draft=p=>p.evaluate(()=>{const s=JSON.parse(localStorage.getItem('gothere.
 async function pageAt(url){const p=await context.newPage();p.on('pageerror',e=>errors.push(e.message));await p.clock.install({time:new Date('2026-10-29T00:00:00Z')});await p.clock.pauseAt(new Date('2026-10-29T00:00:01Z'));await p.goto(url);await p.locator('#editor-overlay').waitFor();return p;}
 async function value(p,id,v){await p.locator(id).fill(String(v));await p.locator(id).press('Enter');}
 async function play(p,mode,{early=false}={}){
-  await p.locator('#display-mode').selectOption(mode);await p.locator('#preview-toggle').click();
+  await p.locator('#display-mode').selectOption(mode);await p.locator('#animation-toggle').check();await p.locator('#preview-toggle').click();
   if(early){for(const id of ['cloud','antenna','umbrella','prop','pot'])await p.locator('#scene-interactions [data-source="'+id+'"]').click();await p.clock.runFor(52000);assert.match(await p.locator('#runtime-status').textContent(),/模拟结束/);}
   else{
     let previous=0;
     for(const [ms,id] of [[9000,'cloud'],[12500,'antenna'],[17500,'umbrella'],[20833,'prop'],[27500,'pot']]){
       await p.clock.runFor(ms-previous);previous=ms;await p.locator('#scene-interactions [data-source="'+id+'"]').click();
       if(id==='cloud'){
+        const moving=await p.locator('#scene').evaluate(c=>c.toDataURL());
         await p.clock.runFor(100);previous+=100;assert.match(await p.locator('#runtime-inputs').textContent(),/恢复|剩余/);
+        if(mode==='scene')assert.notEqual(await p.locator('#scene').evaluate(c=>c.toDataURL()),moving,'the running scene animates');
         await p.locator('#preview-toggle').click();const before=await p.locator('#runtime-tick').textContent(),image=await p.locator('#scene').evaluate(c=>c.toDataURL());
         await p.clock.runFor(250);assert.equal(await p.locator('#scene').evaluate(c=>c.toDataURL()),image);assert.equal(await p.locator('#runtime-tick').textContent(),before);
         await p.locator('#display-mode').selectOption(mode==='scene'?'logic':'scene');assert.equal(await p.locator('#runtime-tick').textContent(),before);
+        await p.locator('#animation-toggle').uncheck();assert.equal(await p.locator('#runtime-tick').textContent(),before);
+        await p.locator('#animation-toggle').check();assert.equal(await p.locator('#runtime-tick').textContent(),before);
         await p.locator('#display-mode').selectOption(mode);await p.locator('#preview-toggle').click();
       }
       if(id==='umbrella'&&mode==='scene')await p.screenshot({path:'artifacts/studio-play.png',fullPage:true});
@@ -34,6 +38,7 @@ async function play(p,mode,{early=false}={}){
 }
 try{
   const p=await pageAt(process.argv[2]??'http://127.0.0.1:'+server.address().port+'/');
+  assert.equal(await p.locator('#animation-toggle').isChecked(),false,'respect reduced-motion preferences until explicitly enabled');
   assert.equal((await draft(p)).id,'editor-first-level');assert.equal(await p.locator('#example-select').count(),0);
   const initial=await draft(p);await p.locator('[data-ref="entity:cloud"]').click();
   await value(p,'#object-label','可编辑云桥');assert.equal((await draft(p)).entities[0].label,'可编辑云桥');await p.locator('#editor-undo').click();

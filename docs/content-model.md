@@ -1,4 +1,4 @@
-# 内容模型 v0.12
+# 内容模型 v0.13
 
 编辑器、JSON DSL 与未来生成器共同使用 schemaVersion 1。规则是唯一执行依据；可视连线由规则投影，删除、撤销、导入和重新加载都会重建连线。
 
@@ -8,7 +8,7 @@
 {
   "id":"tool","kind":"object","x":230,"width":48,
   "state":"active","label":"通行小帮手",
-  "appearance":{"skin":"orb"},
+  "presentation":{"symbol":"block","color":"#9db9ad","animation":"none"},
   "behaviors":[
     {"id":"pickup","label":"拿起","actions":[{"type":"hold","target":"tool"}]},
     {"id":"drop","label":"放下","actions":[{"type":"drop"}]},
@@ -19,7 +19,9 @@
 
 所有实体都可定义多个命名行为；行为 ID 在所属实体内唯一，动作引用用实体 ID + 行为 ID。编辑器改名会同步引用；删除实体或行为会清理相关调用、完成事件与空动作树，支持撤销。
 
-appearance 只负责表现。可选内置 skin：axe、crate、crocodile、orb；可以挂载 `image:"data:image/png;base64,..."`（也接受 JPEG/WebP）。图片优先，解码失败回退占位图；换内置外观清除自定义图。命中范围由位置和宽度决定。上传上限 24,000 字节；单图 32,768 字符、地图合计 98,304 字符，拒绝远程地址及 SVG。资源随 JSON 离线携带，动画绑定后置。
+可选 `presentation` 仅用于场景表现：symbol 为 block、cloud、beam、umbrella、pot、creature 或 support；color 为六位十六进制颜色；animation 为 none、bob 或 pulse。编辑器可修改这些字段，随草稿、历史和 JSON 保存。渲染器只读实体状态、真实姿态/坐标和模拟 tick，暂停冻结，循环表现可关闭，不影响机制。纯逻辑视图不依赖这些字段。
+
+旧 `appearance` 仅保留数据导入兼容，可包含 axe、crate、crocodile、orb 内置 skin 及有界 PNG/JPEG/WebP data URL；仍拒绝远程地址和 SVG。当前编辑器不显示旧贴图，也不提供上传。完整资源包和状态到动画片段的映射尚未实现。
 
 通用接触效果 `contact:{"effect":"lethal","message":"碰到了危险物。"}` 与外观无关。接触触发的规则先执行，因此拿起或停用该物体可以解除当前接触危险。未解除时，整个重叠期间都会检查致命效果，包含重叠期间重新启用的物体。
 
@@ -87,6 +89,14 @@ zone 为无实体碰撞的区域标记，状态 enabled/disabled，只在编辑�
 持有是主角的一个物体引用。物体仍保留外观和行为，随主角移动；巡逻与对主角接触暂停。行为仍能被连线调用。放下不隐式停用，若要放下后休息，在同一行为中另外设置 inactive。
 
 实体状态：switch off/on；bridge folded/extended；gate closed/open；plate idle/pressed；object active/inactive；zone、ladder enabled/disabled；lift lower/upper。旧 hazard running/stopped 仅导入兼容，运行时映射为通用接触伤害，新工具不再创建。
+
+### 时机窗口与恢复
+
+限时效果由普通行为组合。例如点击规则仅在 inactive 时调用出现行为，行为依次 set active、enable surface，然后 after 300 tick 停用 surface 并 set inactive。活动期间重复点击不满足条件，不会叠加时长；到期后重新允许触发。编辑器中的延迟秒数转换为整数 tick 保存。
+
+旋转机关可以在激活后启动 rotate，再 after 指定时长旋回原角度；需要等旋转完成后才重新允许触发，可使用 rotated 事件，或显式延迟恢复。生物受撞后可 set inactive 并 after 恢复 active；伤害来自接触规则调用的行为。过晚操作不另设失败计时器，由真实路线、下落或危险接触自然产生结果。
+
+条件只在事件触发时判断。after 到期不会重新检查原条件，也不会因状态变化而自动取消；反复调用和不同延迟分支仍按既有顺序执行。需要防止重入时，由状态条件和行为共同表达，不使用关卡专用时钟。
 
 ## 空间与通行
 
@@ -205,4 +215,4 @@ supportlost 从失去支撑的动态物体发出；landed 从下落后落定的�
 
 上限：64 个实体、64 段平台、128 条规则；每实体 16 个行为；每列表 1～32 动作、after 最深 4 层、关卡总动作 512；每 tick 1,024 动作、256 个待执行计时器、调用深度 32、每局 36,000 tick。超过运行预算明确失败，可重置。未知能力、无效状态和悬空引用加载前拒绝。
 
-文件导入上限 256 KiB，草稿工作区上限 2 MiB。编辑中几何可以暂时不完整，但引用保持有效；试玩前进行完整验证。`src/examples.js` 是三张完整例子，在「新机制试验场」选择后打开工坊即可编辑。
+文件导入上限 256 KiB，草稿工作区上限 2 MiB。编辑中几何可以暂时不完整，但引用保持有效；试玩前进行完整验证。产品只内置 `src/editor/first-level.js` 这一关；`tests/fixtures/` 中的旧场景仅为内核回归素材，不进入发布包。

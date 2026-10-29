@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#11161e">
-  <meta name="description" content="一定要到达那里 · 独立逻辑编辑器。几何地图、物体、事件、行为与连线，无美术资源。">
-  <title>逻辑编辑器 · 一定要到达那里</title>
+  <meta name="description" content="一定要到达那里 · 首关编辑器。纯逻辑与场景视图，编辑物体、行为、事件和时机。">
+  <title>关卡编辑器 · 一定要到达那里</title>
   <link rel="stylesheet" href="/src/editor/editor.css">
 </head>
 <body class="editor-app">
@@ -16,9 +16,9 @@
   <main id="editor-workspace">
     <section id="editor-toolbar" class="editor-toolbar" aria-label="创作工具" hidden></section>
     <section class="map-shell" aria-label="地图与模拟">
-      <div class="map-heading"><h2 id="scene-title">地图</h2><span id="scene-tag-text">正在创作</span><div class="display-controls"><label for="display-mode">视图</label><select id="display-mode" aria-label="地图显示方式"><option value="logic">纯逻辑</option><option value="scene">场景与动画</option></select><label><input id="animation-toggle" type="checkbox" checked>动画</label></div></div>
+      <div class="map-heading"><h2 id="scene-title">地图</h2><span id="scene-tag-text">正在创作</span><div class="display-controls"><label for="display-mode">视图</label><select id="display-mode" aria-label="地图显示方式"><option value="logic">纯逻辑</option><option value="scene">场景与动画</option></select><label title="控制循环表现；机关的真实运动和判定继续运行"><input id="animation-toggle" type="checkbox" checked>循环动画</label></div></div>
       <div class="map-scroll"><div class="viewport" id="viewport">
-        <canvas id="scene" width="1200" height="640" aria-label="几何地图：地面、主角、终点和逻辑物体"></canvas>
+        <canvas id="scene" width="1200" height="640" aria-label="关卡地图：路面、主角、终点和机关"></canvas>
         <div id="scene-interactions" class="scene-interactions" aria-label="场景机关" hidden></div>
         <div id="editor-overlay" class="editor-overlay" aria-label="点击放置或拖动逻辑物体" hidden></div>
       </div></div>
@@ -39,7 +39,7 @@
     </aside>
   </main>
   <footer class="app-footer"><span id="document-summary">schemaVersion 1</span><span>两种视图 · 同一地图与模拟 · 草稿在本机保存</span></footer>
-  <dialog id="data-dialog" aria-labelledby="data-title"><div class="dialog-heading"><h2 id="data-title">关卡 JSON</h2><button id="close-data" class="button secondary" aria-label="关闭关卡数据">关闭</button></div><p class="panel-note">与游戏共用同一数据格式。导入会新增草稿；模拟不会改变编辑内容。</p><label for="level-json">当前草稿 · schemaVersion 1</label><textarea id="level-json" spellcheck="false" maxlength="262144"></textarea><p id="data-error" class="data-error" role="alert" hidden></p><div class="dialog-actions"><button id="import-level" class="button secondary">选择 JSON 文件</button><button id="export-level" class="button secondary">导出当前草稿</button><button id="apply-level" class="button primary">导入为新草稿</button></div><input id="level-file" type="file" accept=".json,application/json" hidden></dialog>
+  <dialog id="data-dialog" aria-labelledby="data-title"><div class="dialog-heading"><h2 id="data-title">关卡 JSON</h2><button id="close-data" class="button secondary" aria-label="关闭关卡数据">关闭</button></div><p class="panel-note">编辑与模拟共用同一数据格式。导入会新增草稿；模拟不会改变编辑内容。</p><label for="level-json">当前草稿 · schemaVersion 1</label><textarea id="level-json" spellcheck="false" maxlength="262144"></textarea><p id="data-error" class="data-error" role="alert" hidden></p><div class="dialog-actions"><button id="import-level" class="button secondary">选择 JSON 文件</button><button id="export-level" class="button secondary">导出当前草稿</button><button id="apply-level" class="button primary">导入为新草稿</button></div><input id="level-file" type="file" accept=".json,application/json" hidden></dialog>
   <div id="toast" class="toast" role="status" hidden></div>
   <script type="module" src="/src/shell/editor.js"></script>
 </body>
