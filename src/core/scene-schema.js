@@ -1,4 +1,5 @@
 import {ASSET_IDS} from '../content/asset-ids.js';
+import {validateFeedback} from './feedback-schema.js';
 
 const obj=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
 const num=(v,a,b)=>Number.isFinite(v)&&v>=a&&v<=b;
@@ -46,5 +47,5 @@ export function validateScene(level) {
     }
     if(n.variants!==undefined)check(obj(n.variants)&&Object.keys(n.variants).length<=16&&Object.entries(n.variants).every(([key,v])=>id(key)&&transform(v,true)),'资源状态变体无效：'+n.id);
   }
-  return errors;
+  return [...errors,...validateFeedback(level)];
 }

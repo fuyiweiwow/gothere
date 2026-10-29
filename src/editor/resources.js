@@ -1,4 +1,5 @@
 import {artTransform} from '../render/resources.js';
+import {pruneFeedback} from '../core/feedback-schema.js';
 
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 export function ensureScene(level) {return level.scene??={background:'#182044',assets:[],nodes:[]};}
@@ -27,8 +28,9 @@ export function resizeArt(level,id,handle,dx,dy,variant='') {
   const offsetX=handle.includes('w')?n.width-w:0,offsetY=handle.includes('n')?n.height-h:0;
   moveArt(level,id,offsetX*Math.cos(r)-offsetY*Math.sin(r),offsetX*Math.sin(r)+offsetY*Math.cos(r),variant);target.width=w;target.height=h;
 }
-export function deleteArt(level,id) {level.scene.nodes=level.scene.nodes.filter(n=>n.id!==id);}
-export function duplicateArt(level,id) {const n=structuredClone(level.scene.nodes.find(n=>n.id===id));let i=1;while(level.scene.nodes.some(n=>n.id==='art-'+i))i++;n.id='art-'+i;n.label=n.label.slice(0,57)+' 副本';n.x+=12;n.y+=12;level.scene.nodes.push(n);return n.id;}
+export function deleteArt(level,id) {level.scene.nodes=level.scene.nodes.filter(n=>n.id!==id);pruneFeedback(level);}
+export function duplicateArt(level,id) {const n=structuredClone(level.scene.nodes.find(n=>n.id===id));let i=1;while(level.scene.nodes.some(n=>n.id==='art-'+i))i++;n.id='art-'+i;n.label=n.label.slice(0,57)+' 副本';n.x+=12;n.y+=12;level.scene.nodes.push(n);
+  for(const f of [...(level.scene.feedback??[])].filter(f=>f.target===id)){let j=1;while(level.scene.feedback.some(s=>s.id==='feedback-'+j))j++;level.scene.feedback.push({...structuredClone(f),id:'feedback-'+j,target:n.id});}return n.id;}
 
 export function bindArt(level,id,bind) {
   const n=level.scene.nodes.find(n=>n.id===id),before=artTransform(n,level,undefined,{variant:''});

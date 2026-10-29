@@ -17,7 +17,8 @@ export function createSimulation(input) {
   const stripLayout=list=>{for(const a of list){delete a.editor;if(a.type==='after')stripLayout(a.actions);}};
   for(const rule of level.rules)stripLayout(rule.actions);
   for(const entity of level.entities)for(const behavior of entity.behaviors??[])stripLayout(behavior.actions);
-  let state, pending, inputs, serial, actionBudget, contacts, connectorLock, invokeDepth, movementTrace, reachedPhysicsGoal;
+  let state, pending, inputs, serial, signalSerial, actionBudget, contacts, connectorLock, invokeDepth, movementTrace, reachedPhysicsGoal;
+  const signal=(type,source,detail={})=>{state.signals.push({sequence:++signalSerial,tick:state.tick,type,source,...detail});if(state.signals.length>128)state.signals.shift();};
   const emit = (message, kind = 'action', detail = {}) => {
     state.events.push({ tick: state.tick, message, kind, ...detail });
     if (state.events.length > 24) state.events.shift();
@@ -30,8 +31,8 @@ export function createSimulation(input) {
       entities: Object.fromEntries(level.entities.map((e) => [e.id, { ...clone(e), y:floorY(e), width: e.width ?? 28,
         ...(e.kind==='hazard'?{contact:{effect:'lethal'}}:{}),
         ...(e.kind==='lift'?{carY:e.state==='upper'?e.toY:floorY(e)}:{}), ...(e.motion?{motionDirection:1}:{}) }])),
-      events: [], clicks: 0, timers: [] };
-    pending = []; inputs = []; serial = 0; contacts=new Set();connectorLock=null;invokeDepth=0;
+      events: [], signals:[], clicks: 0, timers: [] };
+    pending = []; inputs = []; serial = 0; signalSerial=0;contacts=new Set();connectorLock=null;invokeDepth=0;signal('start','scene');
     initializeBodies(level,state.entities);
     updateSupportProbes(level,state.entities,null,true);
     return api;
@@ -47,6 +48,7 @@ export function createSimulation(input) {
         const entity = state.entities[action.target];
         if (entity.state !== action.state) {
           entity.state = action.state;
+          signal('state',entity.id,{state:entity.state});
           emit(entity.label + ' → ' + stateLabel(entity.state));
         }
       } else if (action.type==='hold') {
@@ -67,6 +69,7 @@ export function createSimulation(input) {
       } else if (action.type==='invoke') {
         if(invokeDepth>=32 || (invocation?.depth??0)>=32){lose('limit','行为连线循环过深，请检查循环连接。');return;}
         const b=state.entities[action.target].behaviors.find(b=>b.id===action.behavior);
+        signal('behavior',action.target,{behavior:b.id});
         if(invocation)invocation.remaining++;
         invokeDepth++;
         execute(b.actions,{source:action.target,behavior:b.id,remaining:1,parent:invocation,depth:(invocation?.depth??0)+1});
@@ -94,6 +97,7 @@ export function createSimulation(input) {
     complete(invocation);
   };
   const trigger = (type, source, behavior, other) => {
+    signal('event',source,{event:type,...(behavior?{behavior}:{}),...(other?{other}:{})});
     // Each rule observes the results of earlier rules in declaration order.
     for (const rule of level.rules) {
       if (state.status !== 'running') return;
@@ -120,7 +124,7 @@ export function createSimulation(input) {
     }
     return false;
   };
-  const lose = (reason, message) => { state.status = 'lost'; state.reason = reason; emit(message, 'lost'); };
+  const lose = (reason, message) => { state.status = 'lost'; state.reason = reason; signal('lost','actor',{reason});emit(message, 'lost'); };
   const approach=(from,to,amount)=>from<to?Math.min(to,from+amount):Math.max(to,from-amount);
   const syncHeld=()=>{const a=state.actor,e=a.holding===null?null:state.entities[a.holding];if(e){e.x=a.x+a.direction*18-e.width/2;const t=verticalTransport(e);if(t)t.toY+=a.y-e.y;e.y=a.y;}};
   function updateMotion() {
@@ -310,7 +314,7 @@ export function createSimulation(input) {
     }
     syncHeld();
     if (a.mode==='walking' && (level.world.physics?reachedPhysicsGoal:a.y===floorY(level.goal) && Math.min(from,to)<=level.goal.x && Math.max(from,to)>=level.goal.x)) {
-      state.status = 'won'; emit('到了！就说一定能到这里。', 'won'); }
+      state.status = 'won'; signal('won','actor');emit('到了！就说一定能到这里。', 'won'); }
     else if(a.x<=20 || a.x>=1180 || a.y<=0 || a.y>=640)lose('boundary','走得太投入，碰到了地图边界。调整路线再试试。');
     else if (state.tick >= MAX_TICKS) lose('timeout', '这段路走成了长征。歇一下，重新出发吧。');
   };

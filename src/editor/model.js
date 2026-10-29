@@ -4,6 +4,7 @@ import { diagramBounds } from '../core/geometry.js';
 import { surfaceEndY } from '../core/surfaces.js';
 import { posePoint, poseInBounds } from '../core/pose.js';
 import {validateScene} from '../core/scene-schema.js';
+import {pruneFeedback} from '../core/feedback-schema.js';
 
 const clone = (value) => structuredClone(value);
 const finiteY = value => value?.y === undefined || Number.isFinite(value.y);
@@ -108,11 +109,12 @@ export function addObject(level, kind, x, y=440) {
 }
 
 export function deleteObject(level, ref) {
-  if (ref?.type==='platform') { level.platforms.splice(ref.index,1);if(level.scene){level.scene.nodes=level.scene.nodes.filter(n=>n.bind?.type!=='platform'||n.bind.index!==ref.index);for(const n of level.scene.nodes)if(n.bind?.type==='platform'&&n.bind.index>ref.index)n.bind.index--;} return; }
+  if (ref?.type==='platform') { level.platforms.splice(ref.index,1);if(level.scene){level.scene.nodes=level.scene.nodes.filter(n=>n.bind?.type!=='platform'||n.bind.index!==ref.index);for(const n of level.scene.nodes)if(n.bind?.type==='platform'&&n.bind.index>ref.index)n.bind.index--;} pruneFeedback(level);return; }
   if (ref?.type!=='entity') return;
   level.entities = level.entities.filter(e=>e.id!==ref.id);
   if(level.scene)level.scene.nodes=level.scene.nodes.filter(n=>n.bind?.type!=='entity'||n.bind.id!==ref.id);
   pruneReferences(level);
+  pruneFeedback(level);
 }
 
 /** Clipboard copies object definitions; scene wires are authored separately. */
@@ -291,6 +293,7 @@ export function addBehavior(entity) {
 }
 
 export function renameBehavior(level,entityId,previous,next) {
+  for(const f of level.scene?.feedback??[])if(f.trigger.source===entityId&&f.trigger.behavior===previous)f.trigger.behavior=next;
   level.entities.find(e=>e.id===entityId).behaviors.find(b=>b.id===previous).id=next;
   const visit=actions=>{for(const a of actions){if(a.type==='after')visit(a.actions);else if(a.type==='invoke'&&a.target===entityId&&a.behavior===previous)a.behavior=next;}};
   for(const e of level.entities)for(const b of e.behaviors??[])visit(b.actions);
@@ -299,7 +302,7 @@ export function renameBehavior(level,entityId,previous,next) {
 
 export function deleteBehavior(level,entityId,behaviorId) {
   const e=level.entities.find(e=>e.id===entityId);
-  e.behaviors=e.behaviors.filter(b=>b.id!==behaviorId);pruneReferences(level);
+  e.behaviors=e.behaviors.filter(b=>b.id!==behaviorId);pruneReferences(level);pruneFeedback(level);
 }
 
 /** Wires are a projection of rules, never a second source of gameplay data. */
