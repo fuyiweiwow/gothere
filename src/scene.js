@@ -1,5 +1,5 @@
 import { verticalTransport } from './core/transport.js';
-import { drawPosedObject } from './render/diagram.js';
+import { drawPosedObject, drawColliderObject } from './render/diagram.js';
 import { surfaceEndY } from './core/surfaces.js';
 
 const C = { ink:'#405c43', grass:'#9bac7b', land:'#a6b48b', dark:'#667f59', cream:'#faf4da', wood:'#b9a077', rust:'#b9846e' };
@@ -209,6 +209,7 @@ export function createRenderer(canvas) {
       destination(level.goal);
       for(const e of Object.values(snapshot.entities)){
         if(e.pose&&snapshot.actor.holding!==e.id)drawPosedObject(ctx,e);
+        else if(e.collider&&snapshot.actor.holding!==e.id)drawColliderObject(ctx,e);
         else if(e.kind==='switch')lever(e);
         else if(e.kind==='hazard')prop({...e,appearance:{skin:'crate'},state:e.state==='stopped'?'inactive':'active'});
         else if(e.kind==='gate')gate(e);
@@ -216,7 +217,7 @@ export function createRenderer(canvas) {
         else if(e.kind==='object' && !verticalTransport(e) && snapshot.actor.holding!==e.id)prop(e);
       }
       walker(snapshot,time,fallAge,reducedMotion);
-      if(snapshot.actor.holding){const held=snapshot.entities[snapshot.actor.holding];if(held.pose)drawPosedObject(ctx,held);else prop(held,true);}
+      if(snapshot.actor.holding){const held=snapshot.entities[snapshot.actor.holding];if(held.pose)drawPosedObject(ctx,held);else if(held.collider)drawColliderObject(ctx,held);else prop(held,true);}
       // Foreground wildflowers, only on actual ground.
       for(const x of [156,205,701,867,1037])if(level.platforms.some(p=>(p.y??440)===440&&x>p.x+15&&x<p.x+p.width-15)){
         tuft(x,443,.7);line(x+10,441,x+8,424,'#7f9669',1.2);circle(x+8,422,3.2,'#e7ddad');circle(x+8,422,1,'#bca773');

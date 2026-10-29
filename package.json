@@ -25,6 +25,7 @@
     "test:interaction": "node scripts/interaction-check.mjs",
     "test:surfaces": "node scripts/surfaces-check.mjs",
     "test:rotation": "node scripts/rotation-check.mjs",
+    "test:bodies": "node scripts/bodies-check.mjs",
     "test:windows": "node scripts/windows-check.mjs"
   },
   "devDependencies": {

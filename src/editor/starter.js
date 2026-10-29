@@ -1,6 +1,22 @@
 /** Content examples use only geometry and rules. They require no artwork or game shell. */
 export function createEditorExample(name='logic') {
   const common = { schemaVersion:1, world:{width:1200,height:640,groundY:440} };
+  if(name==='bodies')return {...common,id:'editor-bodies',name:'失去支撑与落物撞击',
+    description:'运行后点「撤去支撑」：落物自行掉落，撞击事件让生物休息。物体、碰撞体、重力和反应行为均可独立编辑。',
+    world:{...common.world,physics:{gravity:900,maxFallSpeed:480}},
+    actor:{x:80,y:520,speed:80},goal:{x:1100,y:520},platforms:[{x:0,width:1200,y:520}],
+    entities:[{id:'release',kind:'switch',label:'撤去支撑',x:180,y:520,width:28,state:'off'},
+      {id:'shelf',kind:'object',label:'支撑物',x:480,y:300,width:100,height:20,state:'active',collider:{enabled:true},
+        behaviors:[{id:'remove',label:'撤去支撑',actions:[{type:'enable',target:'shelf',capability:'collider',enabled:false}]}]},
+      {id:'weight',kind:'object',label:'落物',x:515,y:280,width:30,height:30,state:'active',collider:{enabled:true},body:{type:'dynamic'}},
+      {id:'creature',kind:'object',label:'生物',x:500,y:520,width:80,height:60,state:'active',collider:{enabled:true},
+        behaviors:[{id:'rest',label:'休息',actions:[{type:'set',target:'creature',state:'inactive'}]},
+          {id:'attack',label:'攻击',actions:[{type:'hurt',message:'生物还醒着。试试让落物撞到它，触发休息行为。'}]}]},
+      {id:'signal',kind:'switch',label:'失去支撑信号',x:300,y:520,width:28,state:'off'}],
+    rules:[{on:{type:'click',source:'release'},actions:[{type:'invoke',target:'shelf',behavior:'remove'}]},
+      {on:{type:'supportlost',source:'weight'},actions:[{type:'set',target:'signal',state:'on'}]},
+      {on:{type:'impact',source:'creature',other:'weight'},actions:[{type:'invoke',target:'creature',behavior:'rest'}]},
+      {on:{type:'contact',source:'creature'},actions:[{type:'invoke',target:'creature',behavior:'attack'}]}]};
   if(name==='rotation')return {...common,id:'editor-rotation',name:'旋转承托面',
     description:'运行后点击「释放机关」：翻板绕左端旋转，成为通往下层的斜面；旋转结束事件打开出口。选中翻板可编辑支点、角度和行为。',
     world:{...common.world,physics:{gravity:900,maxFallSpeed:480}},
