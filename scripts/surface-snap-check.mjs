@@ -21,6 +21,14 @@ async function scenario(p){await p.locator('#display-mode').selectOption('logic'
   await p.mouse.move(b.x+b.width/2,b.y+b.height/2);await p.mouse.down();await p.mouse.move(b.x+b.width/2+20/1200*map.width,b.y+b.height/2-2/640*map.height,{steps:5});
   assert.ok(await p.locator('[data-snap-kind="surface"]').count()>0,'actual supporting line is highlighted');await p.mouse.up();assert.equal((await draft(p)).entities.find(e=>e.id===ref).y,303);
   await p.locator('#editor-undo').click();assert.equal((await draft(p)).entities.find(e=>e.id===ref).y,310);await p.locator('#editor-redo').click();assert.equal((await draft(p)).entities.find(e=>e.id===ref).y,303);
+  await p.locator('#snap-enabled').check();
+  async function dragBy(dx,dy,alt=false){const b=await p.locator('[data-ref="entity:'+ref+'"]').boundingBox(),map=await p.locator('#editor-overlay').boundingBox();
+    await p.mouse.move(b.x+b.width/2,b.y+b.height/2);await p.mouse.down();if(alt)await p.keyboard.down('Alt');
+    await p.mouse.move(b.x+b.width/2+dx/1200*map.width,b.y+b.height/2+dy/640*map.height,{steps:5});
+    if(alt)assert.equal(await p.locator('#alignment-guides>*').count(),0);await p.mouse.up();if(alt)await p.keyboard.up('Alt');return (await draft(p)).entities.find(e=>e.id===ref);}
+  e=await dragBy(-276,2);assert.equal(e.x,230,'horizontal alignment works while the foot stays supported');assert.equal(e.y,303,'real support wins over decorative vertical alignment');
+  await p.locator('#editor-undo').click();e=await dragBy(30,1,true);assert.equal(e.x,540);assert.equal(e.y,304,'Alt bypasses both snap systems during movement');
+  await p.keyboard.press('ArrowDown');assert.equal((await draft(p)).entities.find(e=>e.id===ref).y,305,'keyboard nudges keep exact coordinates');
   await p.screenshot({path:'artifacts/surface-snapping.png',fullPage:true});}
 try{const p=await open('http://127.0.0.1:'+server.address().port+'/');await scenario(p);const built=await buildEditor();await scenario(await open(pathToFileURL(built.path).href));assert.deepEqual(errors,[]);console.log('PASS support snapping: continuous placement, actual road baseline, drag guide, toggle/Alt, history and offline authoring.');}
 finally{await context.close();await browser.close();await new Promise(r=>server.close(r));}
