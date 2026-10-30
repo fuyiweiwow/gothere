@@ -39,18 +39,19 @@ export function createWireUI({overlay,document:read,enabled,change,notify}) {
   }
   function paint(x,y){
     if(!gesture)return;gesture.x=x;gesture.y=y;gesture.target=targetAt(x,y);mark();
-    const origin=gesture.anchor,point={x,y},from=gesture.direction==='output'?origin:point,to=gesture.direction==='output'?point:origin;
+    const origin=gesture.handle?.isConnected?center(gesture.handle):gesture.anchor,point={x,y},from=gesture.direction==='output'?origin:point,to=gesture.direction==='output'?point:origin;
     const bend=Math.max(45,Math.abs(to.x-from.x)*.4);
     preview.setAttribute('viewBox',`0 0 ${innerWidth} ${innerHeight}`);path.setAttribute('d',`M ${from.x} ${from.y} C ${from.x+bend} ${from.y}, ${to.x-bend} ${to.y}, ${to.x} ${to.y}`);
   }
   function start(event,spec,handle){
     if(!enabled()||event.button!==0)return;event.preventDefault();event.stopPropagation();cancel();
-    gesture={...spec,pointerId:event.pointerId,anchor:center(handle),startX:event.clientX,startY:event.clientY,moved:false};
+    gesture={...spec,handle,pointerId:event.pointerId,anchor:center(handle),startX:event.clientX,startY:event.clientY,moved:false};
     overlay.dataset.wireActive='true';overlay.dataset.dragging='true';document.body.append(preview);overlay.setPointerCapture(event.pointerId);paint(event.clientX,event.clientY);
   }
   function commit(on,target,behavior){
-    cancel();let added=false;
-    if(change(level=>{added=connectWire(level,on,target,behavior);}))notify(added?'已连接事件与行为。':'这两个槽已经连接。');
+    cancel();let added=false,completed=false;
+    change(level=>{added=connectWire(level,on,target,behavior);completed=true;});
+    if(completed)notify(added?'已连接事件与行为。':'这两个槽已经连接。');
     overlay.focus({preventScroll:true});
   }
   function choose(spec,other,x,y){
@@ -83,7 +84,7 @@ export function createWireUI({overlay,document:read,enabled,change,notify}) {
     handle.dataset.wireHandle='true';handle.draggable=false;handle.title='拖动连线，或点一下起点再点目标；Esc 取消';
     handle.addEventListener('pointerdown',event=>start(event,spec,handle));handle.addEventListener('click',event=>event.stopPropagation());
     handle.addEventListener('keydown',event=>{if(!['Enter',' '].includes(event.key)||!enabled())return;event.preventDefault();event.stopPropagation();cancel();
-      gesture={...spec,anchor:center(handle),latched:true};overlay.dataset.wireActive='true';document.body.append(preview);paint(gesture.anchor.x,gesture.anchor.y);});
+      gesture={...spec,handle,anchor:center(handle),latched:true};overlay.dataset.wireActive='true';document.body.append(preview);paint(gesture.anchor.x,gesture.anchor.y);});
   }
   function render(level,{selection,wireTool}){
     overlay.querySelector('.wire-handles')?.remove();if(!enabled())return;
@@ -113,5 +114,5 @@ export function createWireUI({overlay,document:read,enabled,change,notify}) {
   document.addEventListener('keydown',event=>{if((gesture||menu)&&event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();cancel();}},true);
   overlay.addEventListener('lostpointercapture',()=>{if(gesture&&!gesture.latched)cancel();});
   window.addEventListener('pointercancel',cancel);window.addEventListener('blur',cancel);
-  return {bind,render,cancel};
+  return {bind,render,cancel,active:()=>Boolean(gesture||menu)};
 }

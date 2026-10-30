@@ -11,7 +11,7 @@ export function connectWire(level,on,target,behavior) {
   if(!source||!eventSlots(source).some(e=>e.type===on.type&&e.behavior===(on.type==='done'?on.behavior:undefined)))throw new Error('事件槽已不存在，请重新选择起点。');
   if(!destination?.behaviors?.some(b=>b.id===behavior))throw new Error('行为槽已不存在，请重新选择目标。');
   const event={source:on.source,type:on.type,...(on.type==='done'?{behavior:on.behavior}:{})};
-  if(level.rules.some(r=>r.on.source===event.source&&r.on.type===event.type&&r.on.behavior===event.behavior&&!r.if?.length&&r.actions.some(a=>a.type==='invoke'&&a.target===target&&a.behavior===behavior)))return false;
+  if(level.rules.some(r=>r.on.source===event.source&&r.on.type===event.type&&r.on.behavior===event.behavior&&!r.on.other&&!r.if?.length&&r.actions.some(a=>a.type==='invoke'&&a.target===target&&a.behavior===behavior)))return false;
   if(level.rules.length>=128)throw new Error('最多配置 128 条规则。');
   level.rules.push({on:event,actions:[{type:'invoke',target,behavior}]});return true;
 }

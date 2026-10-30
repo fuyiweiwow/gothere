@@ -655,6 +655,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     const command=shortcutCommand(event,{typing,testing:mode==='testing',diagram});if(!command)return;
     if(mode==='editing'&&document.body.dataset.editTarget==='art'&&!['save','help','undo','redo','new','data','run','step','toggle'].includes(command))return;
     event.preventDefault();event.stopPropagation();
+    if(wireUI.active()){if(command==='cancel'||command==='undo')wireUI.cancel();return;}
     if(drag||routeDrag){if(command==='cancel')cancelGesture();return;}
     if(event.repeat&&command!=='nudge')return;
     if(command==='save'){flushField();save(true);}
