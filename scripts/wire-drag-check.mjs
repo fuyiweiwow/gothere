@@ -21,7 +21,7 @@ async function scenario(p){
   async function start(handle,target){const a=await handle.boundingBox(),b=await target.boundingBox();await p.mouse.move(a.x+a.width/2,a.y+a.height/2);await p.mouse.down();await p.mouse.move(b.x+b.width/2,b.y+b.height/2,{steps:8});}
   await start(from,p.locator('[data-ref="entity:b"]'));assert.equal(await p.locator('.wire-drag-preview').count(),1);
   assert.equal(await p.locator('[data-ref="entity:b"]').getAttribute('data-wire-candidate'),'true');assert.equal((await draft(p)).rules.length,0,'preview is read-only');
-  await p.mouse.up();assert.equal(await p.locator('[data-wire-choose-behavior]').count(),2,'multiple behaviors are an explicit choice');
+  await p.mouse.up();if(!(await p.locator('[data-wire-choose-behavior]').count())){console.log('wire diagnostics',errors,await p.locator('.wire-connect-menu').allTextContents());await p.screenshot({path:'artifacts/wire-drag-failure.png',fullPage:true});}assert.equal(await p.locator('[data-wire-choose-behavior]').count(),2,'multiple behaviors are an explicit choice');
   await p.locator('[data-wire-choose-behavior=open]').click();let edited=await draft(p);assert.equal(edited.rules.length,1);assert.equal(edited.rules[0].on.type,'click');assert.equal(edited.rules[0].actions[0].behavior,'open');assert.deepEqual(edited.entities,l.entities,'wiring never moves an entity');
   await p.locator('#editor-undo').click();assert.equal((await draft(p)).rules.length,0);await p.locator('#editor-redo').click();assert.equal((await draft(p)).rules.length,1);
   await p.locator('#editor-overlay').focus();await p.keyboard.press('w');

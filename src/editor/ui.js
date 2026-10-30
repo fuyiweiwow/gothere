@@ -10,6 +10,8 @@ import { posePoint, posePolygon } from '../core/pose.js';
 import { EDITOR_SHORTCUTS, shortcutCommand, nudgeDelta } from './shortcuts.js';
 import {alignMove,drawGuides} from './alignment.js';
 import {snapToSurface} from './surface-snapping.js';
+import {createWireUI} from './wire-ui.js';
+import {connectWire} from './wire-creation.js';
 
 const $ = id => document.getElementById(id);
 const STORAGE = 'gothere.editor.v1';
@@ -43,6 +45,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
   let store=createEditorStore(), restored=false, mode='closed', selection=null, tool='select', drag=null, serial=0,placementY=440;
   let placementMode=diagram?'cursor':'fixed';
   let suppressClick=false;
+  let wireUI=null;
   let clipboard=null,pasteCount=0;
   let wireSource=null,wireTarget=null,wireEvent=null,wireBehavior=null,wireSourceBehavior=null;
   let tab='library',category='all',query='',wireView='all',selectedWire=null,routeDrag=null;
@@ -66,7 +69,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
   function flushField(){const active=document.activeElement;if(active?.matches('input,textarea,select,[contenteditable="true"]'))active.blur();}
   function capturePointer(event){$('editor-overlay').setPointerCapture(event.pointerId);$('editor-overlay').dataset.dragging='true';}
   function releasePointer(pointerId){const overlay=$('editor-overlay');delete overlay.dataset.dragging;if(overlay.hasPointerCapture(pointerId))overlay.releasePointerCapture(pointerId);}
-  function cancelGesture(){const active=drag??routeDrag;if(!active)return false;drag=null;routeDrag=null;releasePointer(active.pointerId);suppressClick=true;drawGuides($('alignment-guides'),[]);render();return true;}
+  function cancelGesture(){const wiring=wireUI?.cancel()??false,active=drag??routeDrag;if(!active)return wiring;drag=null;routeDrag=null;releasePointer(active.pointerId);suppressClick=true;drawGuides($('alignment-guides'),[]);render();return true;}
   function beginDrag(event,ref,handle){
     if(event.button!==0)return;
     event.preventDefault();event.stopPropagation();
@@ -98,6 +101,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     tool='wire';wireSource=source;wireEvent=type;wireSourceBehavior=behavior??null;wireTarget=null;wireBehavior=null;
     showTab('logic');render();
   }
+  wireUI=createWireUI({overlay:$('editor-overlay'),document:()=>store.document(),enabled:()=>mode==='editing'&&document.body.dataset.editTarget!=='art',change:edit,notify});
   function renderLibrary(d) {
     const filters=$('library-categories');filters.replaceChildren();
     for(const [id,label] of CATEGORIES){const b=button(label,()=>{category=id;renderLibrary(store.document());},'library-filter');b.dataset.category=id;b.setAttribute('aria-pressed',String(id===category));filters.append(b);}
@@ -123,6 +127,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
   }
   function edit(fn) {try{const changed=store.change(fn);save();render();return changed;}catch(error){notify(error.message);return false;}}
   function setMode(next) {
+    wireUI.cancel();
     mode=next;const editing=mode==='editing', active=mode!=='closed';
     document.body.classList.toggle('editing',editing);document.body.classList.toggle('workshop',active);
     $('editor-toolbar').hidden=!active;$('editor-panel').hidden=!editing;$('editor-overlay').hidden=!editing;
@@ -135,6 +140,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     onMode(mode);
   }
   function openDocument(level,key) {
+    cancelGesture();
     try {store.open(key,level);}catch(error){notify(error.message);return false;}
     pause();selection=null;selectedWire=null;wireSource=null;wireTarget=null;tool='select';tab='library';save();setMode('editing');return true;
   }
@@ -161,7 +167,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     const placement=input(placementY,'放置高度 Y',value=>{placementY=value;placementMode='fixed';renderTools();},{id:'placement-y',type:'number',min:160,max:560,step:10});
     $('editor-tools').append(field('放置在 Y',placement));
     const view=select([['all','全部连线'],['related','选中物体的连线'],['none','隐藏连线']],wireView,'连线显示',value=>{wireView=value;renderOverlay(store.document());});view.id='wire-view';$('editor-tools').append(view);
-    $('editor-help').textContent=tool==='select'?(diagram?'拖动物体移动 · 拖动选框节点缩放 · 通道端点吸附路面':'拖动物体 · 双击连线添加转接点'):tool==='wire'?'选择事件起点，再选择目标行为':(CATALOG.find(i=>i.kind===tool)?.name??'物体')+(diagram?'：连续点击放置':'：点击地图放置')+(diagram?(placementMode==='cursor'?' · 高度跟随点击':' · 固定 Y='+placementY):'')+' · Esc 取消';
+    $('editor-help').textContent=tool==='select'?(diagram?'拖动物体移动 · 拖动节点缩放 · 从物体右侧圆点或事件槽拖出连线':'拖动物体 · 双击连线添加转接点'):tool==='wire'?'右侧圆点输出事件 → 拖到目标物体选择行为 · 也可点起点再点目标 · Esc 取消':(CATALOG.find(i=>i.kind===tool)?.name??'物体')+(diagram?'：连续点击放置':'：点击地图放置')+(diagram?(placementMode==='cursor'?' · 高度跟随点击':' · 固定 Y='+placementY):'')+' · Esc 取消';
   }
   function renderWireControls(d) {
     const box=$('wire-controls');box.replaceChildren();box.hidden=tool!=='wire';
@@ -188,8 +194,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     const exists=d.rules.some(r=>r.on.source===wireSource&&r.on.type===wireEvent&&(wireEvent!=='done'||r.on.behavior===wireSourceBehavior)&&
       !r.if?.length&&r.actions.length===1&&r.actions[0].type==='invoke'&&r.actions[0].target===wireTarget&&r.actions[0].behavior===wireBehavior);
     const connect=button(exists?'已连接':'连接',()=>edit(doc=>{
-      doc.rules.push({on:{type:wireEvent,source:wireSource,...(wireEvent==='done'?{behavior:wireSourceBehavior}:{})},
-        actions:[{type:'invoke',target:wireTarget,behavior:wireBehavior}]});
+      connectWire(doc,{type:wireEvent,source:wireSource,...(wireEvent==='done'?{behavior:wireSourceBehavior}:{})},wireTarget,wireBehavior);
     }),'button primary');connect.id='wire-connect';connect.disabled=exists||d.rules.length>=128;box.append(connect);
     box.append(button('更换起点',()=>{wireSource=null;wireTarget=null;refresh();},'text-button'));
   }
@@ -276,6 +281,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
       $('editor-overlay').append(el);
     }
     renderResizeHandles(d);
+    wireUI.render(d,{selection,wireTool:tool==='wire'});
   }
   function shapeSurfaceHit(el,kind,p) {
     if(p.pose){const b=diagramBounds(kind,p);el.style.clipPath='polygon('+posePolygon(p).map(point=>`${(point.x-b.x)/b.width*100}% ${(point.y-b.y)/b.height*100}%`).join(',')+')';return;}
@@ -450,7 +456,8 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     for(const event of events){
       const rules=d.rules.map((r,index)=>({r,index})).filter(({r})=>r.on.source===target.id&&r.on.type===event.type&&(event.type!=='done'||r.on.behavior===event.behavior));
       const row=element('div',undefined,'slot-row event-slot');row.dataset.event=event.type;
-      row.append(element('span','●','slot-output'),element('span',event.label,'slot-name'),element('small',rules.length+' 条'));
+      const pin=button('●',()=>{},'slot-output wire-slot-handle');pin.setAttribute('aria-label','拖出「'+event.label+'」连线');wireUI.bind(pin,{entity:target.id,direction:'output',event:{type:event.type,...(event.behavior?{behavior:event.behavior}:{})}});
+      row.append(pin,element('span',event.label,'slot-name'),element('small',rules.length+' 条'));
       row.append(button('接线',()=>beginWire(target.id,event.type,event.behavior),'slot-connect'));
       box.append(row);appendConnections(box,rules.map(({index})=>index));
     }
@@ -458,7 +465,8 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     for(const behavior of target.behaviors??[]){
       const inbound=wires.filter(w=>w.target===target.id&&w.type==='invoke'&&w.behavior===behavior.id);
       const row=element('div',undefined,'slot-row behavior-slot');row.dataset.behaviorSlot=behavior.id;
-      row.append(element('span','◇','slot-input'),element('span',behavior.label,'slot-name'),element('small',inbound.length+' 条'));
+      const pin=button('◇',()=>{},'slot-input wire-slot-handle');pin.setAttribute('aria-label','拖出「'+behavior.label+'」输入连线');wireUI.bind(pin,{entity:target.id,direction:'input',behavior:behavior.id});
+      row.append(pin,element('span',behavior.label,'slot-name'),element('small',inbound.length+' 条'));
       row.append(button('接入',()=>{tool='wire';wireTarget=target.id;wireBehavior=behavior.id;showTab('logic');render();},'slot-connect'));box.append(row);
       appendConnections(box,[...new Set(inbound.map(w=>w.rule))]);
     }
@@ -619,12 +627,12 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
   });
   document.addEventListener('pointerdown',()=>{suppressClick=false;},{capture:true});
   document.addEventListener('click',event=>{const suppress=suppressClick;suppressClick=false;if(suppress&&event.detail>0&&$('editor-overlay').contains(event.target)){event.preventDefault();event.stopImmediatePropagation();}},{capture:true});
-  $('editor-overlay').addEventListener('lostpointercapture',()=>cancelGesture());
+  $('editor-overlay').addEventListener('lostpointercapture',()=>{if(drag||routeDrag)cancelGesture();});
   $('editor-overlay').addEventListener('dragstart',event=>event.preventDefault());
   window.addEventListener('pointercancel',()=>cancelGesture());
   window.addEventListener('blur',()=>cancelGesture());
   $('editor-new').addEventListener('click',()=>{const id='map-'+Date.now().toString(36)+'-'+serial++;openDocument(createBlankLevel(id),'custom:'+id);});
-  $('draft-select').addEventListener('change',()=>{store.open($('draft-select').value);selection=null;selectedWire=null;wireSource=null;wireTarget=null;tool='select';save();render();});
+  $('draft-select').addEventListener('change',()=>{cancelGesture();store.open($('draft-select').value);selection=null;selectedWire=null;wireSource=null;wireTarget=null;tool='select';save();render();});
   $('editor-save').addEventListener('click',()=>save(true));
   const history=(redo)=>{if(redo?store.redo():store.undo()){save();render();}};
   $('editor-undo').addEventListener('click',()=>history(false));$('editor-redo').addEventListener('click',()=>history(true));
