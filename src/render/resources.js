@@ -12,9 +12,10 @@ export function boundObject(node,level,snapshot) {
 }
 
 /** A pure visual transform sampled from actual logical geometry, never the other way around. */
-export function artTransform(node,level,snapshot,{tick=snapshot?.tick??0,animate=true,variant,feedback}={}) {
+export function artTransform(node,level,snapshot,{tick=snapshot?.tick??0,animate=true,variant,feedback,previewTarget}={}) {
   const object=boundObject(node,level,snapshot),state=variant??object?.state;
   const variantData=node.variants?.[state],n={...node,...variantData};
+  if(!snapshot&&previewTarget===node.id)n.visible=true;
   let x=n.x,y=n.y,rotation=n.rotation??0;
   if(object){
     const angle=object.pose?.angle??0,r=angle*Math.PI/180,pivot=(object.width??28)*(object.pose?.pivot??0);
