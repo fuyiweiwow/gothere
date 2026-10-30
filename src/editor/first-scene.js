@@ -35,11 +35,11 @@ export function createFirstScene(level) {
   wall('wallTeal','中间绿楼',529,330,231,310);ledge(526,329,238,'绿楼屋顶');
   add('dormerRoof','绿楼老虎窗屋顶',603,301,73,34,-2);
   window(622,330,30,40,true,'屋顶老虎窗');window(562,401,31,75,false,'绿楼左窗');window(693,388,33,85,true,'绿楼右窗');
-  detail('chimneyThin','绿楼烟囱',551,298,19,34);detail('drainpipe','绿楼雨水管',743,353,8,273);
+  const chimney=level.entities.find(e=>e.id==='chimney');detail('chimneyThin','喷烟烟囱资源',chimney?0:551,chimney?-34:298,19,34,chimney?{bind:{type:'entity',id:chimney.id}}:{});detail('drainpipe','绿楼雨水管',743,353,8,273);
   // Right-hand hotel is deliberately dense: mansard roof, cornices, shutters and shopfront.
   wall('wallLavender','旅店主立面',775,200,268,440);ledge(769,197,280,'旅店屋顶檐口');
   add('mansardRoof','旅店蓝瓦屋顶',783,107,252,91,-5);
-  const chimney=level.entities.find(e=>e.id==='chimney');detail('chimney','旅店烟囱',chimney?0:995,chimney?-70:130,25,64,chimney?{bind:{type:'entity',id:chimney.id}}:{});
+  detail('chimney','旅店烟囱',995,130,25,64);
   for(let i=0;i<3;i++){window(802+i*80,228,34,55,false,'旅店顶层窗 '+(i+1));detail('flowerPot','旅店窗台花 '+(i+1),807+i*80,271,24,34);}
   ledge(772,310,274,'旅店腰线');
   window(833,351,78,147,true,'旅店大窗');ledge(772,512,274,'旅店下层檐口');
@@ -59,7 +59,7 @@ export function createFirstScene(level) {
     add('cornice','路面石沿 '+(i+1),0,0,Math.hypot(p.width,(p.yEnd??p.y??440)-(p.y??440)),10,12,{bind:{type:'platform',index:i},rotation:angle});
   }
   const bind=(id,asset,label,x,y,w,h,extra={})=>level.entities.some(e=>e.id===id)&&add(asset,label,x,y,w,h,25,{bind:{type:'entity',id},...extra});
-  bind('cloud','cloud2','临时云桥资源',-10,-20,200,37,{opacity:.95,variants:{inactive:{opacity:.2}}});
+  bind('cloud','cloud2','烟雾通路资源',-10,-20,200,37,{opacity:.95,variants:{inactive:{visible:false},active:{visible:true}}});
   bind('antenna','antenna','天线桥资源',0,-13,level.entities.find(e=>e.id==='antenna')?.width??175,25);
   bind('umbrella','umbrellaClosed','缓降物资源',3,-48,24,48,{variants:{active:{asset:'umbrellaOpen',x:-18,y:-73,width:67,height:73}}});
   bind('sill','cornice','可倾斜窗台资源',-4,-3,248,14);
@@ -76,11 +76,10 @@ export function createFirstScene(level) {
   const cue=(node,trigger,extra={})=>{if(!node)return;if(trigger.source&&!level.entities.some(e=>e.id===trigger.source))return;
     const f={...feedbackDefault(node.id,'feedback-'+(scene.feedback.length+1)),label:node.label+'反馈',trigger,...extra};scene.feedback.push(f);};
   const object=(id,behavior,extra={})=>cue(scene.nodes.find(n=>n.bind?.id===id),{type:'behavior',source:id,behavior},extra);
-  cue(scene.nodes.find(n=>n.label==='绿楼烟囱'),{type:'start'},{motion:'none',particles:'smoke',duration:210,loop:true,strength:.7,count:12});
   cue(scene.nodes.find(n=>n.label==='旅店烟囱'),{type:'start'},{motion:'none',particles:'smoke',duration:240,loop:true,strength:.6,count:10});
   cue(scene.nodes.find(n=>n.label==='塔顶小旗'),{type:'start'},{motion:'sway',duration:240,loop:true,strength:.5});
-  object('chimney','puff',{motion:'squash',particles:'smoke',sound:'puff',duration:72,count:18,strength:1.2});
-  object('cloud','appear',{motion:'pulse',particles:'spark',sound:'pop',duration:45,count:9,color:'#bfeee5',strength:.5});
+  object('chimney','puff',{motion:'squash',particles:'smoke',sound:'puff',duration:84,count:24,strength:1.2});
+  object('cloud','appear',{motion:'emerge',particles:'smoke',sound:'none',duration:24,count:16,color:'#c4d7e3',strength:1,anchor:{x:.5,y:1}});
   object('pipe','support',{motion:'none',particles:'spark',sound:'clack',duration:24,count:6,color:'#e5cca0',strength:.3});
   object('antenna','tilt',{motion:'recoil',sound:'clack',duration:24,strength:.2});
   object('umbrella','open',{motion:'squash',sound:'pop',duration:36,strength:.65});

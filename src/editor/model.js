@@ -32,7 +32,7 @@ const shape = (level) => Boolean(level && level.schemaVersion === 1 && level.wor
 
 /** Drafts may be temporarily unplayable. Each slot owns its document and bounded history. */
 export function createEditorStore(serialized) {
-  const slots = new Map(); let active = null;
+  const slots = new Map(); let active = null,workspaceRevision;
   if (serialized !== undefined) {
     if (typeof serialized !== 'string' || serialized.length > 2097152) throw new Error('草稿文件过大。');
     const saved = JSON.parse(serialized);
@@ -44,9 +44,16 @@ export function createEditorStore(serialized) {
     }
     if (!slots.has(saved.activeKey)) throw new Error('草稿缺少当前关卡。');
     active = saved.activeKey;
+    if(saved.workspaceRevision!==undefined){if(typeof saved.workspaceRevision!=='string'||saved.workspaceRevision.length>80)throw new Error('工作区修订无效。');workspaceRevision=saved.workspaceRevision;}
   }
   const current = () => { if (!slots.has(active)) throw new Error('请先打开关卡。'); return slots.get(active); };
   return {
+    revision:()=>workspaceRevision,
+    resetWorkspace(key,initial,revision){
+      if(revision===workspaceRevision)return false;
+      if(typeof revision!=='string'||!revision.length||revision.length>80||!shape(initial))throw new Error('里程碑工作区无效。');
+      slots.clear();slots.set(key,{level:clone(initial),past:[],future:[]});active=key;workspaceRevision=revision;return true;
+    },
     open(key, initial) {
       if (!slots.has(key)) {
         if (slots.size >= 32) throw new Error('草稿已满（32 张）。请先导出备份并清理浏览器草稿。');
@@ -75,7 +82,7 @@ export function createEditorStore(serialized) {
     },
     history: () => ({ undo:current().past.length > 0, redo:current().future.length > 0 }),
     serialize: () => {
-      const saved=JSON.stringify({version:1, activeKey:active,
+      const saved=JSON.stringify({version:1, activeKey:active,...(workspaceRevision?{workspaceRevision}:{}),
         documents:[...slots].map(([key,slot]) => ({key,level:slot.level}))});
       if(saved.length>2097152)throw new Error('草稿超过 2 MiB，请导出 JSON 备份。');
       return saved;

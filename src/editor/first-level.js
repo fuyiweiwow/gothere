@@ -4,16 +4,16 @@ export function createFirstLevel() {
   const angle=Math.atan2(100,160)*180/Math.PI,length=Math.hypot(160,100),rampEnd=40+240*Math.cos(Math.PI/6);
   const invoke=(target,behavior)=>({type:'invoke',target,behavior});
   const enable=(target,capability,enabled)=>({type:'enable',target,capability,enabled});
-  const level={schemaVersion:1,id:'editor-first-level',name:'第一关 · 屋顶到亮窗',
-    description:'拉下水管接通屋顶，经云桥和天线到塔顶；撑伞落到左下檐面，放下檐面、落物处理生物，最后在窗户打开后关上它，走向亮窗。',
-    hint:'按主角的位置操作，过早会恢复，过晚会错过。参考：5秒拉水管→9秒云桥（5秒）→12.5秒天线（6秒后收回）→17.5秒撑伞（6秒）→20.8秒抽支撑→27.5秒放落物（生物休息6秒）→接近右侧时，窗户自动打开后及时关闭。暂停和单步可用于观察。',
+  const level={schemaVersion:1,id:'editor-first-level',name:'里程碑 02 · 屋顶到亮窗',
+    description:'拉下水管接通屋顶，点击下方烟囱喷出临时通路，经天线到塔顶；撑伞落到左下檐面，放下檐面、落物处理生物，最后在窗户打开后关上它，走向亮窗。',
+    hint:'按主角的位置操作，过早会恢复，过晚会错过。参考：5秒拉水管→9秒点下方烟囱（喷烟准备0.3秒，通路5秒）→12.5秒天线（6秒后收回）→17.5秒撑伞（6秒）→20.8秒抽支撑→27.5秒放落物（生物休息6秒）→接近右侧时，窗户自动打开后及时关闭。暂停和单步可用于观察。',
     world:{width:1200,height:640,groundY:440,physics:{gravity:900,maxFallSpeed:480}},
     actor:{x:1100,y:200,direction:-1,speed:45,maxLandingSpeed:330},goal:{x:1100,y:560},
     platforms:[{x:800,y:200,width:380},{x:660,y:280,width:40},
       {x:200,y:180,width:120},{x:rampEnd,y:480,width:530-rampEnd},{x:540,y:530,width:220},
       {x:760,y:530,width:140,yEnd:560},{x:900,y:560,width:280}],
     entities:[
-      {id:'cloud',kind:'object',label:'① 临时通路',x:480,y:280,width:180,height:12,state:'inactive',pose:{angle:0,pivot:0},surface:{enabled:false},
+      {id:'cloud',kind:'object',label:'烟雾临时通路',x:480,y:280,width:180,height:12,state:'inactive',pose:{angle:0,pivot:0},surface:{enabled:false},
         behaviors:[{id:'appear',label:'出现5秒后恢复',actions:[{type:'set',target:'cloud',state:'active'},enable('cloud','surface',true),
           {type:'after',ticks:300,actions:[enable('cloud','surface',false),{type:'set',target:'cloud',state:'inactive'}]}]}]},
       {id:'antenna',kind:'object',label:'② 天线桥',x:480-length,y:280,width:length,height:12,state:'inactive',pose:{angle:0,pivot:1},surface:{enabled:true},
@@ -46,10 +46,12 @@ export function createFirstLevel() {
           {id:'close',label:'关闭窗户',actions:[{type:'set',target:'window',state:'inactive'}]}]},
       {id:'window-zone',kind:'zone',label:'开窗位置感应',x:910,y:560,width:20,height:30,state:'enabled',
         behaviors:[{id:'once',label:'感应一次后停用',actions:[invoke('window','open'),{type:'set',target:'window-zone',state:'disabled'}]}]},
-      {id:'chimney',kind:'object',label:'会喷气的烟囱',x:995,y:200,width:25,height:70,state:'inactive',
-        behaviors:[{id:'puff',label:'喷气',actions:[{type:'set',target:'chimney',state:'active'},{type:'after',ticks:90,actions:[{type:'set',target:'chimney',state:'inactive'}]}]}]},
+      {id:'chimney',kind:'object',label:'① 喷烟烟囱',x:551,y:332,width:19,height:34,state:'inactive',
+        behaviors:[{id:'puff',label:'喷出烟雾通路',actions:[{type:'set',target:'chimney',state:'active'},
+          {type:'after',ticks:18,actions:[invoke('cloud','appear')]},
+          {type:'after',ticks:318,actions:[{type:'set',target:'chimney',state:'inactive'}]}]}]},
     ],
-    rules:[{on:{type:'click',source:'cloud'},if:[{entity:'cloud',state:'inactive'}],actions:[invoke('cloud','appear')]},
+    rules:[{on:{type:'click',source:'chimney'},if:[{entity:'chimney',state:'inactive'}],actions:[invoke('chimney','puff')]},
       {on:{type:'click',source:'antenna'},if:[{entity:'antenna',state:'inactive'}],actions:[invoke('antenna','tilt')]},
       {on:{type:'click',source:'umbrella'},if:[{entity:'umbrella',state:'inactive'}],actions:[invoke('umbrella','open')]},
       {on:{type:'contact',source:'umbrella'},actions:[invoke('umbrella','pickup')]},
@@ -63,8 +65,7 @@ export function createFirstLevel() {
       {on:{type:'click',source:'pipe'},if:[{entity:'pipe',state:'inactive'}],actions:[invoke('pipe','lower')]},
       {on:{type:'rotated',source:'pipe'},actions:[invoke('pipe','support')]},
       {on:{type:'enter',source:'window-zone'},actions:[invoke('window-zone','once')]},
-      {on:{type:'click',source:'window'},if:[{entity:'window',state:'active'}],actions:[invoke('window','close')]},
-      {on:{type:'click',source:'chimney'},if:[{entity:'chimney',state:'inactive'}],actions:[invoke('chimney','puff')]}]};
+      {on:{type:'click',source:'window'},if:[{entity:'window',state:'active'}],actions:[invoke('window','close')]}]};
   // Ordinary saved reroute points keep the example's self-connections near their objects.
   const routes=[[[680,286],[680,325],[465,325],[465,286]],
     [[495,286],[495,240],[280,240],[280,286]],[[280,165],[280,125],[220,125],[220,165]],

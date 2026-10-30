@@ -667,7 +667,14 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     cancel:cancelGesture,
     select:chooseObject,selection:()=>selection?structuredClone(selection):null,
     preview,
-    open(level,key,{updateSample=false}={}){if(restored){
+    open(level,key,{updateSample=false,workspaceRevision}={}){
+      if(workspaceRevision&&store.revision()!==workspaceRevision){
+        try{
+          const previous=localStorage.getItem(storageKey);if(previous)localStorage.setItem(storageKey+'.previous',previous);
+          store.resetWorkspace(key,level,workspaceRevision);restored=false;
+        }catch{notify('旧草稿未能归档，请先导出 JSON 备份，再清理工作区。');}
+      }
+      if(restored){
       restored=false;
       // Open the updated sample once, preserving every existing slot and subsequent edits.
       if(updateSample&&store.document().id===level.id&&!store.entries().some(e=>e.key===key)&&store.entries().length<32){openDocument(level,key);return;}

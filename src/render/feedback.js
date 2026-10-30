@@ -12,6 +12,7 @@ export function motionAt(preset,phase,strength=1) {
   if(preset==='recoil'){m.rotation=-wave*12*strength;m.dx=-wave*.1*strength;}
   if(preset==='sway')m.rotation=Math.sin(p*Math.PI*2)*4*strength;
   if(preset==='pulse')m.scaleX=m.scaleY=1+wave*.08*strength;
+  if(preset==='emerge'){const rest=(1-p)**3*strength;m.scaleX=1-.85*rest;m.scaleY=1-.8*rest;m.dy=.2*rest;m.opacity=clamp(1-rest,0,1);}
   if(preset==='fade')m.opacity=clamp(1-p*strength,0,1);
   if(preset==='fall'){const ease=(1-(1-p)**3)*strength;m.rotation=85*ease;m.dy=.12*ease;m.opacity=clamp(1-Math.max(0,(p-.65)/.35)*.65*strength,0,1);}
   return m;

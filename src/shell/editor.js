@@ -108,7 +108,7 @@ resourceUI=createResourceUI({editor,notify,preview:draw,requestBind:id=>{changeD
     const player=createFeedbackPlayer(level,{onSound:e=>sound.play(e)});player.preview({...f,delay:0},0);audition={player,tick:0,duration:f.duration};$('animation-toggle').checked=true;draw(level);
   }});
 bindingUI=createBindingUI({editor,resources:resourceUI,paint:draw,notify});
-editor.open(createFirstLevel(),'first-level:v016',{updateSample:true});
+editor.open(createFirstLevel(),'milestone:02:v017',{workspaceRevision:'milestone-02-v017'});
 if(editor.document().id==='editor-first-level'&&!editor.document().scene)editor.change(d=>{d.scene=createFirstScene(d);});
 workspace();resourceUI.render(editor.document());
 createViewport({isEditing:()=>editor.isEditing(),onChange:()=>{
