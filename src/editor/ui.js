@@ -222,7 +222,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     svg.setAttribute('viewBox','0 0 1200 640');svg.classList.add('wire-layer');svg.setAttribute('aria-label','事件连线');
     const defs=svgNode('defs'),marker=svgNode('marker',{id:'wire-arrow',viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:6,markerHeight:6,orient:'auto-start-reverse'});
     marker.append(svgNode('path',{d:'M 0 0 L 10 5 L 0 10 z',fill:'#637c70'}));defs.append(marker);svg.append(defs);
-    const point=(id,output)=>{const e=d.entities.find(e=>e.id===id);if(diagram){const b=diagramBounds(e?.kind??'actor',e??d.actor);return {x:Math.max(6,Math.min(1194,output?b.x+b.width+6:b.x-6)),y:b.y+b.height/2};}
+    const point=(id,output)=>{const e=d.entities.find(e=>e.id===id);if(diagram){const b=diagramBounds(e?.kind??'actor',e??d.actor),socket=(tool==='wire'||selection?.type==='entity'&&selection.id===id)?20*1200/$('editor-overlay').getBoundingClientRect().width:6;return {x:Math.max(6,Math.min(1194,output?b.x+b.width+socket:b.x-socket)),y:b.y+b.height/2};}
       return e?{x:Math.max(6,Math.min(1194,output?e.x+(e.width??28)+6:e.x-6)),y:(['lift','ladder'].includes(e.kind)?e.toY:floorY(e))-32}:{x:d.actor.x,y:floorY(d.actor)-32};};
     const duplicates=new Map(),wires=ruleWires(d).map(w=>{const key=w.source+':'+w.target,count=duplicates.get(key)??0;duplicates.set(key,count+1);return {...w,lane:w.rule%5+count};});
     if(wireView!=='none')for(const wire of wires.sort((a,b)=>Number(wireKey(a)===selectedWire)-Number(wireKey(b)===selectedWire))){
@@ -610,7 +610,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     }
     drawGuides($('alignment-guides'),guides);
     const target=resolveObject(d,drag.ref),el=$('editor-overlay').querySelector('[data-ref="'+refKey(drag.ref)+'"]');
-    const b=diagramBounds(target.kind??drag.ref.type,target);el.style.left=b.x/12+'%';el.style.top=b.y/6.4+'%';el.style.width=b.width/12+'%';el.style.height=b.height/6.4+'%';shapeSurfaceHit(el,drag.ref.type,target);positionResizeHandles(d);onPreview(d);renderWires(d);
+    const b=diagramBounds(target.kind??drag.ref.type,target);el.style.left=b.x/12+'%';el.style.top=b.y/6.4+'%';el.style.width=b.width/12+'%';el.style.height=b.height/6.4+'%';shapeSurfaceHit(el,drag.ref.type,target);positionResizeHandles(d);wireUI.position(d);onPreview(d);renderWires(d);
   });
   function applyDrag(doc,gesture){
     const snap=gesture.snap??{disabled:true};
@@ -631,6 +631,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
   $('editor-overlay').addEventListener('dragstart',event=>event.preventDefault());
   window.addEventListener('pointercancel',()=>cancelGesture());
   window.addEventListener('blur',()=>cancelGesture());
+  new ResizeObserver(()=>{if(mode==='editing')renderWires(store.document());}).observe($('editor-overlay'));
   $('editor-new').addEventListener('click',()=>{const id='map-'+Date.now().toString(36)+'-'+serial++;openDocument(createBlankLevel(id),'custom:'+id);});
   $('draft-select').addEventListener('change',()=>{cancelGesture();store.open($('draft-select').value);selection=null;selectedWire=null;wireSource=null;wireTarget=null;tool='select';save();render();});
   $('editor-save').addEventListener('click',()=>save(true));

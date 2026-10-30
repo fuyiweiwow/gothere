@@ -99,6 +99,12 @@ export function createWireUI({overlay,document:read,enabled,change,notify}) {
     }
     overlay.append(ports);
   }
+  function position(level){
+    for(const port of overlay.querySelectorAll('[data-wire-entity]')){
+      const entity=level.entities.find(e=>e.id===port.dataset.wireEntity);if(!entity)continue;const b=diagramBounds(entity.kind,entity);
+      port.style.left=(port.dataset.wireDirection==='output'?b.x+b.width:b.x)/12+'%';port.style.top=(b.y+b.height/2)/6.4+'%';
+    }
+  }
   window.addEventListener('pointermove',event=>{if(!gesture||!enabled())return;if(gesture.pointerId!=null&&event.pointerId!==gesture.pointerId)return;
     if(Math.hypot(event.clientX-gesture.startX,event.clientY-gesture.startY)>4)gesture.moved=true;paint(event.clientX,event.clientY);});
   window.addEventListener('pointerup',event=>{
@@ -114,5 +120,5 @@ export function createWireUI({overlay,document:read,enabled,change,notify}) {
   document.addEventListener('keydown',event=>{if((gesture||menu)&&event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();cancel();}},true);
   overlay.addEventListener('lostpointercapture',()=>{if(gesture&&!gesture.latched)cancel();});
   window.addEventListener('pointercancel',cancel);window.addEventListener('blur',cancel);
-  return {bind,render,cancel,active:()=>Boolean(gesture||menu)};
+  return {bind,render,position,cancel,active:()=>Boolean(gesture||menu)};
 }
