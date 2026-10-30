@@ -1,6 +1,6 @@
 {
   "name": "gothere",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "private": true,
   "type": "module",
   "description": "A lighthearted, data-driven puzzle about getting there, no matter what",
@@ -12,8 +12,8 @@
     "start": "node server.mjs",
     "build": "node scripts/build.mjs",
     "test": "node --test tests/*.test.mjs",
-    "test:coverage": "node --experimental-test-coverage --test --test-coverage-include=src/core/*.js --test-coverage-include=src/render/feedback.js --test-coverage-include=src/render/audio.js --test-coverage-lines=80 --test-coverage-functions=80 --test-coverage-branches=80 tests/*.test.mjs",
-    "test:e2e": "node scripts/studio-check.mjs && node scripts/resources-check.mjs && node scripts/canvas-check.mjs && node scripts/feedback-check.mjs && node scripts/selection-check.mjs"
+    "test:coverage": "node --experimental-test-coverage --test --test-coverage-include=src/core/*.js --test-coverage-include=src/render/feedback.js --test-coverage-include=src/render/audio.js --test-coverage-include=src/editor/surface-snapping.js --test-coverage-lines=80 --test-coverage-functions=80 --test-coverage-branches=80 tests/*.test.mjs",
+    "test:e2e": "node scripts/studio-check.mjs && node scripts/resources-check.mjs && node scripts/canvas-check.mjs && node scripts/feedback-check.mjs && node scripts/selection-check.mjs && node scripts/surface-snap-check.mjs"
   },
   "devDependencies": {
     "playwright": "1.64.1"
