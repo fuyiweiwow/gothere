@@ -6,7 +6,7 @@ import {chromium} from 'playwright';
 import {makeServer} from '../server.mjs';
 import {buildEditor} from './build.mjs';
 await mkdir('artifacts',{recursive:true});const server=makeServer();await new Promise(r=>server.listen(0,'127.0.0.1',r));
-const browser=await chromium.launch({headless:true,...(!existsSync(chromium.executablePath())?{channel:'msedge'}:{})});
+const browser=await chromium.launch({headless:true,args:['--mute-audio'],...(!existsSync(chromium.executablePath())?{channel:'msedge'}:{})});
 const context=await browser.newContext({viewport:{width:1600,height:1150}}),errors=[];
 const draft=p=>p.evaluate(()=>{const s=JSON.parse(localStorage.getItem('gothere.studio.v1'));return s.documents.find(d=>d.key===s.activeKey).level;});
 async function open(url){const p=await context.newPage();p.on('pageerror',e=>errors.push(e.message));await p.goto(url);await p.locator('#scene[data-assets=ready]').waitFor();return p;}

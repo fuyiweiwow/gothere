@@ -21,7 +21,7 @@
 
 可选 `presentation` 保留旧草稿的程序化表现兼容：symbol 为 block、cloud、beam、umbrella、pot、creature 或 support；color 为六位十六进制颜色；animation 为 none、bob 或 pulse。当前编辑器使用下文的 `scene` 配置图片与动画；逻辑属性面板不再编辑这些旧表现字段。渲染器只读实体状态、真实姿态/坐标和模拟 tick，不影响机制。
 
-旧 `appearance` 仅保留数据导入兼容，可包含 axe、crate、crocodile、orb 内置 skin 及有界 PNG/JPEG/WebP data URL；仍拒绝远程地址和 SVG。当前编辑器不显示旧贴图，也不提供上传。完整资源包和状态到动画片段的映射尚未实现。
+旧 `appearance` 仅保留数据导入兼容，可包含 axe、crate、crocodile、orb 内置 skin 及有界 PNG/JPEG/WebP data URL；仍拒绝远程地址和 SVG。当前编辑器不显示旧贴图，也不提供旧字段上传。图片状态变体与下文反馈槽已实现；完整资源包交换仍待实现。
 
 通用接触效果 `contact:{"effect":"lethal","message":"碰到了危险物。"}` 与外观无关。接触触发的规则先执行，因此拿起或停用该物体可以解除当前接触危险。未解除时，整个重叠期间都会检查致命效果，包含重叠期间重新启用的物体。
 
@@ -237,3 +237,27 @@ supportlost 从失去支撑的动态物体发出；landed 从下落后落定的�
 `variants` 按实际实体状态覆盖变换或图片，未设置的字段继承基础图层。编辑器可单独预览/拖动状态图片。`animation:{"frames":["travelerWalk1","travelerWalk2"],"fps":8}` 支持1～24帧及1～30 fps，按 `floor(tick*fps/60)` 选择帧；暂停和回放确定。状态可覆盖 animation，设为 null 使用静态图；状态直接换 asset 且未配置 animation 时也显示静态图。`flipWithDirection:true` 随对象实际朝向翻转。
 
 自定义图片仅接受 data:image/png、jpeg、webp 的 base64；单张最多256 KiB、2048×2048，所有图片总计512 KiB。禁止引用远程图片或导入 SVG，避免离线依赖与可执行内容。内置受信 SVG 随库内嵌。图片数据、图层及状态动画与逻辑共用历史、草稿和 JSON；离线编辑器内嵌内置素材，用户草稿需另行导出 JSON。
+
+## 表现反馈槽
+
+可选 `scene.feedback`（最多256槽）订阅模拟的结构化信号，不使用24条显示日志。每次信号含递增 `sequence`、开始 `tick`、`type`、`source` 和相关行为/事件/状态/失败原因；快照保留最近128条。模拟产生信号但不读取反馈配置，逻辑回放不受声音、粒子或图片变换影响。
+
+```json
+{"id":"puff-feedback","label":"喷出反馈","target":"chimney-art",
+ "trigger":{"type":"behavior","source":"chimney","behavior":"puff"},
+ "motion":"squash","particles":"smoke","sound":"puff",
+ "duration":72,"delay":0,"strength":1.2,"loop":false,"hold":false,"policy":"restart",
+ "anchor":{"x":0.5,"y":0},"count":18,"color":"#c4d7e3","direction":-90,"volume":0.25}
+```
+
+`target` 引用任意资源图层。`trigger` 支持 `start`、`behavior`（source/behavior）、`state`（source/state）、`event`（source/event，可为 done 指定 behavior）、`lost`（可选 reason）、`won`。start 的可选 source 只能为 scene，lost/won 只能为 actor，其余 source 引用实体。每个槽拥有独立触发实例；同一触发可启动多槽。
+
+motion 为 none/squash/shake/hop/recoil/sway/pulse/fade/fall；particles 为 none/smoke/dust/spark；sound 为 none/puff/clack/pop/thud/success/fail 或自定义声音 ID。duration 为6～360整数 tick，delay 为0～600整数 tick，strength 为0～2，volume 为0～1；loop 为布尔值，hold 可选布尔值。policy 为 restart（替换该槽上次实例）或 overlay（并存）。同目标的位移/角度相加，缩放/透明度相乘；显示缩放最终钳制0.1～3，不修改逻辑几何。运动以图片尺寸为相对单位、绕底部中心变换。
+
+anchor.x/y 为0～1的图片内挂点；direction 为−180～180度；count 为1～48整数；color 为六位十六进制颜色。粒子随目标变换，不参与碰撞；差异由槽 ID 和信号序号播种，重复采样与重放相同。最多同时256个实例、512个粒子；超出实例数移除最早实例，粒子按声明顺序截断。
+
+延迟后同步开始本体、粒子和声音；循环音效每轮播放一次，静音不追补。声音最长8秒；循环时周期由槽 duration 控制，可能叠音，音频源最多24个。结束时粒子消失；hold 保留最终本体姿态。暂停冻结模拟/表现及音频，重置清空实例、音源和待解码播放。终局玩法 tick 停止，单独表现时钟推进到已触发单次槽结束（含延迟），随后冻结循环；最多补960 tick。逐帧图片在终局使用首帧，本体反馈仍可倾倒/淡出。
+
+可选 `scene.sounds` 保存 `{id,label,src}`，最多8个，src 只接受内嵌 data:audio/wav、x-wav、wave、mpeg、mp3、ogg 的base64；单段256 KiB、总计512 KiB。播放时校验解码与8秒上限，异常提示不影响模拟。删除图层/实体/行为会清理相关反馈，行为改名同步更新引用；复制图片同时复制其反馈槽。
+
+当前槽选择内置运动算法，可复制参数组合；不支持任意关键帧、命名配方库、骨骼、粒子世界空间或用播放结束触发伤害。逻辑延迟/状态/行为阶段仍由规则定义；done 不等待表现，rotated 仍代表真实旋转完成。

@@ -8,7 +8,7 @@ import {buildEditor} from './build.mjs';
 import {artTransform} from '../src/render/resources.js';
 
 await mkdir('artifacts',{recursive:true});const server=makeServer();await new Promise(r=>server.listen(0,'127.0.0.1',r));
-const browser=await chromium.launch({headless:true,...(!existsSync(chromium.executablePath())?{channel:'msedge'}:{})});
+const browser=await chromium.launch({headless:true,args:['--mute-audio'],...(!existsSync(chromium.executablePath())?{channel:'msedge'}:{})});
 const context=await browser.newContext({viewport:{width:1600,height:1150}}),errors=[];
 const draft=p=>p.evaluate(()=>{const s=JSON.parse(localStorage.getItem('gothere.studio.v1'));return s.documents.find(d=>d.key===s.activeKey).level;});
 const near=(a,b,message,tolerance=.15)=>assert.ok(Math.abs(a-b)<tolerance,message+': '+a+' / '+b);

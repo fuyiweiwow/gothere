@@ -14,3 +14,5 @@ Sources and licenses were checked on 2026-10-29 from the authors' own download p
 Palette adaptations wallLavender, wallTeal, wallIndigo, wallRose, wallStone and roofBlue are recolored Kenney images. The traveler poses have transparent margins trimmed. The original/ vector supplements were authored for this project to complement the night palette; they were not taken from Good Night Mr. Snoozleberg. No original-game image, video frame or animation is shipped.
 
 library.json records the source, license, size and relative file of every library entry. Run `node scripts/pack-assets.mjs` after changing artwork or the manifest to regenerate the embedded library used by both online and offline editors. The delivered HTML contains the artwork locally and needs no CDN or network requests.
+
+The v0.16.0 smoke, dust and sparks are drawn procedurally; the six built-in audio cues are synthesized by project code. They add no third-party image/audio files. User-imported audio remains part of the user's level document.
