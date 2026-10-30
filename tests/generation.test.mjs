@@ -32,3 +32,21 @@ test('mechanism sequences vary, budgets and inputs are bounded, and a broken dra
   const candidate=buildCandidate({seed:'broken',steps:3});candidate.level.platforms=[];
   const report=verifyCandidate(candidate);assert.equal(report.passed,false);assert.ok(report.errors.length);assert.equal(createSimulation instanceof Function,true);
 });
+
+test('cooperative verification yields, cancels and matches the synchronous evidence',async()=>{
+  const {buildCandidate}=await generation(),{verifyCandidate,verifyCandidateAsync}=await verification();
+  const candidate=buildCandidate({seed:'async',steps:3});let yielded=0;
+  assert.deepEqual(await verifyCandidateAsync(candidate,{yieldTask:async()=>{yielded++;}}),verifyCandidate(candidate));assert.ok(yielded>1);
+  const controller=new AbortController();let count=0;
+  await assert.rejects(verifyCandidateAsync(candidate,{signal:controller.signal,yieldTask:async()=>{if(++count===2)controller.abort();}}),{name:'AbortError'});
+  assert.deepEqual(await verifyCandidateAsync({level:{}}),verifyCandidate({level:{}}));
+});
+
+test('candidate batches are bounded, distinct and cancellable without changing drafts',async()=>{
+  const {generateCandidates}=await import('../src/generation/batch.js'),events=[];
+  const result=await generateCandidates({seed:'batch',steps:3,count:2,onProgress:p=>events.push(p)});
+  assert.equal(result.candidates.length,2);assert.equal(new Set(result.candidates.map(c=>c.candidate.signature)).size,2);
+  assert.ok(result.candidates.every(c=>c.report.passed));assert.ok(result.attempts<=8);assert.ok(events.length>=2);
+  const controller=new AbortController();controller.abort();await assert.rejects(generateCandidates({seed:'a',steps:3,signal:controller.signal}),{name:'AbortError'});
+  await assert.rejects(generateCandidates({seed:'a',steps:3,count:10}));
+});

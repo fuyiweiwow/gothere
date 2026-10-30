@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPreview } from '../src/app/preview.js';
 import { createSimulation } from '../src/core/engine.js';
+import {buildCandidate} from '../src/generation/generator.js';
 import { validateLevel } from '../src/core/schema.js';
 import { createEditorExample } from './fixtures/editor-examples.js';
 
@@ -48,4 +49,26 @@ test('an active enemy on an upper road does not hurt an actor walking underneath
   const level=createEditorExample('creature');level.platforms[0].width=1200;level.goal={x:1100,y:520};
   level.entities=level.entities.filter(e=>e.id!=='ladder');level.entities.find(e=>e.id==='creature').state='active';
   const preview=createPreview(level);preview.start();preview.advance(2000);assert.equal(preview.snapshot().status,'won');
+});
+
+test('recorded demonstration respects pause, single step, reset and chunked advance',()=>{
+  const {level,plan}=buildCandidate({seed:'playback',steps:3}),kernel=createSimulation(level);kernel.start();let tick=0;
+  for(const p of plan){kernel.step(p.tick-tick-1);kernel.click(p.source);kernel.step();tick=p.tick;}
+  kernel.step(6000);const recording=kernel.recording();assert.equal(recording.status,'won');
+  const before=structuredClone(recording),preview=createPreview(level,{recording});assert.equal(preview.playback,true);
+  assert.equal(preview.click(plan[0].source),false,'manual clicks cannot contaminate a solution replay');
+  preview.advance(100);assert.equal(preview.snapshot().tick,0);
+  for(let i=0;i<plan[0].tick;i++)preview.step();assert.equal(preview.snapshot().status,'paused');
+  assert.equal(preview.snapshot().clicks,1);preview.advance(100);assert.equal(preview.snapshot().tick,plan[0].tick);
+  preview.start();preview.advance(6000);assert.deepEqual(preview.snapshot(),kernel.snapshot());
+  preview.reset();assert.equal(preview.snapshot().tick,0);preview.start();
+  for(let i=0;i<600;i++)preview.advance(10);assert.deepEqual(preview.snapshot(),kernel.snapshot());assert.deepEqual(recording,before);
+  assert.throws(()=>preview.advance(-1));assert.throws(()=>preview.advance(0.5));
+});
+
+test('recorded demonstrations reject malformed, incompatible and unbounded inputs',()=>{
+  const level=createEditorExample(),base={schemaVersion:1,levelId:level.id,untilTick:100,status:'won',inputs:[{tick:1,source:'signal'}]};
+  for(const change of [{levelId:'elsewhere'},{untilTick:40000},{inputs:[{tick:0,source:'signal'}]},
+    {inputs:[{tick:2,source:'signal'},{tick:1,source:'signal'}]},{inputs:[{tick:1,source:'missing'}]},
+    {inputs:[{tick:101,source:'signal'}]},{status:'fake'}])assert.throws(()=>createPreview(level,{recording:{...base,...change}}));
 });
