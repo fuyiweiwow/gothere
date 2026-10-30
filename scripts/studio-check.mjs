@@ -14,12 +14,12 @@ async function pageAt(url){const p=await context.newPage();p.on('pageerror',e=>e
 async function value(p,id,v){await p.locator(id).fill(String(v));await p.locator(id).press('Enter');}
 async function play(p,mode,{early=false}={}){
   await p.locator('#display-mode').selectOption(mode);await p.locator('#animation-toggle').check();await p.locator('#preview-toggle').click();
-  if(early){for(const id of ['cloud','antenna','umbrella','prop','pot'])await p.locator('#scene-interactions [data-source="'+id+'"]').click();await p.clock.runFor(52000);assert.match(await p.locator('#runtime-status').textContent(),/模拟结束/);}
+  if(early){for(const id of ['chimney','antenna','umbrella','prop','pot'])await p.locator('#scene-interactions [data-source="'+id+'"]').click();await p.clock.runFor(52000);assert.match(await p.locator('#runtime-status').textContent(),/模拟结束/);}
   else{
     let previous=0;
-    for(const [ms,id] of [[5000,'pipe'],[9000,'cloud'],[12500,'antenna'],[17500,'umbrella'],[20833,'prop'],[27500,'pot'],[41500,'window']]){
+    for(const [ms,id] of [[5000,'pipe'],[9000,'chimney'],[12500,'antenna'],[17500,'umbrella'],[20833,'prop'],[27500,'pot'],[41500,'window']]){
       await p.clock.runFor(ms-previous);previous=ms;await p.locator('#scene-interactions [data-source="'+id+'"]').click();
-      if(id==='cloud'){
+      if(id==='chimney'){
         const moving=await p.locator('#scene').evaluate(c=>c.toDataURL());
         await p.clock.runFor(100);previous+=100;assert.match(await p.locator('#runtime-inputs').textContent(),/恢复|剩余/);
         if(mode==='scene')assert.notEqual(await p.locator('#scene').evaluate(c=>c.toDataURL()),moving,'the running scene animates');

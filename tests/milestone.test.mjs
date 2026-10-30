@@ -26,6 +26,13 @@ test('emergence is a relative reusable animation that ends at the authored artwo
   assert.deepEqual(motionAt('emerge',.5,0),last);
 });
 
+test('auditioning a hidden resource reveals only its preview without changing the document',()=>{
+  const level=createFirstLevel(),node=level.scene.nodes.find(n=>n.bind?.id==='cloud'),before=structuredClone(level);
+  assert.equal(artTransform(node,level).visible,false);
+  assert.equal(artTransform(node,level,undefined,{previewTarget:node.id}).visible,true);
+  assert.equal(artTransform(node,level).visible,false);assert.deepEqual(level,before);
+});
+
 test('milestone reset clears old drafts once, restores safely and retains subsequent work',()=>{
   const store=createEditorStore();store.open('old:first',createBlankLevel('first'));store.open('old:second',createBlankLevel('second'));
   const previous=store.serialize(),level=createFirstLevel();

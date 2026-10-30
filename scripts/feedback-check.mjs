@@ -14,6 +14,8 @@ async function chooseArt(p,label){await p.locator('#layer-search').fill(label);a
 function shortWav(){const count=1600,b=Buffer.alloc(44+count*2);b.write('RIFF');b.writeUInt32LE(b.length-8,4);b.write('WAVEfmt ',8);b.writeUInt32LE(16,16);b.writeUInt16LE(1,20);b.writeUInt16LE(1,22);b.writeUInt32LE(8000,24);b.writeUInt32LE(16000,28);b.writeUInt16LE(2,32);b.writeUInt16LE(16,34);b.write('data',36);b.writeUInt32LE(count*2,40);for(let i=0;i<count;i++)b.writeInt16LE(Math.round(Math.sin(i*.3)*2000),44+i*2);return b;}
 try{
  const p=await pageAt('http://127.0.0.1:'+server.address().port+'/');await p.locator('#display-mode').selectOption('scene');
+ await chooseArt(p,'烟雾通路资源');const hiddenImage=await p.locator('#scene').evaluate(c=>c.toDataURL());await p.locator('[data-feedback-preview]').click();await p.clock.runFor(150);
+ assert.notEqual(await p.locator('#scene').evaluate(c=>c.toDataURL()),hiddenImage,'hidden resources can be auditioned without changing their initial state');await p.locator('#feedback-stop').click();
  const imported=await draft(p);imported.entities.push({id:'feedback-zone',kind:'zone',label:'测试感应区',x:30,y:560,width:8,height:8,state:'enabled'});
  await p.locator('#open-data').click();await p.locator('#level-json').fill(JSON.stringify(imported));await p.locator('#apply-level').click();await chooseArt(p,'可落下花盆资源');
  await p.locator('#feedback-panel').waitFor({state:'visible',timeout:3000});const initial=await draft(p);assert.ok(initial.scene.feedback.length>=12);
@@ -31,7 +33,7 @@ try{
  const heard=Number(await p.locator('#scene').getAttribute('data-audio-played'));await slot.locator('[data-feedback-preview]').click();
  for(let i=0;i<10&&Number(await p.locator('#scene').getAttribute('data-audio-played'))===heard;i++){await p.clock.runFor(50);await new Promise(r=>setTimeout(r,20));}
  assert.ok(Number(await p.locator('#scene').getAttribute('data-audio-played'))>heard,'an imported sound decodes and plays during preview');
- await p.locator('#feedback-stop').click();const target=(await draft(p)).scene.nodes.find(n=>n.label==='绿楼烟囱').id;
+ await p.locator('#feedback-stop').click();const target=(await draft(p)).scene.nodes.find(n=>n.label==='喷烟烟囱资源').id;
  await slot.locator('[data-feedback-field="copy-target"]').selectOption(target);const copied=await draft(p);assert.equal(copied.scene.feedback.at(-1).target,target);assert.equal(copied.scene.feedback.at(-1).sound,'sound-1');
  configured.scene.feedback=copied.scene.feedback;configured.scene.sounds=copied.scene.sounds;
  await p.locator('#feedback-stop').click();await p.reload();await p.locator('#scene[data-assets=ready]').waitFor();assert.deepEqual(await draft(p),configured);
