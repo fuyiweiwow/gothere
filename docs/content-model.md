@@ -252,7 +252,7 @@ supportlost 从失去支撑的动态物体发出；landed 从下落后落定的�
 
 `target` 引用任意资源图层。`trigger` 支持 `start`、`behavior`（source/behavior）、`state`（source/state）、`event`（source/event，可为 done 指定 behavior）、`lost`（可选 reason）、`won`。start 的可选 source 只能为 scene，lost/won 只能为 actor，其余 source 引用实体。每个槽拥有独立触发实例；同一触发可启动多槽。
 
-motion 为 none/squash/shake/hop/recoil/sway/pulse/fade/fall；particles 为 none/smoke/dust/spark；sound 为 none/puff/clack/pop/thud/success/fail 或自定义声音 ID。duration 为6～360整数 tick，delay 为0～600整数 tick，strength 为0～2，volume 为0～1；loop 为布尔值，hold 可选布尔值。policy 为 restart（替换该槽上次实例）或 overlay（并存）。同目标的位移/角度相加，缩放/透明度相乘；显示缩放最终钳制0.1～3，不修改逻辑几何。运动以图片尺寸为相对单位、绕底部中心变换。
+motion 为 none/squash/shake/hop/recoil/sway/pulse/emerge/fade/fall；emerge 从缩小/透明/略低的位置浮现到作者定义的原图，适用于烟雾、平台或任意贴图，不识别具体物体。particles 为 none/smoke/dust/spark；sound 为 none/puff/clack/pop/thud/success/fail 或自定义声音 ID。duration 为6～360整数 tick，delay 为0～600整数 tick，strength 为0～2，volume 为0～1；loop 为布尔值，hold 可选布尔值。policy 为 restart（替换该槽上次实例）或 overlay（并存）。同目标的位移/角度相加，缩放/透明度相乘；显示缩放最终钳制0.1～3，不修改逻辑几何。运动以图片尺寸为相对单位、绕底部中心变换。
 
 anchor.x/y 为0～1的图片内挂点；direction 为−180～180度；count 为1～48整数；color 为六位十六进制颜色。粒子随目标变换，不参与碰撞；差异由槽 ID 和信号序号播种，重复采样与重放相同。最多同时256个实例、512个粒子；超出实例数移除最早实例，粒子按声明顺序截断。
 
@@ -261,3 +261,5 @@ anchor.x/y 为0～1的图片内挂点；direction 为−180～180度；count 为
 可选 `scene.sounds` 保存 `{id,label,src}`，最多8个，src 只接受内嵌 data:audio/wav、x-wav、wave、mpeg、mp3、ogg 的base64；单段256 KiB、总计512 KiB。播放时校验解码与8秒上限，异常提示不影响模拟。删除图层/实体/行为会清理相关反馈，行为改名同步更新引用；复制图片同时复制其反馈槽。
 
 当前槽选择内置运动算法，可复制参数组合；不支持任意关键帧、命名配方库、骨骼、粒子世界空间或用播放结束触发伤害。逻辑延迟/状态/行为阶段仍由规则定义；done 不等待表现，rotated 仍代表真实旋转完成。
+
+里程碑02中，烟囱是独立普通物体：click → puff，先激活并喷烟；after(18) 调用另一个物体的 appear；通路激活/启用surface，并在300 tick后关闭/隐藏。烟囱318 tick后恢复可触发。图片 inactive.visible=false、active.visible=true；emerge 槽只负责展开视觉。隐藏的通路不作为点击输入，逻辑模式仍显示其结构供编辑。准备时间、寿命、触发来源、目标及图片均为普通可编辑数据。
