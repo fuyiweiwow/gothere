@@ -51,6 +51,7 @@ export function snapToSurface(level,ref,{threshold=12,disabled=false,handle}={})
     const beforePoint=segment?ends(segment)[candidate.index]:null,afterPoint=actualSegment?ends(actualSegment)[candidate.index]:null;
     if(segment?(Math.abs(afterPoint.x-beforePoint.x-candidate.dx)>EPSILON||Math.abs(afterPoint.y-beforePoint.y-candidate.dy)>EPSILON):Math.abs((copy.y??440)-(object.y??440)-candidate.dy)>EPSILON)continue;
     Object.assign(object,copy);
+    if(draft.world.physics&&!level.world.physics)level.world.physics=draft.world.physics;
     return [{kind:'surface',x:candidate.surface.x,y:candidate.surface.y??440,width:candidate.surface.width,yEnd:surfaceEndY(candidate.surface)}];
   }
   return [];

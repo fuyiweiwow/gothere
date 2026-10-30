@@ -586,10 +586,19 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     drag.dy=diagram||drag.handle?Math.round((event.clientY-drag.startY)/box.height*6400)/10:0;
     drag.snap={threshold:12*1200/box.width,disabled:event.altKey||!$('surface-snap').checked};
     // Resolve support from the raw pointer position before decorative edge alignment.
-    const d=structuredClone(drag.before),supportGuides=applyDrag(d,drag);let guides=supportGuides;
+    let d=structuredClone(drag.before),guides=applyDrag(d,drag);
     if(!drag.handle){
       const aligned=alignMove(drag.box,drag.targets,drag.dx,drag.dy,{threshold:6*1200/box.width,disabled:event.altKey||!$('snap-enabled').checked});
-      if(!supportGuides.length){drag.dx=aligned.dx;drag.dy=aligned.dy;const alignedDraft=structuredClone(drag.before);guides=[...aligned.guides,...applyDrag(alignedDraft,drag)];Object.assign(d,alignedDraft);}
+      if(!guides.length){
+        drag.dx=aligned.dx;drag.dy=aligned.dy;d=structuredClone(drag.before);const support=applyDrag(d,drag);
+        guides=[...aligned.guides.filter(g=>!support.length||g.axis==='x'),...support];
+      }else{
+        const object=resolveObject(drag.before,drag.ref),joinsEnds=drag.ref.type==='platform'||object.surface&&!object.supportProbe;
+        if(!joinsEnds){
+          const alignedDraft=structuredClone(drag.before),support=applyDrag(alignedDraft,{...drag,dx:aligned.dx});
+          if(support.length){drag.dx=aligned.dx;d=alignedDraft;guides=[...aligned.guides.filter(g=>g.axis==='x'),...support];}
+        }
+      }
     }
     drawGuides($('alignment-guides'),guides);
     const target=resolveObject(d,drag.ref),el=$('editor-overlay').querySelector('[data-ref="'+refKey(drag.ref)+'"]');
