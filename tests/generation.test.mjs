@@ -50,3 +50,21 @@ test('candidate batches are bounded, distinct and cancellable without changing d
   const controller=new AbortController();controller.abort();await assert.rejects(generateCandidates({seed:'a',steps:3,signal:controller.signal}),{name:'AbortError'});
   await assert.rejects(generateCandidates({seed:'a',steps:3,count:10}));
 });
+
+test('batch variants preserve the full seed and reject invalid variant inputs',async()=>{
+  const {buildCandidate}=await generation(),{generateCandidates}=await import('../src/generation/batch.js');
+  const seed='a'.repeat(80),result=await generateCandidates({seed,steps:3,count:1});
+  assert.equal(result.candidates.length,1);assert.equal(result.candidates[0].candidate.seed,seed);
+  assert.deepEqual(result.candidates[0].candidate,buildCandidate({seed,steps:3,variant:1}));
+  assert.notDeepEqual(buildCandidate({seed:'a',variant:1}),buildCandidate({seed:'a',variant:2}));
+  for(const options of [undefined,{seed:' '},{seed:'a'.repeat(81)},{seed:'a',variant:-1},{seed:'a',variant:1.5},{seed:'a',variant:9}])assert.throws(()=>buildCandidate(options));
+});
+
+test('the verifier rejects malformed plans and reports ineffective mechanisms instead of granting a proof',async()=>{
+  const {buildCandidate}=await generation(),{verifyCandidate}=await verification(),candidate=buildCandidate({seed:'invalid'});
+  for(const plan of [null,[],[{tick:1,source:'missing'}],candidate.plan.map(p=>({...p,tick:6001}))])assert.equal(verifyCandidate({...candidate,plan}).passed,false);
+  const trivial=structuredClone(candidate);trivial.level.platforms=[{x:0,y:440,width:1200}];trivial.level.actor.y=440;trivial.level.goal.y=440;trivial.level.rules=[];
+  trivial.level.entities=trivial.plan.map(p=>({id:p.source,label:'按钮',kind:'object',state:'active',x:100,y:440,width:20}));
+  const report=verifyCandidate(trivial);assert.equal(report.passed,false);assert.equal(report.noInput.status,'won');assert.ok(report.errors.length>=3);
+  const late={...candidate,plan:candidate.plan.map(p=>({...p,tick:5000}))};assert.equal(verifyCandidate(late).passed,false);
+});

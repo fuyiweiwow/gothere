@@ -24,6 +24,7 @@ async function scenario(url,offline){
   await p.locator('#generate-candidates').click();await p.waitForFunction(()=>document.querySelectorAll('[data-candidate]').length===3,null,{timeout:60000});
   assert.deepEqual(await workspace(p),before,'candidate browsing is read-only');
   const signatures=await p.locator('[data-candidate]').evaluateAll(cards=>cards.map(c=>c.dataset.signature));assert.equal(new Set(signatures).size,3);
+  await p.screenshot({path:'artifacts/generation-candidates-'+(offline?'offline':'local')+'.png',fullPage:true});
   const first=p.locator('[data-candidate]').first();assert.ok((await first.textContent()).includes('漏掉'));
   const seed=await first.getAttribute('data-seed');await first.locator('[data-import-candidate]').click();
   const imported=await workspace(p);assert.equal(imported.documents.length,before.documents.length+1);

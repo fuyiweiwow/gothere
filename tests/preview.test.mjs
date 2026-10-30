@@ -70,5 +70,6 @@ test('recorded demonstrations reject malformed, incompatible and unbounded input
   const level=createEditorExample(),base={schemaVersion:1,levelId:level.id,untilTick:100,status:'won',inputs:[{tick:1,source:'signal'}]};
   for(const change of [{levelId:'elsewhere'},{untilTick:40000},{inputs:[{tick:0,source:'signal'}]},
     {inputs:[{tick:2,source:'signal'},{tick:1,source:'signal'}]},{inputs:[{tick:1,source:'missing'}]},
-    {inputs:[{tick:101,source:'signal'}]},{status:'fake'}])assert.throws(()=>createPreview(level,{recording:{...base,...change}}));
+    {inputs:[{tick:101,source:'signal'}]},{status:'fake'},{inputs:Array.from({length:33},()=>({tick:1,source:'signal'}))}])assert.throws(()=>createPreview(level,{recording:{...base,...change}}));
+  assert.throws(()=>createPreview(level,{recording:null}));
 });
