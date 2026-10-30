@@ -9,6 +9,7 @@ import { surfaceEndY } from '../core/surfaces.js';
 import { posePoint, posePolygon } from '../core/pose.js';
 import { EDITOR_SHORTCUTS, shortcutCommand, nudgeDelta } from './shortcuts.js';
 import {alignMove,drawGuides} from './alignment.js';
+import {snapToSurface} from './surface-snapping.js';
 
 const $ = id => document.getElementById(id);
 const STORAGE = 'gothere.editor.v1';
@@ -571,7 +572,11 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     const x=Math.round((event.clientX-box.left)/box.width*1200/10)*10;
     const y=placementMode==='cursor'?Math.max(160,Math.min(560,Math.round((event.clientY-box.top)/box.height*640/10)*10)):placementY;
     const kind=tool;selectedWire=null;
-    if(diagram){selection=null;edit(doc=>{if(kind==='ladder')addHeightTransport(doc,x,y);else addObject(doc,kind,x,y);});}
+    if(diagram){selection=null;edit(doc=>{
+      const snap=!event.altKey&&$('surface-snap').checked,threshold=12*1200/box.width;
+      const ref=kind==='ladder'?addHeightTransport(doc,x,y,{snap,threshold}):addObject(doc,kind,x,y);
+      snapToSurface(doc,ref,{threshold,disabled:!snap});
+    });}
     else {tool='select';tab='object';edit(doc=>{selection=addObject(doc,kind,x,placementY);});}
   });
   window.addEventListener('pointermove',event=>{
@@ -579,15 +584,22 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     if(!drag || event.pointerId!==drag.pointerId)return;const box=$('editor-overlay').getBoundingClientRect();
     drag.dx=Math.round((event.clientX-drag.start)/box.width*12000)/10;
     drag.dy=diagram||drag.handle?Math.round((event.clientY-drag.startY)/box.height*6400)/10:0;
-    let guides=[];
-    if(!drag.handle){const aligned=alignMove(drag.box,drag.targets,drag.dx,drag.dy,{threshold:6*1200/box.width,disabled:event.altKey||!$('snap-enabled').checked});drag.dx=aligned.dx;drag.dy=aligned.dy;guides=aligned.guides;}
+    drag.snap={threshold:12*1200/box.width,disabled:event.altKey||!$('surface-snap').checked};
+    // Resolve support from the raw pointer position before decorative edge alignment.
+    const d=structuredClone(drag.before),supportGuides=applyDrag(d,drag);let guides=supportGuides;
+    if(!drag.handle){
+      const aligned=alignMove(drag.box,drag.targets,drag.dx,drag.dy,{threshold:6*1200/box.width,disabled:event.altKey||!$('snap-enabled').checked});
+      if(!supportGuides.length){drag.dx=aligned.dx;drag.dy=aligned.dy;const alignedDraft=structuredClone(drag.before);guides=[...aligned.guides,...applyDrag(alignedDraft,drag)];Object.assign(d,alignedDraft);}
+    }
     drawGuides($('alignment-guides'),guides);
-    const d=structuredClone(drag.before);applyDrag(d,drag);const target=resolveObject(d,drag.ref),el=$('editor-overlay').querySelector('[data-ref="'+refKey(drag.ref)+'"]');
+    const target=resolveObject(d,drag.ref),el=$('editor-overlay').querySelector('[data-ref="'+refKey(drag.ref)+'"]');
     const b=diagramBounds(target.kind??drag.ref.type,target);el.style.left=b.x/12+'%';el.style.top=b.y/6.4+'%';el.style.width=b.width/12+'%';el.style.height=b.height/6.4+'%';shapeSurfaceHit(el,drag.ref.type,target);positionResizeHandles(d);onPreview(d);renderWires(d);
   });
   function applyDrag(doc,gesture){
-    if(gesture.handle)resizeObject(doc,gesture.ref,gesture.handle,gesture.dx,gesture.dy);
-    else{moveObject(doc,gesture.ref,gesture.dx,gesture.dy);if(diagram)snapTransport(doc,resolveObject(doc,gesture.ref));}
+    const snap=gesture.snap??{disabled:true};
+    if(gesture.handle)resizeObject(doc,gesture.ref,gesture.handle,gesture.dx,gesture.dy,{snap:diagram&&!snap.disabled,threshold:snap.threshold});
+    else{moveObject(doc,gesture.ref,gesture.dx,gesture.dy);if(diagram&&!snap.disabled)snapTransport(doc,resolveObject(doc,gesture.ref),['lower','upper'],snap.threshold);}
+    return diagram?snapToSurface(doc,gesture.ref,{...snap,handle:gesture.handle}):[];
   }
   window.addEventListener('pointerup',event=>{
     if(routeDrag && event.pointerId===routeDrag.pointerId){const moved=routeDrag;routeDrag=null;releasePointer(event.pointerId);if(JSON.stringify(moved.points)!==JSON.stringify(moved.wire.points)){suppressClick=true;edit(doc=>setWirePoints(doc,moved.wire,moved.points));}return;}

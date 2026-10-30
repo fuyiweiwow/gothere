@@ -150,23 +150,23 @@ const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
 const channelConfig=e=>verticalTransport(e)??(e.kind==='lift'?e:null);
 
 /** Snap authored endpoints to nearby overlapping roads, never invent a landing at runtime. */
-export function snapTransport(level, entity, ends=['lower','upper']) {
+export function snapTransport(level, entity, ends=['lower','upper'],threshold=24) {
   const t=channelConfig(entity);if(!t)return;
   const rows=landingHeights(level,entity);
-  const nearest=(value,valid)=>rows.filter(y=>Math.abs(y-value)<=24&&valid(y)).sort((a,b)=>Math.abs(a-value)-Math.abs(b-value)||a-b)[0];
+  const nearest=(value,valid)=>rows.filter(y=>Math.abs(y-value)<=threshold&&valid(y)).sort((a,b)=>Math.abs(a-value)-Math.abs(b-value)||a-b)[0];
   if(ends.includes('lower')){const y=nearest(floorY(entity),y=>y>=t.toY+40);if(y!==undefined)entity.y=y;}
   if(ends.includes('upper')){const y=nearest(t.toY,y=>y<=floorY(entity)-40);if(y!==undefined)t.toY=y;}
 }
 
 /** The warehouse preset is an ordinary object with a vertical movement capability. */
-export function addHeightTransport(level,x,y=440) {
+export function addHeightTransport(level,x,y=440,{snap=true,threshold=24}={}) {
   const ref=addObject(level,'object',x,Math.max(200,y)),e=level.entities.at(-1);
   delete e.appearance;e.width=60;e.x=clamp(x,25,1140);e.label='高度通道'+e.id.slice(7);
   e.transport={type:'vertical',toY:Math.max(160,floorY(e)-180),speed:90};
-  snapTransport(level,e,['lower']);
+  if(snap)snapTransport(level,e,['lower'],threshold);
   const rows=landingHeights(level,e).filter(y=>y<=floorY(e)-40);
   rows.sort((a,b)=>Math.abs(a-e.transport.toY)-Math.abs(b-e.transport.toY));
-  if(rows.length)e.transport.toY=rows[0];
+  if(snap&&rows.length)e.transport.toY=rows[0];
   return ref;
 }
 
@@ -211,7 +211,7 @@ export function setSupportProbe(level,entity,enabled) {
 }
 
 /** Resize from the opposite edge; one call describes an entire drag from its initial geometry. */
-export function resizeObject(level,ref,handle,dx,dy) {
+export function resizeObject(level,ref,handle,dx,dy,{snap=true,threshold=24}={}) {
   const e=ref.type==='entity'?level.entities.find(e=>e.id===ref.id):ref.type==='platform'?level.platforms[ref.index]:null;
   if(!e)return;
   const road=ref.type==='platform',b=diagramBounds(e.kind??'platform',e),t=channelConfig(e);
@@ -238,7 +238,7 @@ export function resizeObject(level,ref,handle,dx,dy) {
     if(t){
       if(handle.includes('n'))t.toY=clamp(t.toY+dy,160,floorY(e)-40);
       if(handle.includes('s'))e.y=clamp(floorY(e)+dy,t.toY+40,560);
-      snapTransport(level,e,handle.includes('n')?['upper']:handle.includes('s')?['lower']:['lower','upper']);
+      if(snap)snapTransport(level,e,handle.includes('n')?['upper']:handle.includes('s')?['lower']:['lower','upper'],threshold);
     }else{
       if(handle.includes('n'))e.height=clamp(b.height-dy,8,240);
       if(handle.includes('s')){const y=clamp(floorY(e)+dy,Math.max(160,b.y+8),Math.min(560,b.y+240));e.y=y;e.height=y-b.y;}

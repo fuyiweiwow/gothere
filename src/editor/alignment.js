@@ -17,6 +17,13 @@ export function alignMove(box, targets, dx, dy, {threshold=5, disabled=false}={}
 
 export function drawGuides(container,guides) {
   container.replaceChildren();
-  for(const guide of guides){const line=document.createElement('div');line.className='alignment-guide '+guide.axis;line.dataset.axis=guide.axis;
+  for(const guide of guides){
+    if(guide.kind==='surface'){
+      const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),line=document.createElementNS(ns,'line');
+      svg.classList.add('surface-guide');svg.dataset.snapKind='surface';svg.setAttribute('viewBox','0 0 1200 640');svg.setAttribute('preserveAspectRatio','none');
+      for(const [key,value] of Object.entries({x1:guide.x,y1:guide.y,x2:guide.x+guide.width,y2:guide.yEnd}))line.setAttribute(key,String(value));
+      line.setAttribute('vector-effect','non-scaling-stroke');svg.append(line);container.append(svg);continue;
+    }
+    const line=document.createElement('div');line.className='alignment-guide '+guide.axis;line.dataset.axis=guide.axis;
     line.style[guide.axis==='x'?'left':'top']=guide.position/(guide.axis==='x'?12:6.4)+'%';container.append(line);}
 }

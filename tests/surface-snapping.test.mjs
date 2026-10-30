@@ -6,6 +6,7 @@ import {footprintHeight} from '../src/core/bodies.js';
 import {posePoint} from '../src/core/pose.js';
 
 const fixture=()=>{const l=createBlankLevel('surface-snap');l.world.physics={gravity:900,maxFallSpeed:480};l.platforms=[{x:100,y:303,width:400}];
+  l.actor={x:150,y:303,speed:40};l.goal={x:450,y:303};
   const ref=addObject(l,'object',200,310);const e=l.entities[0];delete e.appearance;e.collider={enabled:true};e.body={type:'dynamic'};return {l,ref,e};};
 const snap=async(...args)=>(await import('../src/editor/surface-snapping.js')).snapToSurface(...args);
 
