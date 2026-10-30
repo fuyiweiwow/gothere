@@ -26,6 +26,8 @@ async function scenario(p){
   await p.locator('#editor-undo').click();assert.equal((await draft(p)).rules.length,0);await p.locator('#editor-redo').click();assert.equal((await draft(p)).rules.length,1);
   await p.locator('#editor-overlay').focus();await p.keyboard.press('w');
   const output=p.locator('[data-wire-entity=a][data-wire-direction=output]');assert.equal(await output.count(),1,'wire tool exposes object ports');
+  const port=await output.boundingBox(),startPoint=await p.locator('.event-wire').first().evaluate(path=>{const p=path.getPointAtLength(0),m=path.getScreenCTM();return {x:p.x*m.a+p.y*m.c+m.e,y:p.x*m.b+p.y*m.d+m.f};});
+  assert.ok(Math.abs(startPoint.x-port.x-port.width/2)<2&&Math.abs(startPoint.y-port.y-port.height/2)<2,'saved wires attach to the draggable socket');
   await start(output,p.locator('[data-ref="entity:b"]'));await p.keyboard.press('Escape');await p.mouse.up();assert.equal(await p.locator('.wire-drag-preview').count(),0);assert.equal(await p.locator('.wire-connect-menu').count(),0);assert.equal((await draft(p)).rules.length,1);
   await p.keyboard.press('w');await start(output,p.locator('[data-ref="entity:b"]'));await p.mouse.up();
   await p.locator('#wire-menu-event').selectOption('click');await p.locator('[data-wire-choose-behavior=close]').click();assert.equal((await draft(p)).rules.length,2,'one output can drive more than one behavior');
