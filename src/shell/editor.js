@@ -13,6 +13,7 @@ import {createViewport} from '../editor/viewport.js';
 import {createBindingUI} from '../editor/binding-ui.js';
 import {createFeedbackPlayer} from '../render/feedback.js';
 import {createSoundPlayer} from '../render/audio.js';
+import {createGenerationUI} from '../generation/ui.js';
 
 const $=id=>document.getElementById(id),canvas=$('scene'),ctx=canvas.getContext('2d');
 const standaloneHTML=document.getElementById('standalone-editor')?'<!doctype html>\n'+document.documentElement.outerHTML:null;
@@ -52,7 +53,7 @@ function drawDocument(level){if(audition){audition=null;sound.stop();}bindingUI?
 function canClick(id,state){return previewLevel.rules.some(r=>r.on.source===id&&r.on.type==='click'&&(r.if??[]).every(c=>Object.hasOwn(c,'holding')?state.actor.holding===c.holding:state.entities[c.entity].state===c.state));}
 function updateInteractions(state){
   for(const button of document.querySelectorAll('#scene-interactions button,#runtime-inputs button')){
-    const e=state.entities[button.dataset.source],remaining=recoveryTicks(e.id,state),disabled=['won','lost'].includes(state.status)||!canClick(e.id,state);
+    const e=state.entities[button.dataset.source],remaining=recoveryTicks(e.id,state),disabled=preview.playback||['won','lost'].includes(state.status)||!canClick(e.id,state);
     button.disabled=disabled;const status=remaining===null?(disabled?'暂不可触发':'可触发'):'剩余 '+(remaining/60).toFixed(1)+'秒 · 恢复';
     button.title=e.label+' · '+status;
     if(button.parentElement.id==='scene-interactions'){
@@ -78,8 +79,9 @@ function updateDebug(){
   if(!state.events.length){const li=document.createElement('li');li.textContent='尚无状态变化。';log.append(li);}
   updateInteractions(state);
 }
-function runPreview(level,{run=true}={}){
-  audition=null;previewLevel=level;preview=createPreview(level);accumulator=0;endingTicks=0;
+function runPreview(level,{run=true,recording}={}){
+  audition=null;previewLevel=level;preview=createPreview(level,{recording});accumulator=0;endingTicks=0;
+  $('scene-tag-text').textContent=preview.playback?'解法演示':'模拟中';
   sound.setLevel(level);sound.setPaused(!run);sound.setMuted(!$('sound-toggle').checked);if(run)sound.unlock();canvas.dataset.audioPlayed='0';
   feedback=createFeedbackPlayer(level,{onSound:e=>sound.play(e)});
   if(run)preview.start();
@@ -100,6 +102,7 @@ editor=createEditorUI({play:runPreview,leave:()=>{},pause:()=>preview?.pause(),n
     workspace();
     $('scene-interactions').hidden=!testing;
     $('reset-level').disabled=testing;
+    $('open-generation').disabled=testing;
     if(!testing){preview=null;previewLevel=null;feedback=null;audition=null;sound.stop();accumulator=0;$('runtime-status').textContent='编辑中';delete $('runtime-status').dataset.status;$('runtime-tick').textContent='tick 0';$('preview-toggle').textContent='▶ 运行';}}
 });
 resourceUI=createResourceUI({editor,notify,preview:draw,requestBind:id=>{changeDisplay('binding','art');bindingUI.start(id);},inspectLogic:ref=>{changeDisplay('binding','logic');editor.select(ref);},
@@ -109,6 +112,7 @@ resourceUI=createResourceUI({editor,notify,preview:draw,requestBind:id=>{changeD
   }});
 bindingUI=createBindingUI({editor,resources:resourceUI,paint:draw,notify});
 editor.open(createFirstLevel(),'milestone:02:v017',{workspaceRevision:'milestone-02-v017'});
+createGenerationUI({editor,changeDisplay,notify});
 if(editor.document().id==='editor-first-level'&&!editor.document().scene)editor.change(d=>{d.scene=createFirstScene(d);});
 workspace();resourceUI.render(editor.document());
 createViewport({isEditing:()=>editor.isEditing(),onChange:()=>{

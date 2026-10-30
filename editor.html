@@ -11,7 +11,7 @@
 <body class="editor-app">
   <header class="app-header">
     <div class="app-brand"><span class="brand-symbol" aria-hidden="true">▦</span><div><h1>一定要到达那里</h1><span>关卡编辑器 <b>0.19.0</b></span></div></div>
-    <div class="document-actions"><button id="reset-level" class="button secondary">新建首关副本</button><button id="open-data" class="button secondary">JSON 导入 / 导出</button><button id="download-editor" class="button secondary">下载离线编辑器</button></div>
+    <div class="document-actions"><button id="open-generation" class="button secondary">生成实验</button><button id="reset-level" class="button secondary">新建首关副本</button><button id="open-data" class="button secondary">JSON 导入 / 导出</button><button id="download-editor" class="button secondary">下载离线编辑器</button></div>
   </header>
   <main id="editor-workspace">
     <section id="editor-toolbar" class="editor-toolbar" aria-label="创作工具" hidden></section>
@@ -46,6 +46,14 @@
   </main>
   <footer class="app-footer"><span id="document-summary">schemaVersion 1</span><span>逻辑 · 资源 · 绑定校准 · 草稿在本机保存</span></footer>
   <dialog id="data-dialog" aria-labelledby="data-title"><div class="dialog-heading"><h2 id="data-title">关卡 JSON</h2><button id="close-data" class="button secondary" aria-label="关闭关卡数据">关闭</button></div><p class="panel-note">编辑与模拟共用同一数据格式。导入会新增草稿；模拟不会改变编辑内容。含图片的 JSON 最多 1 MiB。</p><label for="level-json">当前草稿 · schemaVersion 1</label><textarea id="level-json" spellcheck="false" maxlength="1048576"></textarea><p id="data-error" class="data-error" role="alert" hidden></p><div class="dialog-actions"><button id="import-level" class="button secondary">选择 JSON 文件</button><button id="export-level" class="button secondary">导出当前草稿</button><button id="apply-level" class="button primary">导入为新草稿</button></div><input id="level-file" type="file" accept=".json,application/json" hidden></dialog>
+  <dialog id="generation-dialog" aria-labelledby="generation-title" data-busy="false">
+    <div class="dialog-heading"><h2 id="generation-title">生成实验</h2><button id="close-generation" class="button secondary">关闭</button></div>
+    <p class="panel-note">组合通用机关片段，使用真实模拟验证后提供候选。导入会新增草稿，保留已有内容。当前探索逻辑结构，使用纯逻辑图形。</p>
+    <div class="generation-settings"><label>种子<input id="generation-seed" value="第一段旅程" maxlength="80" autocomplete="off"></label><label>操作数量<select id="generation-steps"><option value="3">3 个</option><option value="4">4 个</option><option value="5">5 个</option></select></label><button id="generate-candidates" class="button primary">生成 3 个候选</button><button id="cancel-generation" class="button secondary" hidden>取消生成</button></div>
+    <p id="generation-status" role="status" aria-live="polite">相同种子和操作数量可以重现同一批候选。</p>
+    <div id="generation-results" class="generation-results"></div>
+    <p class="panel-note">实验版使用规则与约束组合，没有训练模型。验证证明存在一条解法；不能证明好玩、唯一解或所有操作时机都有效。</p>
+  </dialog>
   <div id="toast" class="toast" role="status" hidden></div>
   <script type="module" src="/src/shell/editor.js"></script>
 </body>

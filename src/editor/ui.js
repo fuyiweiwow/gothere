@@ -646,7 +646,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
       target?{type:'set',target:target.id,state:target.state}:{type:'set',target:source.id,state:source.state};
     doc.rules.push({on:{type:availableEvents(source)[0],source:source.id},actions:[action]});
   }));
-  function preview({run=true}={}) {cancelGesture();flushField();const d=store.document();if(!validateLevel(d).valid){notify('请先修正地图中的校验问题。');return false;}setMode('testing');play(d,{run});return true;}
+  function preview({run=true,recording}={}) {cancelGesture();flushField();const d=store.document();if(!validateLevel(d).valid){notify('请先修正地图中的校验问题。');return false;}setMode('testing');play(d,{run,recording});return true;}
   $('editor-test').addEventListener('click',()=>preview());
   $('editor-return').addEventListener('click',()=>{pause();setMode('editing');});
   $('editor-exit').addEventListener('click',()=>{pause();const d=store.document();setMode('closed');leave(validateLevel(d).valid?d:null);});
