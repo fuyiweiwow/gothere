@@ -28,3 +28,8 @@ test('bad endpoints, missing completion behaviors and rule limits leave the docu
   l.rules=Array.from({length:128},()=>({on:{source:'a',type:'contact'},actions:[{type:'invoke',target:'a',behavior:'press'}]}));
   assert.throws(()=>connectWire(l,{source:'a',type:'click'},'b','open'));assert.equal(l.rules.length,128);
 });
+
+test('a contact filtered by the other object does not replace an unconditional connection',async()=>{
+  const {connectWire}=await module(),l=fixture();l.rules=[{on:{source:'a',type:'contact',other:'b'},actions:[{type:'invoke',target:'b',behavior:'open'}]}];
+  assert.equal(connectWire(l,{source:'a',type:'contact'},'b','open'),true);assert.equal(l.rules.length,2);
+});
