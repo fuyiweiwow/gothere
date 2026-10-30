@@ -7,7 +7,7 @@ async function generate({seed,steps=3,count=3,signal,onProgress=()=>{}}={}) {
   const candidates=[],signatures=new Set(),rejections=[];let attempts=0;
   const started=performance.now();
   while(candidates.length<count&&attempts<8){
-    checkCancelled(signal);const candidate=buildCandidate({seed:seed+':'+(++attempts),steps});
+    checkCancelled(signal);const candidate=buildCandidate({seed,steps,variant:++attempts});
     if(!signatures.has(candidate.signature)){
       const report=await verifyCandidateAsync(candidate,{signal});checkCancelled(signal);
       if(report.passed){candidates.push({candidate,report});signatures.add(candidate.signature);}

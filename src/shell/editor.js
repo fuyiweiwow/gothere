@@ -54,7 +54,7 @@ function canClick(id,state){return previewLevel.rules.some(r=>r.on.source===id&&
 function updateInteractions(state){
   for(const button of document.querySelectorAll('#scene-interactions button,#runtime-inputs button')){
     const e=state.entities[button.dataset.source],remaining=recoveryTicks(e.id,state),disabled=preview.playback||['won','lost'].includes(state.status)||!canClick(e.id,state);
-    button.disabled=disabled;const status=remaining===null?(disabled?'暂不可触发':'可触发'):'剩余 '+(remaining/60).toFixed(1)+'秒 · 恢复';
+    button.disabled=disabled;const status=preview.playback?'演示自动触发':remaining===null?(disabled?'暂不可触发':'可触发'):'剩余 '+(remaining/60).toFixed(1)+'秒 · 恢复';
     button.title=e.label+' · '+status;
     if(button.parentElement.id==='scene-interactions'){
       const b=displayMode!=='logic'?(entityArtBounds(previewLevel,state,e.id,{feedback:feedbackFrame})??presentationBounds(e)):diagramBounds(e.kind,e);

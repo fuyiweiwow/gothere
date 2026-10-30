@@ -29,7 +29,7 @@ export function createGenerationUI({editor,changeDisplay,notify}) {
         const item=node('li'),detail=node('details');detail.append(node('summary',(p.tick/60).toFixed(1)+' 秒 · '+p.label),node('p',candidate.fragments[i].explanation));item.append(detail);list.append(item);
       }
       card.append(list,node('p','✓ 解法可通关 · 漏掉任一操作均失败 · 开场全点失败 · 单次 ±0.4 秒采样通过','generation-proof'),
-        node('small','种子：'+candidate.seed+' · 通关 '+(report.recording.untilTick/60).toFixed(1)+' 秒'));
+        node('small','种子：'+candidate.seed+' / 变体 '+candidate.variant+' · 通关 '+(report.recording.untilTick/60).toFixed(1)+' 秒'));
       const actions=node('div',null,'generation-card-actions'),importButton=node('button','导入编辑器','button secondary'),demo=node('button','导入并演示解法','button primary');
       importButton.dataset.importCandidate=String(index);demo.dataset.demoCandidate=String(index);
       importButton.addEventListener('click',()=>importCandidate(entry,false));demo.addEventListener('click',()=>importCandidate(entry,true));
