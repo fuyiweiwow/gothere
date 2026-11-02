@@ -10,14 +10,14 @@ async function setup(id){
   return {entry:buildExperiments().find(e=>e.id===id),runPlan};
 }
 
-test('three mechanism experiments are ordinary editable DSL and each build is independent',async()=>{
+test('the themed vignette and three grayboxes are independent editable catalog entries',async()=>{
   const {buildExperiments}=await experiments(),entries=buildExperiments(),before=structuredClone(entries);
-  assert.equal(entries.length,3);assert.equal(entries[0].id,'return-route');
+  assert.equal(entries.length,4);assert.equal(entries[0].id,'peach-delivery');
   for(const e of entries){
     assert.equal(validateLevel(e.level).valid,true,validateLevel(e.level).errors.join('\n'));
     const store=createEditorStore();store.open(e.id,e.level);
     assert.deepEqual(createEditorStore(store.serialize()).document(),e.level);
-    assert.equal(e.level.scene,undefined,'grayboxes do not depend on art');
+    if(e.id!=='peach-delivery')assert.equal(e.level.scene,undefined,'grayboxes do not depend on art');
   }
   entries[0].level.entities[0].x+=10;
   assert.deepEqual(buildExperiments(),before,'editing one copy must not alter the catalog');

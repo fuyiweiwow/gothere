@@ -23,7 +23,8 @@ async function scenario(url,offline){
     const before=await workspace(p);
     assert.equal(await p.locator('#open-experiments').count(),1,'editor needs a discoverable experiment entry');
     await p.locator('#open-experiments').click();
-    assert.equal(await p.locator('[data-experiment]').count(),3);
+    assert.equal(await p.locator('[data-experiment]').count(),4);
+    await p.locator('[data-experiment="return-route"]').click();
     assert.equal(await p.locator('#experiment-title').textContent(),'回来的路');
     assert.equal(await p.locator('#experiment-help').getAttribute('open'),null,'solutions start collapsed');
     assert.equal(await p.locator('#experiment-demo').isVisible(),false);
