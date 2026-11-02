@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {validateLevel,createSimulation,replayRecording} from '../src/core/engine.js';
+import {validateLevel,replayRecording} from '../src/core/engine.js';
 import {runPlan} from '../src/experiments/play-plan.js';
 import {createEditorStore} from '../src/editor/model.js';
 import {artTransform} from '../src/render/resources.js';
@@ -55,6 +55,14 @@ test('the delivery gate requires an actual parcel; accepting it uses ordinary ru
 test('removing presentation keeps the same simulation, recording and ending',async()=>{
   const entry=await build(),logic=structuredClone(entry.level);delete logic.scene;
   assert.deepEqual(runPlan(logic,entry.plan),runPlan(entry.level,entry.plan));
+});
+
+test('the delivery requirement is visible in the scene and clears after actual handover',async()=>{
+  const {level}=await build(),gate=level.scene.nodes.find(n=>n.bind?.id==='delivery-gate');
+  assert.ok(gate,'a path-blocking gate must have a visible authored counterpart');
+  assert.notEqual(artTransform(gate,level).visible,false);
+  const opened=structuredClone(level);opened.entities.find(e=>e.id==='delivery-gate').state='open';
+  assert.equal(artTransform(gate,opened).visible,false);
 });
 
 test('art bound to a moving lift follows its actual car rather than the original floor',()=>{
