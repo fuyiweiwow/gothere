@@ -33,6 +33,8 @@ export function createPeachScene(level){
   const cloud=bind('cloud-car','peachCloud','茶气托着的真实云台',-12,-12,124,43);
   const immortal=bind('sleeping-immortal','peachImmortal','打盹仙长与签收动作',-25,-104,97,104,
     {variants:{active:{asset:'peachImmortalReceive',width:134}}});
+  bind('delivery-gate','peachDeliveryTag','交接处的请递桃小帘',-6,-60,27,60,
+    {variants:{open:{visible:false}}});
   add('peachCloud','仙长的呼噜气',769,139,35,13,26,{opacity:.5});
   const actor=add('peachCourier','一根筋的小驿卒',-16,-49,34,49,35,{bind:{type:'actor'},flipWithDirection:true});
   add('peachLedge','交桃位置的石几',-10,0,35,14,12,{bind:{type:'goal'}});
