@@ -1,0 +1,684 @@
+{
+  "format": "gothere.reference-study",
+  "version": 1,
+  "updatedAt": "2026-11-02",
+  "purpose": "保存参考录像证据，供试玩反馈后的复盘与机制讨论；不作为可运行关卡或完整原作攻略。",
+  "workflow": {
+    "status": "awaiting-playtest-feedback",
+    "next": "收到用户反馈后，对照录像片段和现有实验决定下一步；当前不扩展生成器或训练模型。"
+  },
+  "source": {
+    "id": "BV1HZ4y1G7wF",
+    "shortUrl": "https://b23.tv/MfYgEWn",
+    "url": "https://www.bilibili.com/video/BV1HZ4y1G7wF/",
+    "title": "【梦游先生】无数人童年的经典回忆！第一代四章全攻略解说︱Good Night Mr. Snoozleberg Ep.1-4",
+    "author": "蠢蠢-春天下的两条虫",
+    "metadataDurationSeconds": 2424,
+    "localMediaDurationSeconds": 2423.637,
+    "timeBasis": "所有时间是该视频内的秒数，不是游戏内时间、模拟tick或已确认的点击时间。"
+  },
+  "coverage": {
+    "method": "全片约20秒间隔画面定位，三组重点片段加密到0.5～2秒；个别位置单张核对。",
+    "continuousNarrationReviewed": false,
+    "externalSubtitlesAvailable": false,
+    "fullLevelCatalogVerified": false,
+    "inputTimingsVerified": false,
+    "limits": [
+      "没有逐秒转录40分钟内容，未逐关验证完整攻略。",
+      "抽帧看到的前后变化不等于已经确认点击、碰撞或触发条件。",
+      "主流程包含失败，失败蒙太奇包含剪辑，不能推断为同一次连续操作。",
+      "引用的通用能力是我们的设计映射，不是原作源码或已确认的物理实现。"
+    ]
+  },
+  "documents": {
+    "index": "README.md",
+    "frames": "frames.md",
+    "analysis": "../../docs/snoozleberg-video-study.md",
+    "implementedExperiments": "../../docs/route-experiments.md",
+    "earlierFirstLevelSource": {
+      "document": "../../docs/first-level-reference.md",
+      "url": "https://www.bilibili.com/video/BV13U4y1N74G/?p=1",
+      "note": "早期第一关使用另一段录像，约00:59～01:57；时间轴与本档案独立。用户后续纠正的烟囱、水管和窗户描述见该文档。"
+    }
+  },
+  "segments": [
+    {
+      "id": "construction",
+      "label": "施工：跨层交接与折返",
+      "mainRangeSeconds": [
+        332,
+        398
+      ],
+      "comparisonRangesSeconds": [
+        [
+          362,
+          365
+        ],
+        [
+          2028,
+          2041
+        ]
+      ],
+      "observations": [
+        {
+          "id": "construction-lower-approach",
+          "rangeSeconds": [
+            342,
+            343
+          ],
+          "type": "visible-route",
+          "statement": "人物在下层接近左侧运输节点。",
+          "frameFiles": [
+            "frames-342-373-1-detail.jpg"
+          ]
+        },
+        {
+          "id": "construction-first-rise",
+          "rangeSeconds": [
+            343,
+            346
+          ],
+          "type": "visible-route",
+          "statement": "人物升到中层并继续向右。",
+          "frameFiles": [
+            "frames-342-373-1-detail.jpg"
+          ]
+        },
+        {
+          "id": "construction-second-rise",
+          "rangeSeconds": [
+            350,
+            355
+          ],
+          "type": "visible-route",
+          "statement": "人物在右侧运输节点再次上升。",
+          "frameFiles": [
+            "frames-342-373-1-detail.jpg"
+          ]
+        },
+        {
+          "id": "construction-upper-return",
+          "rangeSeconds": [
+            356,
+            361
+          ],
+          "type": "visible-route",
+          "statement": "人物开始在顶层向左折返。",
+          "frameFiles": [
+            "frames-342-373-1-detail.jpg",
+            "frames-358-369-0.5-detail.jpg"
+          ]
+        },
+        {
+          "id": "construction-main-failure",
+          "rangeSeconds": [
+            362,
+            365
+          ],
+          "type": "failure-and-reappearance",
+          "statement": "左侧危险物附近出现特写与人物消失，之后人物重新出现在这段路线附近。",
+          "unknowns": [
+            "具体失败输入",
+            "重新出现是否为检查点及其内部语义"
+          ],
+          "frameFiles": [
+            "frames-358-369-0.5-detail.jpg"
+          ]
+        },
+        {
+          "id": "construction-lower-return",
+          "rangeSeconds": [
+            368,
+            398
+          ],
+          "type": "visible-route",
+          "statement": "人物随后又向右走过较低路径，最后从右侧离开；中间包含前述失败后的流程。",
+          "frameFiles": [
+            "frames-336-398-2.jpg",
+            "frames-374-374-1-detail.jpg"
+          ]
+        },
+        {
+          "id": "construction-failure-montage",
+          "rangeSeconds": [
+            2028,
+            2041
+          ],
+          "type": "edited-failure-comparison",
+          "statement": "剪辑中可见运输节点附近直接下落的镜头。",
+          "unknowns": [
+            "每次是否因提前启动、漏操作或其他原因",
+            "相邻镜头是否属于同一尝试"
+          ],
+          "frameFiles": [
+            "frames-2008-2039-1-detail.jpg",
+            "frames-2040-2055-1-detail.jpg"
+          ]
+        }
+      ],
+      "designInterpretation": [
+        "平台位置、支撑、移动与人物到达/离开构成一组关系。",
+        "同一画面中的换层和折返比从左到右排列独立开关更值得验证。"
+      ],
+      "editorMapping": {
+        "available": [
+          "lift",
+          "board",
+          "arrive",
+          "出口转向",
+          "surface/collider",
+          "真实落地检测"
+        ],
+        "gaps": [
+          "任意方向的支撑平台运动",
+          "多个停靠点",
+          "完整施工关卡尚未复刻"
+        ],
+        "implementedStudy": "experiment-lift-handoff",
+        "scope": "同一开关分时调度两座真实升降台；不是原作的完整场景。"
+      }
+    },
+    {
+      "id": "bumper-gap",
+      "label": "碰碰车：姿态与用途改变",
+      "mainRangeSeconds": [
+        1477,
+        1505
+      ],
+      "sceneEndApproxSeconds": 1593,
+      "comparisonRangesSeconds": [
+        [
+          1488,
+          1493
+        ],
+        [
+          1496,
+          1505
+        ]
+      ],
+      "observations": [
+        {
+          "id": "bumper-contact-failure",
+          "rangeSeconds": [
+            1488,
+            1491
+          ],
+          "type": "visible-failure",
+          "statement": "人物在中央缺口处与车辆接触，画面放大并出现受惊表现。",
+          "frameFiles": [
+            "frames-1480-1500-1-detail.jpg"
+          ]
+        },
+        {
+          "id": "bumper-retry",
+          "rangeSeconds": [
+            1492,
+            1493
+          ],
+          "type": "visible-retry",
+          "statement": "显示剩余人物图标，随后从场景左侧重试。",
+          "frameFiles": [
+            "frames-1480-1500-1-detail.jpg",
+            "frames-1493-1505-0.5-detail.jpg"
+          ]
+        },
+        {
+          "id": "bumper-move-and-pose",
+          "rangeSeconds": [
+            1496,
+            1499
+          ],
+          "type": "visible-object-change",
+          "statement": "一辆车向中央坡道移动，位置和姿态变化，之后停驻在缺口附近。",
+          "unknowns": [
+            "准确点击动作",
+            "是否完全停止",
+            "内部支撑和车辆碰撞模型"
+          ],
+          "frameFiles": [
+            "frames-1493-1505-0.5-detail.jpg"
+          ]
+        },
+        {
+          "id": "bumper-pass",
+          "rangeSeconds": [
+            1501,
+            1504
+          ],
+          "type": "visible-route",
+          "statement": "人物随后从相同区域经过。",
+          "unknowns": [
+            "是否确实由车身承托",
+            "其他车辆能否形成替代通路"
+          ],
+          "frameFiles": [
+            "frames-1493-1505-0.5-detail.jpg"
+          ]
+        }
+      ],
+      "designInterpretation": [
+        "研究同一对象移动或姿态改变后，如何从妨碍通行变成有用的承托。",
+        "以缺口、端点和运动提供可理解的证据；不把推断当成原作规则。"
+      ],
+      "editorMapping": {
+        "available": [
+          "pose",
+          "surface",
+          "contact.effect=lethal",
+          "rotate",
+          "命名行为与状态"
+        ],
+        "gaps": [
+          "任意路线驾驶",
+          "完整侧向碰撞与反弹",
+          "完整碰碰车场景尚未复刻"
+        ],
+        "implementedStudy": "experiment-pose-support",
+        "scope": "一处缺口中，危险物改变姿态并关闭伤害后形成承托；没有自由驾驶。"
+      }
+    },
+    {
+      "id": "haunted-house",
+      "label": "鬼屋：空间复用、通道与危险状态",
+      "mainRangeSeconds": [
+        1760,
+        1831
+      ],
+      "comparisonRangesSeconds": [
+        [
+          2400,
+          2423
+        ]
+      ],
+      "observations": [
+        {
+          "id": "haunted-multilevel-route",
+          "rangeSeconds": [
+            1760,
+            1808
+          ],
+          "type": "visible-route",
+          "statement": "人物从下层向右，经右侧结构到中层，再经中央楼梯上行，随后进入右上书柜开口。此区间只记录路线顺序，未逐步确认操作时间。",
+          "frameFiles": [
+            "frames-1750-1812-2.jpg",
+            "frames-1804-1815-0.5-detail.jpg"
+          ]
+        },
+        {
+          "id": "haunted-passage-exit",
+          "rangeSeconds": [
+            1809,
+            1811
+          ],
+          "type": "visible-entry-exit",
+          "statement": "人物从左侧画像开口处重新出现。",
+          "unknowns": [
+            "入口/出口的精确触发条件",
+            "原作内部是否使用传送及过渡规则"
+          ],
+          "frameFiles": [
+            "frames-1804-1815-0.5-detail.jpg"
+          ]
+        },
+        {
+          "id": "haunted-reused-stairs",
+          "rangeSeconds": [
+            1811,
+            1831
+          ],
+          "type": "visible-route",
+          "statement": "人物之后又经过中央楼梯，走向上层左侧出口。",
+          "frameFiles": [
+            "frames-1814-1834-2.jpg"
+          ]
+        },
+        {
+          "id": "haunted-coffin-failure",
+          "rangeSeconds": [
+            2405,
+            2413
+          ],
+          "type": "edited-failure-comparison",
+          "statement": "人物从右侧接近中层棺材，棺中角色抬起并伸出手臂，随后出现剩余人物图标。",
+          "unknowns": [
+            "准确操作序列",
+            "攻击和失败的内部条件"
+          ],
+          "frameFiles": [
+            "frames-2400-2423-1-detail.jpg"
+          ]
+        },
+        {
+          "id": "haunted-winged-failure",
+          "rangeSeconds": [
+            2414,
+            2419
+          ],
+          "type": "edited-failure-comparison",
+          "statement": "中央门口出现展开的翼状角色，另有失败表现；蒙太奇不作为连续因果。",
+          "frameFiles": [
+            "frames-2400-2423-1-detail.jpg"
+          ]
+        }
+      ],
+      "designInterpretation": [
+        "同一空间和楼梯可以在不同阶段重复使用。",
+        "连通关系、到达次序和状态变化可以产生谜题，不必堆叠独立障碍。"
+      ],
+      "editorMapping": {
+        "available": [
+          "转向",
+          "多层路面",
+          "区域触发",
+          "条件和状态",
+          "命名行为",
+          "显式高度通道"
+        ],
+        "gaps": [
+          "具有明确入口、出口、条件和过渡的成对通道",
+          "完整鬼屋场景尚未复刻"
+        ],
+        "inspiredOriginalStudy": "experiment-return-route",
+        "scope": "原创去程/返程复用活动路面；不是鬼屋关卡，不用隐藏传送模拟书柜。"
+      }
+    }
+  ],
+  "reusableRelationships": [
+    {
+      "id": "handoff",
+      "description": "先有真实支撑，再完成移动与交接。",
+      "sourceSegments": [
+        "construction"
+      ]
+    },
+    {
+      "id": "changed-use",
+      "description": "对象姿态和状态改变其用途。",
+      "sourceSegments": [
+        "bumper-gap"
+      ]
+    },
+    {
+      "id": "revisit",
+      "description": "同一空间或对象在不同阶段再次使用。",
+      "sourceSegments": [
+        "construction",
+        "haunted-house"
+      ]
+    },
+    {
+      "id": "failure-evidence",
+      "description": "失败用来检验因果和反馈，剪辑中的未知输入仍保留为未知。",
+      "sourceSegments": [
+        "construction",
+        "bumper-gap",
+        "haunted-house"
+      ]
+    }
+  ],
+  "localArchive": {
+    "directory": "local",
+    "gitTracked": false,
+    "productAsset": false,
+    "trainingDataset": false,
+    "video": {
+      "path": "local/reference.mp4",
+      "bytes": 68934422,
+      "sha256": "ce246f8d095097d95607a6a3f79614ff740577a4f57d6bf59745a32f7d511749"
+    },
+    "frameSheets": [
+      {
+        "file": "frames-0-620-20.jpg",
+        "path": "local/frames/frames-0-620-20.jpg",
+        "rangeSeconds": [
+          0,
+          620
+        ],
+        "sampleIntervalSeconds": 20,
+        "detail": false,
+        "bytes": 1192671,
+        "sha256": "bb9505a77a691dcd8414f83add0fc08741876abad825d3ab26a30c8ac314f8ee"
+      },
+      {
+        "file": "frames-282-334-2.jpg",
+        "path": "local/frames/frames-282-334-2.jpg",
+        "rangeSeconds": [
+          282,
+          334
+        ],
+        "sampleIntervalSeconds": 2,
+        "detail": false,
+        "bytes": 1118283,
+        "sha256": "a03c5b72e22b5d3419949b2e45e7f2ed952ad493a342ed370243afecf5a976f7"
+      },
+      {
+        "file": "frames-336-398-2.jpg",
+        "path": "local/frames/frames-336-398-2.jpg",
+        "rangeSeconds": [
+          336,
+          398
+        ],
+        "sampleIntervalSeconds": 2,
+        "detail": false,
+        "bytes": 1293912,
+        "sha256": "08739286ecda7f7e9074c5dd89444412103837395c4fdcd722448c04b659f41f"
+      },
+      {
+        "file": "frames-342-373-1-detail.jpg",
+        "path": "local/frames/frames-342-373-1-detail.jpg",
+        "rangeSeconds": [
+          342,
+          373
+        ],
+        "sampleIntervalSeconds": 1,
+        "detail": true,
+        "bytes": 1880125,
+        "sha256": "a9aec233261b4629bf611c813b75641512c09edcfb67ce7a2d2d589b1d7b8bd1"
+      },
+      {
+        "file": "frames-358-369-0.5-detail.jpg",
+        "path": "local/frames/frames-358-369-0.5-detail.jpg",
+        "rangeSeconds": [
+          358,
+          369
+        ],
+        "sampleIntervalSeconds": 0.5,
+        "detail": true,
+        "bytes": 1234633,
+        "sha256": "02d671a40a27ecd87958071764bca03728632bd083983ab373829eef15f1c3e1"
+      },
+      {
+        "file": "frames-374-374-1-detail.jpg",
+        "path": "local/frames/frames-374-374-1-detail.jpg",
+        "rangeSeconds": [
+          374,
+          374
+        ],
+        "sampleIntervalSeconds": 1,
+        "detail": true,
+        "bytes": 69758,
+        "sha256": "861347d5376ac536562446e6cf013cbefca6bcb270841a84f5049679f2045295"
+      },
+      {
+        "file": "frames-640-1260-20.jpg",
+        "path": "local/frames/frames-640-1260-20.jpg",
+        "rangeSeconds": [
+          640,
+          1260
+        ],
+        "sampleIntervalSeconds": 20,
+        "detail": false,
+        "bytes": 1287244,
+        "sha256": "e90ddded70a8bf9be1b417d5b0302603f4997d39d449eb9a78512cdfb9ca517a"
+      },
+      {
+        "file": "frames-1280-1900-20.jpg",
+        "path": "local/frames/frames-1280-1900-20.jpg",
+        "rangeSeconds": [
+          1280,
+          1900
+        ],
+        "sampleIntervalSeconds": 20,
+        "detail": false,
+        "bytes": 1249536,
+        "sha256": "271b629c5e48012b6cca22cea1c9cb3fb66a92db2013f241e5966fed788283f9"
+      },
+      {
+        "file": "frames-1468-1561-3.jpg",
+        "path": "local/frames/frames-1468-1561-3.jpg",
+        "rangeSeconds": [
+          1468,
+          1561
+        ],
+        "sampleIntervalSeconds": 3,
+        "detail": false,
+        "bytes": 1323335,
+        "sha256": "1208f30876deff8bd6eede38ed82220dc18b33712e330fdce40eb20a1f562f31"
+      },
+      {
+        "file": "frames-1480-1500-1-detail.jpg",
+        "path": "local/frames/frames-1480-1500-1-detail.jpg",
+        "rangeSeconds": [
+          1480,
+          1500
+        ],
+        "sampleIntervalSeconds": 1,
+        "detail": true,
+        "bytes": 1230210,
+        "sha256": "f052d72f330145bcbbf92f5eb03ca9cd741547e0392d9975a5d42517168138bd"
+      },
+      {
+        "file": "frames-1493-1505-0.5-detail.jpg",
+        "path": "local/frames/frames-1493-1505-0.5-detail.jpg",
+        "rangeSeconds": [
+          1493,
+          1505
+        ],
+        "sampleIntervalSeconds": 0.5,
+        "detail": true,
+        "bytes": 1616940,
+        "sha256": "cf64f1e0491def6ba3228d7cd756e14065fe4a87dcd9dc09323e5871cecf403a"
+      },
+      {
+        "file": "frames-1564-1594-3.jpg",
+        "path": "local/frames/frames-1564-1594-3.jpg",
+        "rangeSeconds": [
+          1564,
+          1594
+        ],
+        "sampleIntervalSeconds": 3,
+        "detail": false,
+        "bytes": 462889,
+        "sha256": "d8ff627444dc7ef6bda9bcb8b14e9594be86dfe1365670dbbc75c6da91c51d7a"
+      },
+      {
+        "file": "frames-1750-1812-2.jpg",
+        "path": "local/frames/frames-1750-1812-2.jpg",
+        "rangeSeconds": [
+          1750,
+          1812
+        ],
+        "sampleIntervalSeconds": 2,
+        "detail": false,
+        "bytes": 1307267,
+        "sha256": "91e92f9f3d40b7733ffbefc8483747cef062b6fc8213a05e38957b743cbaaed4"
+      },
+      {
+        "file": "frames-1804-1815-0.5-detail.jpg",
+        "path": "local/frames/frames-1804-1815-0.5-detail.jpg",
+        "rangeSeconds": [
+          1804,
+          1815
+        ],
+        "sampleIntervalSeconds": 0.5,
+        "detail": true,
+        "bytes": 1424252,
+        "sha256": "61a47a319db1aa6cd3414790b33e621db83e397041f96247330b7ddb632330e0"
+      },
+      {
+        "file": "frames-1814-1834-2.jpg",
+        "path": "local/frames/frames-1814-1834-2.jpg",
+        "rangeSeconds": [
+          1814,
+          1834
+        ],
+        "sampleIntervalSeconds": 2,
+        "detail": false,
+        "bytes": 452309,
+        "sha256": "fa3b6b4bb08365c150ccfac6adc34549b8b1b0ecab8d9dbbef7945cab3116f35"
+      },
+      {
+        "file": "frames-1920-2420-20.jpg",
+        "path": "local/frames/frames-1920-2420-20.jpg",
+        "rangeSeconds": [
+          1920,
+          2420
+        ],
+        "sampleIntervalSeconds": 20,
+        "detail": false,
+        "bytes": 946620,
+        "sha256": "82d938252507524a5f4a461d81d0a15b23ff0ed08a12c3de8a0a39f95ee74c81"
+      },
+      {
+        "file": "frames-1990-2052-2.jpg",
+        "path": "local/frames/frames-1990-2052-2.jpg",
+        "rangeSeconds": [
+          1990,
+          2052
+        ],
+        "sampleIntervalSeconds": 2,
+        "detail": false,
+        "bytes": 1260153,
+        "sha256": "7f96ca82dac842853c0218f18e1b191f6f1477416adabc88c6e8ac99dd419c7e"
+      },
+      {
+        "file": "frames-2008-2039-1-detail.jpg",
+        "path": "local/frames/frames-2008-2039-1-detail.jpg",
+        "rangeSeconds": [
+          2008,
+          2039
+        ],
+        "sampleIntervalSeconds": 1,
+        "detail": true,
+        "bytes": 2070900,
+        "sha256": "22767187692bf37d2c2c7f678231fb5e05aaa6641889f9ae8ed6f44db49e4aa5"
+      },
+      {
+        "file": "frames-2040-2055-1-detail.jpg",
+        "path": "local/frames/frames-2040-2055-1-detail.jpg",
+        "rangeSeconds": [
+          2040,
+          2055
+        ],
+        "sampleIntervalSeconds": 1,
+        "detail": true,
+        "bytes": 839588,
+        "sha256": "2648a01e33bc8de941938903938d2d513871428eaead76761954b234cfb59e11"
+      },
+      {
+        "file": "frames-2054-2054-2.jpg",
+        "path": "local/frames/frames-2054-2054-2.jpg",
+        "rangeSeconds": [
+          2054,
+          2054
+        ],
+        "sampleIntervalSeconds": 2,
+        "detail": false,
+        "bytes": 39476,
+        "sha256": "08e86c6870c6f09c25c3af41d04fe7055547e19c76c5298c9f1d60be466257a8"
+      },
+      {
+        "file": "frames-2400-2423-1-detail.jpg",
+        "path": "local/frames/frames-2400-2423-1-detail.jpg",
+        "rangeSeconds": [
+          2400,
+          2423
+        ],
+        "sampleIntervalSeconds": 1,
+        "detail": true,
+        "bytes": 1354444,
+        "sha256": "e313b2b6216102a7c58cc82615deca40a54dc834550f1bf6e781ba978d3a24d4"
+      }
+    ]
+  }
+}

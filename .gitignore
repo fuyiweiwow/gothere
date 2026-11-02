@@ -1,6 +1,7 @@
 node_modules/
 coverage/
 artifacts/
+references/snoozleberg/local/
 dist/
 *.log
 .env
