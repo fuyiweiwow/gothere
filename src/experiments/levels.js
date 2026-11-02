@@ -83,4 +83,6 @@ function poseSupport(){
 }
 
 /** Fresh ordinary DSL documents; all gameplay runs through the existing engine. */
-export function buildExperiments(){return [returnRoute(),liftHandoff(),poseSupport()];}
+export function buildExperiments(){return [buildPeachDelivery(),returnRoute(),liftHandoff(),poseSupport()];}
+import {buildPeachDelivery} from './peach-delivery.js';
+
