@@ -42,14 +42,22 @@ test('the return route really uses the same beam on two different floors and dir
   assert.equal(result.trace.at(-1).actor.x,entry.level.goal.x);
 });
 
-test('omitting either phase change or tilting too early breaks the return puzzle geometrically',async()=>{
+test('an unprepared return, no input or a too-early change fails for actual geometric reasons',async()=>{
   const {entry,runPlan}=await setup('return-route');
-  for(let i=0;i<entry.plan.length;i++)assert.equal(runPlan(entry.level,entry.plan.filter((_,j)=>j!==i)).status,'lost');
+  assert.equal(runPlan(entry.level,entry.plan.slice(0,1)).status,'lost');
   assert.equal(runPlan(entry.level,[]).status,'lost');
   const early=entry.plan.map((p,i)=>({...p,tick:i?80:p.tick}));
   assert.equal(runPlan(entry.level,early).status,'lost');
   const moved=structuredClone(entry.level);moved.entities.find(e=>e.id==='return-beam').width=210;
   assert.equal(runPlan(moved,entry.plan).status,'lost','a shorter beam cannot reach the outbound floor');
+});
+
+test('the symmetric lower-outbound route is a legitimate alternative, not rejected for skipping a planned click',async()=>{
+  const {entry,runPlan}=await setup('return-route'),result=runPlan(entry.level,entry.plan.slice(1));
+  assert.equal(result.status,'won');
+  const crossing=result.trace.filter(s=>s.actor.support==='return-beam');
+  assert.ok(crossing.some(s=>s.actor.direction===1&&s.actor.y>300));
+  assert.ok(crossing.some(s=>s.actor.direction===-1&&s.actor.y===260));
 });
 
 test('return puzzle has a broad useful timing range instead of one exact answer frame',async()=>{
