@@ -20,7 +20,8 @@ export function artTransform(node,level,snapshot,{tick=snapshot?.tick??0,animate
   if(object){
     const angle=object.pose?.angle??0,r=angle*Math.PI/180,pivot=(object.width??28)*(object.pose?.pivot??0);
     x=object.x+pivot+(n.x-pivot)*Math.cos(r)-n.y*Math.sin(r);
-    y=floorY(object)+(n.x-pivot)*Math.sin(r)+n.y*Math.cos(r);rotation+=angle;
+    const baseline=object.kind==='lift'?(object.carY??(object.state==='upper'?object.toY:floorY(object))):floorY(object);
+    y=baseline+(n.x-pivot)*Math.sin(r)+n.y*Math.cos(r);rotation+=angle;
   }
   const animation=variantData&&Object.hasOwn(variantData,'animation')?variantData.animation:variantData?.asset?null:node.animation;
   const frames=animation?.frames,frame=animate&&!['lost','won'].includes(snapshot?.status)?Math.floor(tick*(animation?.fps??1)/60):0;

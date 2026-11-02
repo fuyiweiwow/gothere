@@ -12,7 +12,7 @@ test('mountain peach delivery is a fresh editable DSL document with a real carri
   assert.equal(validateLevel(entry.level).valid,true,validateLevel(entry.level).errors.join('\n'));
   const store=createEditorStore();store.open('peach',entry.level);
   assert.deepEqual(createEditorStore(store.serialize()).document(),entry.level);
-  assert.equal(entry.display,'scene');assert.ok(entry.level.scene.assets.length>10);
+  assert.equal(entry.display,'scene');assert.ok(new Set(entry.level.scene.nodes.map(n=>n.asset)).size>10);
   assert.ok(entry.level.scene.nodes.length>35,'a layered scene, not a flattened backdrop');
   entry.level.entities[0].x+=10;assert.deepEqual(await build(),before);
 });
