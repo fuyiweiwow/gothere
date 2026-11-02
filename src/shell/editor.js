@@ -14,6 +14,7 @@ import {createBindingUI} from '../editor/binding-ui.js';
 import {createFeedbackPlayer} from '../render/feedback.js';
 import {createSoundPlayer} from '../render/audio.js';
 import {createGenerationUI} from '../generation/ui.js';
+import {createExperimentsUI} from '../experiments/ui.js';
 
 const $=id=>document.getElementById(id),canvas=$('scene'),ctx=canvas.getContext('2d');
 const standaloneHTML=document.getElementById('standalone-editor')?'<!doctype html>\n'+document.documentElement.outerHTML:null;
@@ -103,6 +104,7 @@ editor=createEditorUI({play:runPreview,leave:()=>{},pause:()=>preview?.pause(),n
     $('scene-interactions').hidden=!testing;
     $('reset-level').disabled=testing;
     $('open-generation').disabled=testing;
+    $('open-experiments').disabled=testing;
     if(!testing){preview=null;previewLevel=null;feedback=null;audition=null;sound.stop();accumulator=0;$('runtime-status').textContent='编辑中';delete $('runtime-status').dataset.status;$('runtime-tick').textContent='tick 0';$('preview-toggle').textContent='▶ 运行';}}
 });
 resourceUI=createResourceUI({editor,notify,preview:draw,requestBind:id=>{changeDisplay('binding','art');bindingUI.start(id);},inspectLogic:ref=>{changeDisplay('binding','logic');editor.select(ref);},
@@ -113,6 +115,7 @@ resourceUI=createResourceUI({editor,notify,preview:draw,requestBind:id=>{changeD
 bindingUI=createBindingUI({editor,resources:resourceUI,paint:draw,notify});
 editor.open(createFirstLevel(),'milestone:02:v017',{workspaceRevision:'milestone-02-v017'});
 createGenerationUI({editor,changeDisplay,notify});
+createExperimentsUI({editor,changeDisplay,notify});
 if(editor.document().id==='editor-first-level'&&!editor.document().scene)editor.change(d=>{d.scene=createFirstScene(d);});
 workspace();resourceUI.render(editor.document());
 createViewport({isEditing:()=>editor.isEditing(),onChange:()=>{

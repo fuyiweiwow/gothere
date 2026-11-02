@@ -11,7 +11,7 @@
 <body class="editor-app">
   <header class="app-header">
     <div class="app-brand"><span class="brand-symbol" aria-hidden="true">▦</span><div><h1>一定要到达那里</h1><span>关卡编辑器 <b>0.20.0 · 生成实验</b></span></div></div>
-    <div class="document-actions"><button id="open-generation" class="button secondary">生成实验</button><button id="reset-level" class="button secondary">新建首关副本</button><button id="open-data" class="button secondary">JSON 导入 / 导出</button><button id="download-editor" class="button secondary">下载离线编辑器</button></div>
+    <div class="document-actions"><button id="open-experiments" class="button secondary">关卡实验</button><button id="open-generation" class="button secondary">生成实验</button><button id="reset-level" class="button secondary">新建首关副本</button><button id="open-data" class="button secondary">JSON 导入 / 导出</button><button id="download-editor" class="button secondary">下载离线编辑器</button></div>
   </header>
   <main id="editor-workspace">
     <section id="editor-toolbar" class="editor-toolbar" aria-label="创作工具" hidden></section>
@@ -46,6 +46,22 @@
   </main>
   <footer class="app-footer"><span id="document-summary">schemaVersion 1</span><span>逻辑 · 资源 · 绑定校准 · 草稿在本机保存</span></footer>
   <dialog id="data-dialog" aria-labelledby="data-title"><div class="dialog-heading"><h2 id="data-title">关卡 JSON</h2><button id="close-data" class="button secondary" aria-label="关闭关卡数据">关闭</button></div><p class="panel-note">编辑与模拟共用同一数据格式。导入会新增草稿；模拟不会改变编辑内容。含图片的 JSON 最多 1 MiB。</p><label for="level-json">当前草稿 · schemaVersion 1</label><textarea id="level-json" spellcheck="false" maxlength="1048576"></textarea><p id="data-error" class="data-error" role="alert" hidden></p><div class="dialog-actions"><button id="import-level" class="button secondary">选择 JSON 文件</button><button id="export-level" class="button secondary">导出当前草稿</button><button id="apply-level" class="button primary">导入为新草稿</button></div><input id="level-file" type="file" accept=".json,application/json" hidden></dialog>
+  <dialog id="experiments-dialog" aria-labelledby="experiments-title">
+    <div class="dialog-heading"><h2 id="experiments-title">关卡实验</h2><button id="close-experiments" class="button secondary">关闭</button></div>
+    <p class="panel-note">先试玩空间与机关的关系，再编辑自己的版本。每次导入都会新增草稿。</p>
+    <div class="experiments-layout">
+      <nav id="experiment-list" aria-label="选择关卡实验"></nav>
+      <article class="experiment-detail">
+        <p id="experiment-kind"></p><h3 id="experiment-title"></h3><p id="experiment-summary"></p>
+        <canvas id="experiment-map" width="1200" height="640" aria-label="所选实验的路面与物体预览"></canvas>
+        <p id="experiment-description"></p>
+        <div class="experiment-actions"><button id="experiment-play" class="button primary">导入并试玩</button><button id="experiment-edit" class="button secondary">编辑副本</button></div>
+        <details id="experiment-help"><summary>提示与解法演示</summary><p id="experiment-hint"></p><button id="experiment-demo" class="button secondary">导入并演示解法</button></details>
+        <p id="experiment-status" class="data-error" role="alert" hidden></p>
+      </article>
+    </div>
+    <p class="panel-note">两个机制灰盒提炼了参考录像中的局部关系；《回来的路》是原创小关。几何、行为和事件都能编辑。</p>
+  </dialog>
   <dialog id="generation-dialog" aria-labelledby="generation-title" data-busy="false">
     <div class="dialog-heading"><h2 id="generation-title">生成实验</h2><button id="close-generation" class="button secondary">关闭</button></div>
     <p class="panel-note">组合通用机关片段，使用真实模拟验证后提供候选。导入会新增草稿，保留已有内容。当前探索逻辑结构，使用纯逻辑图形。</p>
