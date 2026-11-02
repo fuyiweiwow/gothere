@@ -4,8 +4,8 @@
   "updatedAt": "2026-11-02",
   "purpose": "保存参考录像证据，供试玩反馈后的复盘与机制讨论；不作为可运行关卡或完整原作攻略。",
   "workflow": {
-    "status": "awaiting-playtest-feedback",
-    "next": "收到用户反馈后，对照录像片段和现有实验决定下一步；当前不扩展生成器或训练模型。"
+    "status": "theme-playtest",
+    "next": "用户已反馈机关缺少主题特色，并授权神仙驿站送桃试作；结合该主题小样继续复盘录像关系，不扩展训练模型。"
   },
   "source": {
     "id": "BV1HZ4y1G7wF",
