@@ -11,7 +11,7 @@ export const STATES = Object.freeze({
 export const SKINS = Object.freeze({axe:'斧子',crate:'箱子',crocodile:'鳄鱼',orb:'小圆球'});
 export const floorY = (value) => value?.y ?? 440;
 export const canTranslate = value => value?.kind==='object'&&!value.motion&&!value.body&&!value.transport;
-export const eventTypes = (source) => {const kind=typeof source==='string'?source:source?.kind;return [...(kind==='object'?['contact','click']:['switch','hazard'].includes(kind)?['click']:[]),
+export const eventTypes = (source) => {const kind=typeof source==='string'?source:source?.kind;return [...(kind==='object'?['contact','click']:['switch','hazard','lift'].includes(kind)?['click']:[]),
   ...(kind==='plate'||kind==='zone'?['enter']:[]), ...(['zone','object'].includes(kind)?[]:['contact']),
   ...(kind==='lift'?['board','arrive']:[]), ...(kind==='ladder'||(kind==='object'&&verticalTransport(source))?['arrive']:[]),
   ...(typeof source==='object'&&source?.pose?['rotated']:[]),...(canTranslate(source)?['moved']:[]),

@@ -1548,5 +1548,285 @@
     "height": 150,
     "source": "gothere-original",
     "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteSlab",
+    "label": "通勤 · slab",
+    "category": "城市",
+    "file": "original/commute/slab.svg",
+    "width": 120,
+    "height": 20,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteAsphalt",
+    "label": "通勤 · asphalt",
+    "category": "城市",
+    "file": "original/commute/asphalt.svg",
+    "width": 120,
+    "height": 80,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteOffice",
+    "label": "通勤 · office",
+    "category": "城市",
+    "file": "original/commute/office.svg",
+    "width": 180,
+    "height": 360,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteBus",
+    "label": "通勤 · bus",
+    "category": "城市",
+    "file": "original/commute/bus.svg",
+    "width": 240,
+    "height": 100,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteSedan",
+    "label": "通勤 · sedan",
+    "category": "城市",
+    "file": "original/commute/sedan.svg",
+    "width": 145,
+    "height": 64,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteScooter",
+    "label": "通勤 · scooter",
+    "category": "城市",
+    "file": "original/commute/scooter.svg",
+    "width": 64,
+    "height": 76,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteSignalGreen",
+    "label": "通勤 · signalGreen",
+    "category": "城市",
+    "file": "original/commute/signalGreen.svg",
+    "width": 34,
+    "height": 110,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteSignalRed",
+    "label": "通勤 · signalRed",
+    "category": "城市",
+    "file": "original/commute/signalRed.svg",
+    "width": 34,
+    "height": 110,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteMetal",
+    "label": "通勤 · metal",
+    "category": "城市",
+    "file": "original/commute/metal.svg",
+    "width": 160,
+    "height": 15,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteRail",
+    "label": "通勤 · rail",
+    "category": "城市",
+    "file": "original/commute/rail.svg",
+    "width": 120,
+    "height": 42,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteShelter",
+    "label": "通勤 · shelter",
+    "category": "城市",
+    "file": "original/commute/shelter.svg",
+    "width": 160,
+    "height": 100,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteLift",
+    "label": "通勤 · lift",
+    "category": "城市",
+    "file": "original/commute/lift.svg",
+    "width": 100,
+    "height": 52,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteBadge",
+    "label": "通勤 · badge",
+    "category": "城市",
+    "file": "original/commute/badge.svg",
+    "width": 24,
+    "height": 40,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteReader",
+    "label": "通勤 · reader",
+    "category": "城市",
+    "file": "original/commute/reader.svg",
+    "width": 35,
+    "height": 55,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteReaderGreen",
+    "label": "通勤 · readerGreen",
+    "category": "城市",
+    "file": "original/commute/readerGreen.svg",
+    "width": 35,
+    "height": 55,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteGate",
+    "label": "通勤 · gate",
+    "category": "城市",
+    "file": "original/commute/gate.svg",
+    "width": 36,
+    "height": 58,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commutePhoneWalker",
+    "label": "通勤 · phoneWalker",
+    "category": "城市",
+    "file": "original/commute/phoneWalker.svg",
+    "width": 36,
+    "height": 70,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteHand",
+    "label": "通勤 · hand",
+    "category": "城市",
+    "file": "original/commute/hand.svg",
+    "width": 44,
+    "height": 44,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteAircon",
+    "label": "通勤 · aircon",
+    "category": "城市",
+    "file": "original/commute/aircon.svg",
+    "width": 60,
+    "height": 38,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteCone",
+    "label": "通勤 · cone",
+    "category": "城市",
+    "file": "original/commute/cone.svg",
+    "width": 28,
+    "height": 42,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteCamera",
+    "label": "通勤 · camera",
+    "category": "城市",
+    "file": "original/commute/camera.svg",
+    "width": 52,
+    "height": 45,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteBin",
+    "label": "通勤 · bin",
+    "category": "城市",
+    "file": "original/commute/bin.svg",
+    "width": 34,
+    "height": 48,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteTree",
+    "label": "通勤 · tree",
+    "category": "城市",
+    "file": "original/commute/tree.svg",
+    "width": 72,
+    "height": 130,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteClock",
+    "label": "通勤 · clock",
+    "category": "城市",
+    "file": "original/commute/clock.svg",
+    "width": 70,
+    "height": 70,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteDesk",
+    "label": "通勤 · desk",
+    "category": "城市",
+    "file": "original/commute/desk.svg",
+    "width": 58,
+    "height": 54,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteStripes",
+    "label": "通勤 · stripes",
+    "category": "城市",
+    "file": "original/commute/stripes.svg",
+    "width": 120,
+    "height": 45,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteArrow",
+    "label": "通勤 · arrow",
+    "category": "城市",
+    "file": "original/commute/arrow.svg",
+    "width": 42,
+    "height": 42,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteCables",
+    "label": "通勤 · cables",
+    "category": "城市",
+    "file": "original/commute/cables.svg",
+    "width": 240,
+    "height": 80,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
   }
 ]
