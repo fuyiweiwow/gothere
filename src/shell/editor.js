@@ -18,7 +18,7 @@ import {createExperimentsUI} from '../experiments/ui.js';
 
 const $=id=>document.getElementById(id),canvas=$('scene'),ctx=canvas.getContext('2d');
 const standaloneHTML=document.getElementById('standalone-editor')?'<!doctype html>\n'+document.documentElement.outerHTML:null;
-let editor,resourceUI,bindingUI,lastDraft,loadSerial=0,preview=null,previewLevel=null,accumulator=0,last=0,debugLast=0,toastTimer,serial=0;
+let editor,resourceUI,bindingUI,viewport,lastDraft,loadSerial=0,preview=null,previewLevel=null,accumulator=0,last=0,debugLast=0,toastTimer,serial=0;
 let feedback=null,feedbackFrame=null,audition=null,endingTicks=0;
 const sound=createSoundPlayer({notify,onPlay:()=>{canvas.dataset.audioPlayed=String(Number(canvas.dataset.audioPlayed??0)+1);}});
 let displayMode='scene';
@@ -44,6 +44,8 @@ function workspace(){document.body.dataset.display=displayMode;const editing=edi
 }
 function changePlayView(clean){
   const active=Boolean(preview&&clean);document.body.dataset.playView=active?'clean':'editor';
+  if(active&&displayMode!=='scene')changeDisplay('scene');
+  if(active)viewport?.fit();
   $('preview-view').setAttribute('aria-pressed',String(active));
 }
 $('preview-view').addEventListener('click',()=>changePlayView(document.body.dataset.playView!=='clean'));
@@ -62,7 +64,8 @@ function updateInteractions(state){
   for(const button of document.querySelectorAll('#scene-interactions button,#runtime-inputs button')){
     const e=state.entities[button.dataset.source],remaining=recoveryTicks(e.id,state),disabled=preview.playback||['won','lost'].includes(state.status)||!canClick(e.id,state);
     button.disabled=disabled;const status=preview.playback?'演示自动触发':remaining===null?(disabled?'暂不可触发':'可触发'):'剩余 '+(remaining/60).toFixed(1)+'秒 · 恢复';
-    button.title=e.label+' · '+status;
+    if(document.body.dataset.playView==='clean'&&button.parentElement.id==='scene-interactions')button.removeAttribute('title');
+    else button.title=e.label+' · '+status;
     if(button.parentElement.id==='scene-interactions'){
       const b=displayMode!=='logic'?(entityArtBounds(previewLevel,state,e.id,{feedback:feedbackFrame})??presentationBounds(e)):diagramBounds(e.kind,e);
       button.style.left=(b.x-4)/12+'%';button.style.top=(b.y-4)/6.4+'%';button.style.width=(b.width+8)/12+'%';button.style.height=Math.max(24,b.height+8)/6.4+'%';
@@ -126,7 +129,7 @@ createGenerationUI({editor,changeDisplay,notify});
 createExperimentsUI({editor,changeDisplay,changePlayView,notify});
 if(editor.document().id==='editor-first-level'&&!editor.document().scene)editor.change(d=>{d.scene=createFirstScene(d);});
 workspace();resourceUI.render(editor.document());
-createViewport({isEditing:()=>editor.isEditing(),onChange:()=>{
+viewport=createViewport({isEditing:()=>editor.isEditing(),onChange:()=>{
   const scale=Math.max(1,Math.min(3,$('viewport').getBoundingClientRect().width/1200*(devicePixelRatio||1)));
   const width=Math.round(1200*scale),height=Math.round(640*scale);if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;ctx.setTransform(width/1200,0,0,height/640,0,0);}
   if(preview)draw(previewLevel,preview.snapshot());else draw(lastDraft??editor.document());
