@@ -15,12 +15,14 @@ async function scenario(url,offline){
     p.on('pageerror',e=>errors.push(e.message));
     if(offline)await p.route(/^https?:/,r=>{errors.push('unexpected network '+r.request().url());return r.abort();});
     await p.clock.install({time:new Date('2026-11-03T00:00:00Z')});await p.clock.pauseAt(new Date('2026-11-03T00:00:01Z'));
-    await p.goto(url);await p.locator('#scene[data-assets=ready]').waitFor();await p.locator('#animation-toggle').check();const before=await workspace(p);
+    await p.goto(url);await p.locator('#scene[data-assets=ready]').waitFor();await p.locator('#animation-toggle').check();
+    await p.locator('#zoom-in').click();await p.locator('#zoom-in').click();const before=await workspace(p);
     await p.locator('#open-experiments').click();assert.equal(await p.locator('[data-experiment]').count(),5);
     assert.equal(await p.locator('[data-experiment=commute]').getAttribute('aria-pressed'),'true');
     await p.locator('#experiment-map[data-assets=ready]').waitFor();await p.screenshot({path:'artifacts/commute-catalog-'+(offline?'offline':'local')+'.png'});
     assert.deepEqual(await workspace(p),before);await p.locator('#experiment-play').click();await p.locator('#scene[data-assets=ready]').waitFor();
     const imported=active(await workspace(p));assert.equal(imported.id,'experiment-commute');
+    assert.equal(await p.locator('#viewport').getAttribute('data-zoom'),'1','scene play must fit even after zoomed editing');
     assert.equal(await p.locator('body').getAttribute('data-play-view'),'clean');assert.equal(await p.locator('#simulation-panel').isVisible(),false);
     assert.equal(await p.locator('#stage-note').isVisible(),false);assert.equal(await p.locator('#runtime-status').getAttribute('data-status'),'ready');
     await p.locator('#preview-toggle').click();await p.clock.runFor(650);
