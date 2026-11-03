@@ -25,13 +25,15 @@ async function scenario(url,offline){
     assert.equal(await p.locator('#viewport').getAttribute('data-zoom'),'1','scene play must fit even after zoomed editing');
     assert.equal(await p.locator('body').getAttribute('data-play-view'),'clean');assert.equal(await p.locator('#simulation-panel').isVisible(),false);
     assert.equal(await p.locator('#stage-note').isVisible(),false);assert.equal(await p.locator('#runtime-status').getAttribute('data-status'),'ready');
+    await p.locator('#viewport').screenshot({path:'artifacts/commute-ready-'+(offline?'offline':'local')+'.png'});
     await p.locator('#preview-toggle').click();await p.clock.runFor(650);
     await p.locator('#scene-interactions [data-source=loading-ramp]').click();await p.clock.runFor(7650);
+    assert.equal(await p.locator('#scene-interactions [data-source=traffic-light]').getAttribute('title'),null,'scene hotspots do not reveal narrative tooltips');
     await p.locator('#scene-interactions [data-source=traffic-light]').click();await p.clock.runFor(2400);
     await p.locator('#preview-toggle').click();const paused=await p.locator('#runtime-tick').textContent();
     await p.locator('#preview-view').click();assert.equal(await p.locator('#simulation-panel').isVisible(),true);
     await p.locator('#display-mode').selectOption('logic');await p.clock.runFor(200);assert.equal(await p.locator('#runtime-tick').textContent(),paused);
-    await p.locator('#display-mode').selectOption('scene');await p.locator('#preview-view').click();
+    await p.locator('#preview-view').click();assert.equal(await p.locator('#display-mode').inputValue(),'scene');
     await p.locator('#viewport').screenshot({path:'artifacts/commute-bus-'+(offline?'offline':'local')+'.png'});
     await p.locator('#preview-toggle').click();await p.clock.runFor(5900);
     await p.locator('#scene-interactions [data-source=trench-cover]').click();await p.clock.runFor(3300);

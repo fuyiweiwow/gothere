@@ -53,3 +53,14 @@ test('translation rejects invalid targets, geometry, durations and competing mov
   const tilted=level();delete tilted.entities[0].collider;tilted.entities[0].pose={angle:-70,pivot:0};
   assert.equal(validateLevel(tilted).valid,false,'the translated pose must stay inside supported world bounds');
 });
+
+test('picking up a moving object cancels travel and held move commands cannot pull it away',()=>{
+  const l=level(),e=l.entities[0];delete e.collider;e.x=130;e.y=440;e.width=20;l.actor.y=440;
+  e.behaviors[0].actions[0].y=440;
+  l.rules.push({on:{source:'carrier',type:'contact'},actions:[{type:'hold',target:'carrier'}]});
+  const s=createSimulation(l);s.start();s.click('carrier');s.step();
+  assert.equal(s.snapshot().actor.holding,'carrier');assert.equal(s.snapshot().entities.carrier.translation,undefined);
+  s.click('carrier');s.step(180);const end=s.snapshot();
+  assert.equal(end.actor.holding,'carrier');assert.equal(end.entities.carrier.x,end.actor.x+8);
+  assert.equal(end.entities.carrier.translation,undefined);assert.equal(end.entities.receipt.state,'inactive');
+});

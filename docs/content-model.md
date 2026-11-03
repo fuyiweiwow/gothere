@@ -1,4 +1,4 @@
-# 内容模型 v0.15
+# 内容模型 v0.23
 
 编辑器、JSON DSL 与未来生成器共同使用 schemaVersion 1。规则是唯一执行依据；可视连线由规则投影，删除、撤销、导入和重新加载都会重建连线。
 
@@ -40,12 +40,13 @@
 
 | 事件 | 来源与时机 |
 | --- | --- |
-| click | switch、object；旧 hazard 仅兼容导入 |
+| click | switch、object、lift；旧 hazard 仅兼容导入 |
 | contact | 除 zone 外的实体，进入同层接触范围时一次 |
 | enter | plate 首次 idle→pressed；zone 每次进入，disabled 时不触发 |
 | board | lift，主角跨过到位轿厢中心时 |
 | arrive | 带 vertical transport 的 object、旧 ladder、lift，到达出口并离开运输状态 |
 | rotated | 具有 pose 的 object，当前旋转命令实际执行到目标角度 |
+| moved | 支持受控位移的object，当前move命令实际到达目标坐标；被替换的旧命令不发结束事件 |
 | supportlost | 动态 object 的有效支撑消失，或 supportProbe 的检测点从有支撑变成无支撑；同高度替代支撑不触发 |
 | supportfound | supportProbe 的检测点从无支撑变成有支撑；初始支撑不触发 |
 | landed | 动态 object 下落后落在承托面上；初始静止支撑不触发 |
@@ -83,10 +84,13 @@ zone 为无实体碰撞的区域标记，状态 enabled/disabled，只在编辑�
 | hurt | 可选 message，直接失败；尚无血量系统 |
 | turn | direction 为 -1 或 1，改变主角水平朝向 |
 | rotate | target、angle（-75～75 度）、ticks（1～3600 整数），从当前角度匀速旋转到目标 |
+| move | target、x、y、ticks（1～3600整数），从当前位置匀速位移至合法坐标；object不可同时使用巡逻、动态重力或高度通道 |
 | enable | target、capability（collider 或 surface）、enabled（布尔值），启停已配置的能力，保留外观和 active 状态 |
 | after | ticks 后执行 actions，嵌套延迟相对实际执行时刻计算 |
 
 持有是主角的一个物体引用。物体仍保留外观和行为，随主角移动；巡逻与对主角接触暂停。行为仍能被连线调用。放下不隐式停用，若要放下后休息，在同一行为中另外设置 inactive。
+
+move命令可作用于普通物体及其collider/surface，真实承托关系沿用已有的支撑跟随。命令立即开始，不因inactive自动停止；重复move从当前位置替换上一段，拿起取消位移，持有期间忽略move。done不等待位移结束，需要连接moved。终点x为25～1175且物体右侧不能越过1200，y为160～560；pose端点也须合法。不提供路径规划、缓动或侧向刚体推挤。
 
 实体状态：switch off/on；bridge folded/extended；gate closed/open；plate idle/pressed；object active/inactive；zone、ladder enabled/disabled；lift lower/upper。旧 hazard running/stopped 仅导入兼容，运行时映射为通用接触伤害，新工具不再创建。
 

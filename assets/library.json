@@ -1828,5 +1828,45 @@
     "height": 80,
     "source": "gothere-original",
     "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteWorkerIdle",
+    "label": "通勤白衬衫 Idle",
+    "category": "角色",
+    "file": "original/commute/workerIdle.png",
+    "width": 55,
+    "height": 94,
+    "source": "kenney-toon-characters-adapted",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteWorkerWalk1",
+    "label": "通勤白衬衫 Walk1",
+    "category": "角色",
+    "file": "original/commute/workerWalk1.png",
+    "width": 75,
+    "height": 94,
+    "source": "kenney-toon-characters-adapted",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteWorkerWalk2",
+    "label": "通勤白衬衫 Walk2",
+    "category": "角色",
+    "file": "original/commute/workerWalk2.png",
+    "width": 65,
+    "height": 92,
+    "source": "kenney-toon-characters-adapted",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuteWorkerWalk3",
+    "label": "通勤白衬衫 Walk3",
+    "category": "角色",
+    "file": "original/commute/workerWalk3.png",
+    "width": 59,
+    "height": 93,
+    "source": "kenney-toon-characters-adapted",
+    "license": "CC0-1.0"
   }
 ]

@@ -9,6 +9,8 @@ All artwork in this directory is available under **CC0 1.0**. The code's licensi
 | [Toon Characters](https://kenney.nl/assets/toon-characters) | Kenney | Male person side and walk poses. Original license: LICENSE-kenney-characters.txt. |
 | original/ | Gothere contributors | Additional slate roofs, shutters, window frames, balcony, flowers, umbrella, bracket, cat, signs, ivy, stars and tower silhouette. Released under CC0; see LICENSE-original.txt. |
 | original/peach/ | Gothere contributors | 18 original SVG concept assets for the immortal-post vignette: mountains, floating rocks, clouds, pine and peach trees, pavilions, fan, courier, peach basket, talisman, sleeping/receiving immortal, tea pot, banner, delivery curtain and receipt. Released under the same CC0 terms; see LICENSE-original.txt. |
+| original/commute/*.svg | Gothere contributors | 28 original CC0 concept assets: modular street surfaces, bus, car, scooters, street equipment, office, symbolic reader and turnstile. No third-party game artwork or logos. See LICENSE-original.txt. |
+| original/commute/worker*.png | Kenney; palette edits by Gothere contributors | Four white-shirt/dark-trouser adaptations of the Toon Characters poses above, with a small tie added. Derived from the included traveler PNGs; original CC0 license remains LICENSE-kenney-characters.txt. |
 
 Sources and licenses were checked on 2026-10-29 from the authors' own download pages and included license files. CC0 permits personal and commercial use, modification and redistribution. [CC0 legal terms](https://creativecommons.org/publicdomain/zero/1.0/).
 

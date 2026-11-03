@@ -1,11 +1,11 @@
 {
   "format": "gothere.reference-study",
   "version": 1,
-  "updatedAt": "2026-11-02",
+  "updatedAt": "2026-11-03",
   "purpose": "保存参考录像证据，供试玩反馈后的复盘与机制讨论；不作为可运行关卡或完整原作攻略。",
   "workflow": {
     "status": "theme-playtest",
-    "next": "用户已反馈机关缺少主题特色，并授权神仙驿站送桃试作；结合该主题小样继续复盘录像关系，不扩展训练模型。"
+    "next": "用户认为送桃达到技术demo但仍缺趣味，并授权无字上班路试作；结合场景与空间关系继续复盘，不扩展训练模型。"
   },
   "source": {
     "id": "BV1HZ4y1G7wF",

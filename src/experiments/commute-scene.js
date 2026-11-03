@@ -82,8 +82,8 @@ export function createCommuteScene(level){
   bind('turnstile','commuteGate','门禁闸机',-10,-58,36,58,35,{variants:{open:{opacity:.3}}});
   const reader=bind('office-reader','commuteReader','无字读卡器',-8,-55,35,55,37,
     {variants:{active:{asset:'commuteReaderGreen'}}});
-  const actor=add('travelerWalk1','始终往前走的上班族',-18,-55,36,55,45,{bind:{type:'actor'},flipWithDirection:true,
-    animation:{frames:['travelerWalk1','travelerWalk2','travelerWalk3','travelerWalk2'],fps:8}});
+  const actor=add('commuteWorkerWalk1','始终往前走的上班族',-18,-55,36,55,45,{bind:{type:'actor'},flipWithDirection:true,
+    animation:{frames:['commuteWorkerWalk1','commuteWorkerWalk2','commuteWorkerWalk3','commuteWorkerWalk2'],fps:8}});
   bind('badge','commuteBadge','始终带着的工牌',-21,-38,12,20,46);
   for(const x of [42,140,240,530,860]){
     add('commuteCamera','街角监控',x,235,28,26,-9);

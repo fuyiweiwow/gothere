@@ -7,7 +7,7 @@ const fixture=()=>({...createBlankLevel('drag-wire'),entities:[
 const module=()=>import('../src/editor/wire-creation.js');
 test('event slots include named completions and direct connections persist with one undo',async()=>{
   const {eventSlots,connectWire}=await module(),l=fixture();
-  assert.deepEqual(eventSlots(l.entities[0]),[{type:'contact'},{type:'click'},{type:'done',behavior:'press'}]);
+  assert.deepEqual(eventSlots(l.entities[0]),[{type:'contact'},{type:'click'},{type:'moved'},{type:'done',behavior:'press'}]);
   const store=createEditorStore();store.open('wire',l);store.change(d=>connectWire(d,{source:'a',type:'click'},'b','open'));
   assert.deepEqual(store.document().rules,[{on:{source:'a',type:'click'},actions:[{type:'invoke',target:'b',behavior:'open'}]}]);
   assert.deepEqual(createEditorStore(store.serialize()).document(),store.document());store.undo();assert.deepEqual(store.document(),l);
