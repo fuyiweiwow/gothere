@@ -27,7 +27,7 @@
         <svg id="binding-overlay" viewBox="0 0 1200 640" aria-label="逻辑与图片绑定校准" hidden></svg>
         <div id="alignment-guides" aria-hidden="true"></div>
       </div></div>
-      <div class="preview-controls" aria-label="模拟控制"><button id="preview-toggle" class="button primary">▶ 运行</button><button id="preview-step" class="button secondary" title="暂停并推进一个 tick">单步</button><button id="preview-reset" class="button secondary" disabled>重置模拟</button><span id="runtime-status" role="status">编辑中</span><output id="runtime-tick">tick 0</output></div>
+      <div class="preview-controls" aria-label="模拟控制"><button id="preview-toggle" class="button primary" data-glyph="▶">▶ 运行</button><button id="preview-step" class="button secondary" data-glyph="▹" title="暂停并推进一个 tick">单步</button><button id="preview-reset" class="button secondary" data-glyph="↻" disabled>重置模拟</button><button id="preview-view" class="button secondary" title="切换场景试玩与模拟观察" aria-label="切换场景试玩与模拟观察" aria-pressed="false" hidden>◩</button><button id="preview-edit" class="button secondary" title="返回编辑" aria-label="返回编辑" hidden>↶</button><span id="runtime-status" role="status">编辑中</span><output id="runtime-tick">tick 0</output></div>
       <p class="map-note" id="stage-note"></p>
       <details class="map-note"><summary>关卡提示</summary><p id="level-hint"></p></details>
       <div class="map-legend"><span><i class="legend-actor"></i>主角</span><span><i class="legend-goal"></i>终点</span><span>虚线 = 非生效状态 / 延迟连线</span><span>方向键微调 · Shift 加速 · F1 快捷键</span></div>

@@ -5,7 +5,7 @@ import {drawScene} from '../render/scene.js';
 import {loadResources} from '../render/resources.js';
 
 /** Browsing is read-only. Import is explicit and always creates an independent draft. */
-export function createExperimentsUI({editor,changeDisplay,notify}){
+export function createExperimentsUI({editor,changeDisplay,changePlayView,notify}){
   const $=id=>document.getElementById(id),dialog=$('experiments-dialog'),entries=buildExperiments();
   let selected=entries[0],paintSerial=0;
   function select(entry){
@@ -36,6 +36,7 @@ export function createExperimentsUI({editor,changeDisplay,notify}){
       editor.importDocument(selected.level);changeDisplay(selected.display??'logic');dialog.close();
       if(mode==='play')editor.preview({run:false});
       if(mode==='demo')editor.preview({recording});
+      if(mode!=='edit')changePlayView?.(selected.playView==='clean');
       notify(mode==='play'?'已准备试玩，点击「运行」出发。':mode==='demo'?'正在演示一条验证过的解法；返回编辑后可自由修改。':'已创建可编辑副本。');
     }catch(error){$('experiment-status').textContent=error.message;$('experiment-status').hidden=false;}
   }

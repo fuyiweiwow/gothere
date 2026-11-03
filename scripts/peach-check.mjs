@@ -18,7 +18,7 @@ async function scenario(url,offline){
     if(offline)await p.route(/^https?:/,route=>{errors.push('unexpected network '+route.request().url());return route.abort();});
     await p.clock.install({time:new Date('2026-11-02T00:00:00Z')});await p.clock.pauseAt(new Date('2026-11-02T00:00:01Z'));
     await p.goto(url);await p.locator('#scene[data-assets=ready]').waitFor();const before=await workspace(p);
-    await p.locator('#open-experiments').click();
+    await p.locator('#open-experiments').click();await p.locator('[data-experiment=peach-delivery]').click();
     assert.equal(await p.locator('[data-experiment="peach-delivery"]').count(),1,'themed vignette must be selectable');
     assert.equal(await p.locator('#experiment-title').textContent(),'仙长，请收桃');
     await p.locator('#experiment-map[data-assets=ready][data-view=scene]').waitFor();

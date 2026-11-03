@@ -42,6 +42,12 @@ function workspace(){document.body.dataset.display=displayMode;const editing=edi
   $('calibration-controls').hidden=displayMode!=='binding';$('binding-overlay').toggleAttribute('hidden',displayMode!=='binding');
   $('binding-target').disabled=!editing;$('cancel-binding').disabled=!editing;
 }
+function changePlayView(clean){
+  const active=Boolean(preview&&clean);document.body.dataset.playView=active?'clean':'editor';
+  $('preview-view').setAttribute('aria-pressed',String(active));
+}
+$('preview-view').addEventListener('click',()=>changePlayView(document.body.dataset.playView!=='clean'));
+$('preview-edit').addEventListener('click',()=>$('editor-return').click());
 function changeDisplay(mode,target){editor?.cancel();resourceUI?.cancel();bindingUI?.cancel();displayMode=mode;$('display-mode').value=mode;if(target)$('binding-target').value=target;try{localStorage.setItem('gothere.studio.display',mode);}catch{}workspace();if(preview)draw(previewLevel,preview.snapshot());else draw(editor.document());}
 $('display-mode').addEventListener('change',()=>changeDisplay($('display-mode').value));
 $('binding-target').addEventListener('change',()=>changeDisplay('binding'));
@@ -71,6 +77,7 @@ function updateDebug(){
   $('runtime-status').dataset.status=state.status;
   $('runtime-tick').textContent='tick '+state.tick+' · '+(state.tick/60).toFixed(2)+' s';
   $('preview-toggle').textContent=state.status==='running'?'Ⅱ 暂停':state.status==='paused'||state.status==='ready'?'▶ 运行':'↻ 再次运行';
+  $('preview-toggle').dataset.glyph=state.status==='running'?'Ⅱ':['won','lost'].includes(state.status)?'↻':'▶';
   $('runtime-actor').textContent=`X ${state.actor.x.toFixed(1)}  Y ${state.actor.y.toFixed(1)}\n朝向 ${state.actor.direction===1?'右':'左'} · ${state.actor.mode}\n持有 ${state.actor.holding??'无'}`+(state.actor.vy!==undefined?'\n下落速度 '+state.actor.vy.toFixed(1)+(state.actor.maxLandingSpeed!==undefined?' · 安全上限 '+state.actor.maxLandingSpeed:''):'');
   const list=$('runtime-entities');list.replaceChildren();
   for(const e of Object.values(state.entities)){const row=document.createElement('div');row.className='runtime-entity';const name=document.createElement('span');name.textContent=e.label;const value=document.createElement('code');value.textContent=e.state+(e.kind==='lift'?' · Y '+e.carY.toFixed(1):'')+(e.pose?' · '+e.pose.angle.toFixed(1)+'°'+(e.rotation?' · 旋转中':''):'')+(e.bodyState?' · Y '+e.y.toFixed(1)+' · '+e.bodyState.mode+' · 支撑 '+(e.bodyState.support??'无'):'')+(e.supportState?' · '+e.supportState.mode+' · 支撑 '+(e.supportState.support??'无'):'')+(e.collider&&!e.collider.enabled?' · 碰撞停用':'');row.append(name,value);list.append(row);}
@@ -100,6 +107,7 @@ editor=createEditorUI({play:runPreview,leave:()=>{},pause:()=>preview?.pause(),n
   storageKey:'gothere.studio.v1',onChange:drawDocument,onPreview:draw,
   editResources:(ref,id)=>{changeDisplay('binding','art');resourceUI.select(id??editor.document().scene?.nodes.find(n=>n.bind?.type===ref.type&&(ref.type==='entity'?n.bind.id===ref.id:ref.type==='platform'?n.bind.index===ref.index:true))?.id??null);},
   onMode:mode=>{const testing=mode==='testing';resourceUI?.cancel();bindingUI?.cancel();$('simulation-panel').hidden=!testing;$('preview-reset').disabled=!testing;$('scene-tag-text').textContent=testing?'模拟中':'正在创作';
+    $('preview-view').hidden=!testing;$('preview-edit').hidden=!testing;if(!testing)changePlayView(false);
     workspace();
     $('scene-interactions').hidden=!testing;
     $('reset-level').disabled=testing;
@@ -115,7 +123,7 @@ resourceUI=createResourceUI({editor,notify,preview:draw,requestBind:id=>{changeD
 bindingUI=createBindingUI({editor,resources:resourceUI,paint:draw,notify});
 editor.open(createFirstLevel(),'milestone:02:v017',{workspaceRevision:'milestone-02-v017'});
 createGenerationUI({editor,changeDisplay,notify});
-createExperimentsUI({editor,changeDisplay,notify});
+createExperimentsUI({editor,changeDisplay,changePlayView,notify});
 if(editor.document().id==='editor-first-level'&&!editor.document().scene)editor.change(d=>{d.scene=createFirstScene(d);});
 workspace();resourceUI.render(editor.document());
 createViewport({isEditing:()=>editor.isEditing(),onChange:()=>{
