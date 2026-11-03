@@ -56,7 +56,7 @@ export function createSimulation(input) {
         const s=e.pose?posedSurface(e):{x:e.x,y:e.y,width:e.width};
         const height=surfaceHeight(s,Math.max(s.x,Math.min(s.x+s.width,a.x)));
         if (a.holding===null && a.connector!==e.id && e.state==='active' && Math.abs(a.y-height)<1e-7 && a.x+24>=s.x && a.x-24<=s.x+s.width) {
-          a.holding=e.id;emit('拿上了'+e.label);
+          a.holding=e.id;delete e.translation;emit('拿上了'+e.label);
         }
       } else if (action.type==='drop') {
         const a=state.actor,e=a.holding===null?null:state.entities[a.holding];
@@ -74,6 +74,9 @@ export function createSimulation(input) {
         invokeDepth++;
         execute(b.actions,{source:action.target,behavior:b.id,remaining:1,parent:invocation,depth:(invocation?.depth??0)+1});
         invokeDepth--;
+      } else if (action.type==='move') {
+        const e=state.entities[action.target];
+        if(state.actor.holding!==e.id)e.translation={fromX:e.x,fromY:e.y,toX:action.x,toY:action.y,ticks:action.ticks,elapsed:0};
       } else if (action.type==='rotate') {
         const e=state.entities[action.target];
         e.rotation={from:e.pose.angle,to:action.angle,ticks:action.ticks,elapsed:0};
@@ -133,7 +136,7 @@ export function createSimulation(input) {
     const support=a.mode==='walking'?supportAt(before,a.x,a.y,a.support):null;
     const carrier=support?state.entities[support.id]:null;
     const local=carrier&&(carrier.surface||carrier.collider)?(a.x-support.x)/support.width:null;
-    const completed=[];
+    const completed=[],translated=[];
     for(const e of Object.values(state.entities)) {
       e.previousX=e.x;
       if(e.kind==='lift')e.carY=approach(e.carY,e.state==='upper'?e.toY:e.y,e.speed/60);
@@ -142,6 +145,12 @@ export function createSimulation(input) {
         if(x>m.maxX){x=2*m.maxX-x;e.motionDirection=-1;}
         if(x<m.minX){x=2*m.minX-x;e.motionDirection=1;}
         e.x=x;
+      }
+      if(e.translation){
+        const t=e.translation;t.elapsed++;
+        e.x=t.elapsed===t.ticks?t.toX:t.fromX+(t.toX-t.fromX)*t.elapsed/t.ticks;
+        e.y=t.elapsed===t.ticks?t.toY:t.fromY+(t.toY-t.fromY)*t.elapsed/t.ticks;
+        if(t.elapsed===t.ticks){delete e.translation;translated.push(e.id);}
       }
       if(e.rotation){
         const r=e.rotation;r.elapsed++;
@@ -152,6 +161,7 @@ export function createSimulation(input) {
     const bodyEvents=level.world.physics?[...advanceBodies(level,state.entities,held,before),...updateSupportProbes(level,state.entities,held)]:[];
     if(local!==null){const surface=collectSurfaces(level,state.entities,held).find(s=>s.id===carrier.id);if(surface){a.x=surface.x+surface.width*local;a.y=surfaceHeight(surface,a.x);a.support=carrier.id;}}
     for(const id of completed){emit(state.entities[id].label+' 旋转结束。','rotated');trigger('rotated',id);}
+    for(const id of translated){emit(state.entities[id].label+' 位移结束。','moved');trigger('moved',id);}
     for(const event of bodyEvents){
       if(state.status!=='running')break;
       const source=state.entities[event.source],other=state.entities[event.other]?.label??'路面';

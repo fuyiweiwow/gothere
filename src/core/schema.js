@@ -10,10 +10,11 @@ export const STATES = Object.freeze({
 });
 export const SKINS = Object.freeze({axe:'斧子',crate:'箱子',crocodile:'鳄鱼',orb:'小圆球'});
 export const floorY = (value) => value?.y ?? 440;
+export const canTranslate = value => value?.kind==='object'&&!value.motion&&!value.body&&!value.transport;
 export const eventTypes = (source) => {const kind=typeof source==='string'?source:source?.kind;return [...(kind==='object'?['contact','click']:['switch','hazard'].includes(kind)?['click']:[]),
   ...(kind==='plate'||kind==='zone'?['enter']:[]), ...(['zone','object'].includes(kind)?[]:['contact']),
   ...(kind==='lift'?['board','arrive']:[]), ...(kind==='ladder'||(kind==='object'&&verticalTransport(source))?['arrive']:[]),
-  ...(typeof source==='object'&&source?.pose?['rotated']:[]),
+  ...(typeof source==='object'&&source?.pose?['rotated']:[]),...(canTranslate(source)?['moved']:[]),
   ...(source?.body||source?.supportProbe?['supportlost']:[]),...(source?.body?['landed']:[]),
   ...(source?.supportProbe?['supportfound']:[]),...(source?.collider||source?.surface?['impact','actorlanded']:[]), 'done'];};
 const object = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -177,6 +178,12 @@ export function validateLevel(input) {
         check([-1,1].includes(action.direction),'turn.direction 必须为 -1 或 1。');
       } else if (action.type === 'invoke') {
         check(Array.isArray(byId.get(action.target)?.behaviors) && byId.get(action.target).behaviors.some(b=>b?.id===action.behavior),'invoke 的目标行为不存在。');
+      } else if (action.type === 'move') {
+        const entity=byId.get(action.target);
+        check(canTranslate(entity),'move 目标需要通用物体，且不能同时使用巡逻、动态重力或高度通道。');
+        check(number(action.x,25,1175)&&action.x+(entity?.width??28)<=1200&&number(action.y,160,560)&&
+          Number.isInteger(action.ticks)&&number(action.ticks,1,3600),'move 需要有效终点 x/y 和 ticks（1～3600 整数）。');
+        check(!entity?.pose||poseInBounds({...entity,x:action.x,y:action.y}),'move 的姿态端点超出地图范围。');
       } else if (action.type === 'rotate') {
         const entity=byId.get(action.target);
         check(Boolean(entity?.kind==='object'&&object(entity.pose)),'rotate 目标需要姿态能力。');

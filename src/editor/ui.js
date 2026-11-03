@@ -1,5 +1,5 @@
 import { createEditorStore, createBlankLevel, addObject, addHeightTransport, setHeightTransport, setPhysicalCapability, setSupportProbe, snapTransport, resizeObject, deleteObject, moveObject, copyObject, pasteObject, addBehavior, renameBehavior, deleteBehavior, ruleWires, deleteWire, KIND_NAMES } from './model.js';
-import { STATES, eventTypes, floorY, validateLevel } from '../core/schema.js';
+import { STATES, eventTypes, floorY, validateLevel, canTranslate } from '../core/schema.js';
 import { stateLabel } from '../core/engine.js';
 import { CATALOG, CATEGORIES, filterCatalog } from './catalog.js';
 import { snapPoint, setWirePoints, routeWire, nearestInsertion } from './routing.js';
@@ -36,7 +36,7 @@ function input(value,label,onChange,settings={}) {
   return el;
 }
 const button = (name,handler,className='button secondary') => {const el=element('button',name,className);el.type='button';el.addEventListener('click',handler);return el;};
-const eventNames={click:'点击',contact:'碰到',enter:'走入区域',board:'登上电梯',arrive:'抵达出口',rotated:'旋转结束',supportlost:'失去支撑',supportfound:'获得支撑',landed:'落地',actorlanded:'主角落到上面',impact:'受到落物撞击',done:'行为完成'};
+const eventNames={click:'点击',contact:'碰到',enter:'走入区域',board:'登上电梯',arrive:'抵达出口',rotated:'旋转结束',moved:'位移结束',supportlost:'失去支撑',supportfound:'获得支撑',landed:'落地',actorlanded:'主角落到上面',impact:'受到落物撞击',done:'行为完成'};
 const availableEvents=e=>eventTypes(e).filter(t=>t!=='done'||e.behaviors?.length);
 const actionList = (actions,path) => {for(const index of path)actions=actions[index].actions;return actions;};
 
@@ -479,17 +479,19 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
   }
   function renderActions(d,actions,parent,changeRule,path=[]) {
     const entities=d.entities.map(e=>[e.id,e.label]);
+    const movable=d.entities.filter(canTranslate);
     const capable=d.entities.filter(e=>e.collider||e.surface),capabilities=e=>['collider','surface'].filter(key=>e?.[key]);
     actions.forEach((action,ai)=>{
       const changeAction=fn=>changeRule(r=>{const items=actionList(r.actions,path);fn(items[ai],items);});
       const row=element('div',undefined,'rule-row action-row');
       if(action.type!=='after') {
-        row.append(select([['set','改变状态'],...(d.entities.some(e=>e.kind==='object')?[['hold','拿起']]:[]),['drop','放下'],['hurt','伤害主角'],...(d.entities.some(e=>e.behaviors?.length)?[['invoke','调用行为']]:[]),...(d.entities.some(e=>e.pose)?[['rotate','旋转至角度']]:[]),...(capable.length?[['enable','启用 / 停用能力']]:[]),['turn','改变朝向']],action.type,'动作类型',value=>changeAction((a,items)=>{
+        row.append(select([['set','改变状态'],...(d.entities.some(e=>e.kind==='object')?[['hold','拿起']]:[]),['drop','放下'],['hurt','伤害主角'],...(d.entities.some(e=>e.behaviors?.length)?[['invoke','调用行为']]:[]),...(movable.length?[['move','移动至坐标']]:[]),...(d.entities.some(e=>e.pose)?[['rotate','旋转至角度']]:[]),...(capable.length?[['enable','启用 / 停用能力']]:[]),['turn','改变朝向']],action.type,'动作类型',value=>changeAction((a,items)=>{
           if(value===a.type)return;
           items[ai]=value==='set'?{type:'set',target:d.entities[0].id,state:d.entities[0].state}:
             value==='hold'?{type:'hold',target:d.entities.find(e=>e.kind==='object').id}:
             value==='hurt'?{type:'hurt',message:'这次不太友好。'}:
             value==='invoke'?{type:'invoke',target:d.entities.find(e=>e.behaviors?.length)?.id,behavior:d.entities.find(e=>e.behaviors?.length)?.behaviors[0]?.id}:
+            value==='move'?{type:'move',target:movable[0].id,x:movable[0].x,y:floorY(movable[0]),ticks:60}:
             value==='rotate'?{type:'rotate',target:d.entities.find(e=>e.pose).id,angle:d.entities.find(e=>e.pose).pose.angle,ticks:60}:
             value==='enable'?{type:'enable',target:capable[0].id,capability:capabilities(capable[0])[0],enabled:false}:
             value==='turn'?{type:'turn',direction:1}:{type:'drop'};
@@ -515,6 +517,13 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
           row.append(select(capable.map(e=>[e.id,e.label]),action.target,'能力所属物体',value=>changeAction(a=>{a.target=value;a.capability=capabilities(d.entities.find(e=>e.id===value))[0];}),'data-action-target'),
             select(capabilities(target).map(key=>[key,key==='collider'?'矩形碰撞体':'承托面']),action.capability,'操作哪个能力',value=>changeAction(a=>{a.capability=value;}),'data-enable-capability'),
             select([['true','启用'],['false','停用']],String(action.enabled),'启用或停用',value=>changeAction(a=>{a.enabled=value==='true';}),'data-enable-value'));
+        }
+        if(action.type==='move'){
+          row.append(select(movable.map(e=>[e.id,e.label]),action.target,'位移哪个物体',value=>changeAction(a=>{const e=d.entities.find(e=>e.id===value);a.target=value;a.x=e.x;a.y=floorY(e);}),'data-action-target'));
+          for(const [key,label,min,max] of [['x','终点 X',25,1175],['y','终点 Y',160,560]]){
+            const coordinate=input(action[key],label,value=>changeAction(a=>{a[key]=value;}),{type:'number',min,max,step:'any'});coordinate.setAttribute('data-move-'+key,'');row.append(field(label,coordinate));
+          }
+          const duration=input(action.ticks/60,'位移持续秒数',value=>changeAction(a=>{a.ticks=Math.max(1,Math.round(value*60));}),{type:'number',min:1/60,max:60,step:'any'});duration.setAttribute('data-move-duration','');row.append(field('持续秒数',duration));
         }
         if(action.type==='rotate'){
           row.append(select(d.entities.filter(e=>e.pose).map(e=>[e.id,e.label]),action.target,'旋转哪个物体',value=>changeAction(a=>{a.target=value;a.angle=d.entities.find(e=>e.id===value).pose.angle;}),'data-action-target'));

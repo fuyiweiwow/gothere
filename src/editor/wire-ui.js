@@ -1,7 +1,7 @@
 import {diagramBounds} from '../core/geometry.js';
 import {eventSlots,connectWire} from './wire-creation.js';
 
-const labels={click:'点击',contact:'碰到',enter:'走入区域',board:'登上电梯',arrive:'抵达出口',rotated:'旋转结束',supportlost:'失去支撑',supportfound:'获得支撑',landed:'落地',actorlanded:'主角落到上面',impact:'受到落物撞击',done:'行为完成'};
+const labels={click:'点击',contact:'碰到',enter:'走入区域',board:'登上电梯',arrive:'抵达出口',rotated:'旋转结束',moved:'位移结束',supportlost:'失去支撑',supportfound:'获得支撑',landed:'落地',actorlanded:'主角落到上面',impact:'受到落物撞击',done:'行为完成'};
 const eventLabel=(entity,slot)=>slot.type==='done'?(entity.behaviors.find(b=>b.id===slot.behavior)?.label??'行为')+'完成':labels[slot.type];
 const button=(text,fn)=>{const b=document.createElement('button');b.type='button';b.textContent=text;b.addEventListener('click',fn);return b;};
 const center=el=>{const r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};};
