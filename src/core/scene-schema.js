@@ -39,6 +39,7 @@ export function validateScene(level) {
     if(!obj(n)){check(false,'资源图层格式无效。');continue;}
     check(id(n.id)&&!ids.has(n.id),'资源图层标识无效或重复。');ids.add(n.id);
     check(typeof n.label==='string'&&n.label.length>0&&n.label.length<=60,'图层名称最多60字。');
+    if(n.group!==undefined)check(typeof n.group==='string'&&n.group.trim().length>0&&n.group.length<=30,'图层分组需要1～30字。');
     check(transform(n),'资源图层的图片或变换范围无效：'+n.id);
     if(n.anchor!==undefined)check(Boolean(level.spatial)&&obj(n.anchor)&&!n.bind&&!n.ground&&num(n.anchor.x,0,1200)&&num(n.anchor.depth,0,600)&&num(n.anchor.height,0,360),'资源空间锚点无效：'+n.id);
     if(level.spatial?.mode==='layered'&&n.anchor)check(Array.isArray(level.spatial.planes)&&level.spatial.planes.some(p=>p?.id===n.anchor.plane&&p.depth===n.anchor.depth),'分层布景需要已定义的行走层：'+n.id);

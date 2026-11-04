@@ -14,7 +14,7 @@ const draft=p=>p.evaluate(()=>{const s=JSON.parse(localStorage.getItem('gothere.
 const value=async(p,id,v)=>{await p.locator(id).fill(String(v));await p.locator(id).press('Enter');};
 const errors=[];
 try{
-  for(const [index,url] of ['http://127.0.0.1:'+server.address().port+'/',pathToFileURL((await buildEditor()).path).href].entries()){
+  for(const [index,url] of ['http://127.0.0.1:'+server.address().port+'/?sample=commute',pathToFileURL((await buildEditor()).path).href+'?sample=commute'].entries()){
     const context=await browser.newContext({viewport:{width:1600,height:1050}}),p=await context.newPage(),requests=[];
     p.setDefaultTimeout(7000);p.on('pageerror',e=>errors.push(e.message));p.on('request',r=>{if(url.startsWith('file:')&&/^https?:/.test(r.url()))requests.push(r.url());});
     const start=new Date('2026-11-04T00:00:00Z');await p.clock.install({time:start});await p.clock.pauseAt(new Date(+start+1000));

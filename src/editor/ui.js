@@ -752,7 +752,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     cancel:cancelGesture,
     select:chooseObject,selection:()=>selection?structuredClone(selection):null,
     preview,
-    open(level,key,{updateSample=false,workspaceRevision}={}){
+    open(level,key,{updateSample=false,offerSample=false,workspaceRevision}={}){
       if(workspaceRevision&&store.revision()!==workspaceRevision){
         try{
           const previous=localStorage.getItem(storageKey);if(previous)localStorage.setItem(storageKey+'.previous',previous);
@@ -762,7 +762,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
       if(restored){
       restored=false;
       // Open the updated sample once, preserving every existing slot and subsequent edits.
-      if(updateSample&&store.document().id===level.id&&!store.entries().some(e=>e.key===key)&&store.entries().length<32){openDocument(level,key);return;}
+      if((offerSample||updateSample&&store.document().id===level.id)&&!store.entries().some(e=>e.key===key)&&store.entries().length<32){openDocument(level,key);return;}
       pause();save();setMode('editing');
     }else openDocument(level,key);},
     openDocument,

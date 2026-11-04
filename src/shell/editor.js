@@ -16,17 +16,18 @@ import {createSoundPlayer} from '../render/audio.js';
 import {createSpatialLevel} from '../editor/spatial-level.js';
 import {createCommuteLevel} from '../editor/commute-level.js';
 import {createStreetLevel} from '../editor/street-level.js';
+import {createBusStopLevel} from '../editor/bus-stop-level.js';
 import {createLayeredLevel} from '../editor/layered-level.js';
 import {drawSpatial} from '../render/spatial.js';
 import {spaceBounds} from '../core/spatial.js';
 
 const $=id=>document.getElementById(id),canvas=$('scene'),ctx=canvas.getContext('2d');
 const params=new URLSearchParams(location.search),spatialEntry=!params.has('legacy');
-const graybox=params.get('sample')==='graybox';
+const graybox=params.get('sample')==='graybox',busStop=!params.has('sample')||params.get('sample')==='bus-stop';
 const oldSpatial=params.has('spatial')||params.get('sample')==='spatial-commute',layeredDemo=params.get('sample')==='layered';
 const layeredEntry=spatialEntry&&!graybox&&!oldSpatial;
-const sample=spatialEntry?(graybox?createSpatialLevel:oldSpatial?createCommuteLevel:layeredDemo?createLayeredLevel:createStreetLevel):createFirstLevel;
-const sampleKey=spatialEntry?(graybox?'spatial:01':oldSpatial?'commute:spatial:01':layeredDemo?'layered:graybox:01':'commute:layered:02'):'milestone:02:v017';
+const sample=spatialEntry?(graybox?createSpatialLevel:oldSpatial?createCommuteLevel:layeredDemo?createLayeredLevel:busStop?createBusStopLevel:createStreetLevel):createFirstLevel;
+const sampleKey=spatialEntry?(graybox?'spatial:01':oldSpatial?'commute:spatial:01':layeredDemo?'layered:graybox:01':busStop?'commute:bus-stop:01':'commute:layered:02'):'milestone:02:v017';
 const standaloneHTML=document.getElementById('standalone-editor')?'<!doctype html>\n'+document.documentElement.outerHTML:null;
 let editor,resourceUI,bindingUI,lastDraft,loadSerial=0,preview=null,previewLevel=null,accumulator=0,last=0,debugLast=0,toastTimer,serial=0;
 let feedback=null,feedbackFrame=null,audition=null,endingTicks=0;
@@ -70,7 +71,8 @@ function updateInteractions(state){
     button.disabled=disabled;const status=remaining===null?(disabled?'暂不可触发':'可触发'):'剩余 '+(remaining/60).toFixed(1)+'秒 · 恢复';
     button.title=e.label+' · '+status;
     if(button.parentElement.id==='scene-interactions'){
-      const b=previewLevel.spatial?spaceBounds(previewLevel,e.kind,e):displayMode!=='logic'?(entityArtBounds(previewLevel,state,e.id,{feedback:feedbackFrame})??presentationBounds(e)):diagramBounds(e.kind,e);
+      const logical=()=>previewLevel.spatial?spaceBounds(previewLevel,e.kind,e):diagramBounds(e.kind,e);
+      const b=displayMode==='logic'?logical():(entityArtBounds(previewLevel,state,e.id,{feedback:feedbackFrame})??(previewLevel.spatial?logical():presentationBounds(e)));
       button.style.left=(b.x-4)/12+'%';button.style.top=(b.y-4)/6.4+'%';button.style.width=(b.width+8)/12+'%';button.style.height=Math.max(24,b.height+8)/6.4+'%';
       // Small items remain reachable when receivers share the same screen area.
       // Disabled rules never cover a usable target underneath them.
@@ -126,7 +128,7 @@ resourceUI=createResourceUI({editor,notify,preview:draw,requestBind:id=>{changeD
     const player=createFeedbackPlayer(level,{onSound:e=>sound.play(e)});player.preview({...f,delay:0},0);audition={player,tick:0,duration:f.duration,target:f.target};$('animation-toggle').checked=true;draw(level);
   }});
 bindingUI=createBindingUI({editor,resources:resourceUI,paint:draw,notify});
-if(spatialEntry)editor.open(sample(),sampleKey,{updateSample:layeredEntry&&!layeredDemo});
+if(spatialEntry)editor.open(sample(),sampleKey,{updateSample:layeredEntry&&!layeredDemo,offerSample:layeredEntry&&busStop});
 else editor.open(createFirstLevel(),'milestone:02:v017',{workspaceRevision:'milestone-02-v017'});
 // An explicit sample link selects its saved slot, preserving authored edits.
 if(spatialEntry&&params.has('sample'))editor.openDocument(sample(),sampleKey);
@@ -137,7 +139,7 @@ createViewport({isEditing:()=>editor.isEditing(),onChange:()=>{
   const width=Math.round(1200*scale),height=Math.round(640*scale);if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;ctx.setTransform(width/1200,0,0,height/640,0,0);}
   if(preview)draw(previewLevel,preview.snapshot());else draw(lastDraft??editor.document());
 }});
-$('editor-example').value=spatialEntry?(editor.document().id==='spatial-graybox'?'graybox':editor.document().id==='commute-spatial'?'spatial-commute':editor.document().id==='layered-graybox'?'layered':'commute'):'rooftop';
+$('editor-example').value=spatialEntry?(editor.document().id==='spatial-graybox'?'graybox':editor.document().id==='commute-spatial'?'spatial-commute':editor.document().id==='layered-graybox'?'layered':editor.document().id==='commute-bus-stop'?'bus-stop':'commute'):'rooftop';
 $('editor-example').addEventListener('change',()=>{const url=new URL(location.href);url.searchParams.delete('legacy');url.searchParams.delete('sample');url.searchParams.delete('spatial');
   if($('editor-example').value==='rooftop')url.searchParams.set('legacy','1');else url.searchParams.set('sample',$('editor-example').value);location.href=url.href;});
 $('reset-level').textContent='新建示例副本';

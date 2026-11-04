@@ -17,7 +17,13 @@ export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspe
   const hiddenLayers=new Set(),lockedLayers=new Set();
   const panel=$('resource-panel'),overlay=$('resource-overlay');overlay.tabIndex=0;
   panel.innerHTML='<div class="resource-title"><h2>资源场景</h2><span>图片与判定独立</span></div><div class="editor-tabs"><button id="resource-library-tab" class="editor-tab">资源库</button><button id="resource-inspect-tab" class="editor-tab">选中资源</button></div><div id="resource-content" class="resource-content"></div><div class="resource-layers"><div class="resource-layer-heading"><strong>场景图层</strong><button id="art-select" class="text-button">选择 · Esc</button></div><input id="layer-search" type="search" placeholder="筛选图层名称…" aria-label="筛选资源图层"><div id="resource-layers"></div></div>';
-  let layerQuery='';$('layer-search').addEventListener('input',()=>{layerQuery=$('layer-search').value;renderLayers(current);});
+  let layerQuery='',layerGroup='';$('layer-search').addEventListener('input',()=>{layerQuery=$('layer-search').value;renderLayers(current);});
+  const groupTools=el('div',undefined,'resource-group-tools'),groupSelect=el('select');groupSelect.id='layer-group';groupSelect.setAttribute('aria-label','筛选场景分组');
+  groupSelect.onchange=()=>{layerGroup=groupSelect.value;renderLayers(current);};
+  const groupMembers=()=>current.scene?.nodes.filter(n=>layerGroup&&n.group===layerGroup)??[];
+  const groupHide=button('隐藏组',()=>{const members=groupMembers(),show=members.every(n=>hiddenLayers.has(n.id));for(const n of members)if(show)hiddenLayers.delete(n.id);else hiddenLayers.add(n.id);render(current);preview(current);},'text-button');groupHide.id='group-visibility';
+  const groupLock=button('锁定组',()=>{const members=groupMembers(),unlock=members.every(n=>lockedLayers.has(n.id));for(const n of members)if(unlock)lockedLayers.delete(n.id);else lockedLayers.add(n.id);render(current);},'text-button');groupLock.id='group-lock';
+  groupTools.append(groupSelect,groupHide,groupLock);$('layer-search').after(groupTools);
   $('resource-library-tab').onclick=()=>{tab='library';render(current);};$('resource-inspect-tab').onclick=()=>{tab='inspect';render(current);};
   $('art-select').onclick=()=>{tool=null;render(current);};
   const change=fn=>editor.change(fn);
@@ -67,6 +73,7 @@ export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspe
     const animation=Object.hasOwn(editing,'animation')?editing.animation:variant&&editing.asset?null:n.animation;
     const update=(key,v)=>change(doc=>{const node=doc.scene.nodes.find(n=>n.id===selected);if(variant){node.variants??={};node.variants[variant]??={};node.variants[variant][key]=v;}else node[key]=v;});
     box.append(field('图层名称',n.label,v=>change(doc=>{doc.scene.nodes.find(n=>n.id===selected).label=v;}),{id:'art-label',type:'text'}));
+    box.append(field('场景分组',n.group??'',v=>change(doc=>{const node=doc.scene.nodes.find(n=>n.id===selected);if(v.trim())node.group=v.trim();else delete node.group;}),{id:'art-group',type:'text'}));
     if(d.spatial&&!n.bind){
       box.append(select('空间形式',[['backdrop','背景图片'],['anchor',isLayered(d)?'跟随行走层的布景':'空间中的直立图片'],...(!isLayered(d)?[['ground','贴在地面上的图片']]:[])],n.ground?'ground':n.anchor?'anchor':'backdrop',value=>change(doc=>{
         const node=doc.scene.nodes.find(n=>n.id===selected),t=artTransform(node,doc);delete node.anchor;delete node.ground;
@@ -91,7 +98,7 @@ export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspe
       if(n.fitPassage){box.append(checkbox('近宽远窄透视',Boolean(n.passageView),v=>change(doc=>{const node=doc.scene.nodes.find(n=>n.id===selected);if(v)node.passageView={endScale:.6};else delete node.passageView;}),'art-passage-perspective'));
         if(n.passageView)box.append(field('出口 / 入口宽度',n.passageView.endScale,v=>change(doc=>doc.scene.nodes.find(n=>n.id===selected).passageView.endScale=v),{id:'art-passage-scale',min:.2,max:2,step:.05}));}
     }
-    if(n.bind?.type==='entity'){const e=d.entities.find(e=>e.id===n.bind.id);box.append(select('编辑状态变体',[['','基础资源'],...[...new Set([...STATES[e.kind],...(e.passage?['passage-enabled','passage-disabled']:[]),...Object.keys(n.variants??{})])].map(s=>[s,s==='passage-enabled'?'连接可通行':s==='passage-disabled'?'连接关闭':s])],variant,v=>{variant=v;render(current);preview(current);},'art-state'));
+    if(n.bind?.type==='entity'){const e=d.entities.find(e=>e.id===n.bind.id);box.append(select('编辑状态变体',[['','基础资源'],...[...new Set([...STATES[e.kind],...(e.kind==='object'&&e.space&&!e.passage?['moving']:[]),...(e.passage?['passage-enabled','passage-disabled']:[]),...Object.keys(n.variants??{})])].map(s=>[s,s==='passage-enabled'?'连接可通行':s==='passage-disabled'?'连接关闭':s==='moving'?'移动中':s])],variant,v=>{variant=v;render(current);preview(current);},'art-state'));
       if(variant)box.append(button('移除此状态覆盖',()=>{const state=variant;variant='';change(doc=>{const node=doc.scene.nodes.find(n=>n.id===selected);if(node.variants)delete node.variants[state];});},'text-button'));
     }
     if(n.bind?.type==='actor'){
@@ -122,7 +129,11 @@ export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspe
     box.append(feedbackUI.render(d,selected));
     const actions=el('div',undefined,'resource-actions');actions.append(button('复制图层',()=>{let id;change(doc=>{id=duplicateArt(doc,selected);});choose(id);}),button('删除图片',()=>{const id=selected;selected=null;change(doc=>deleteArt(doc,id));},'button danger'));box.append(actions);
   }
-  function renderLayers(d){const list=$('resource-layers');list.replaceChildren();for(const n of [...(d.scene?.nodes??[])].sort((a,b)=>b.layer-a.layer).filter(n=>(n.label+' '+n.id).toLowerCase().includes(layerQuery.toLowerCase()))){
+  function renderLayers(d){
+    const groups=[...new Set((d.scene?.nodes??[]).map(n=>n.group).filter(Boolean))];if(layerGroup&&!groups.includes(layerGroup))layerGroup='';
+    groupTools.hidden=!groups.length;groupSelect.replaceChildren();for(const name of ['',...groups]){const o=el('option',name||'全部分组');o.value=name;groupSelect.append(o);}groupSelect.value=layerGroup;
+    const members=groupMembers();groupHide.disabled=groupLock.disabled=!members.length;groupHide.textContent=members.length&&members.every(n=>hiddenLayers.has(n.id))?'显示组':'隐藏组';groupLock.textContent=members.length&&members.every(n=>lockedLayers.has(n.id))?'解锁组':'锁定组';
+    const list=$('resource-layers');list.replaceChildren();for(const n of [...(d.scene?.nodes??[])].sort((a,b)=>b.layer-a.layer).filter(n=>(!layerGroup||n.group===layerGroup)&&(n.label+' '+n.id).toLowerCase().includes(layerQuery.toLowerCase()))){
     const row=el('div',undefined,'resource-layer-row'),b=button('',()=>choose(n.id),'resource-layer');b.dataset.artId=n.id;b.setAttribute('aria-pressed',String(selected===n.id));b.append(el('code',String(n.layer)),el('span',n.label),el('small',n.bind?'↔':'·'));
     const eye=button(hiddenLayers.has(n.id)?'隐':'显',()=>{if(hiddenLayers.has(n.id))hiddenLayers.delete(n.id);else hiddenLayers.add(n.id);render(current);preview(current);},'layer-visibility');eye.title='仅在编辑时隐藏此图层';eye.dataset.layerVisibility=n.id;eye.setAttribute('aria-pressed',String(!hiddenLayers.has(n.id)));
     const lock=button(lockedLayers.has(n.id)?'锁':'解',()=>{if(lockedLayers.has(n.id))lockedLayers.delete(n.id);else lockedLayers.add(n.id);render(current);},'layer-lock');lock.title='锁定画布和快捷键操作；仍可在属性面板编辑';lock.dataset.layerLock=n.id;lock.setAttribute('aria-pressed',String(lockedLayers.has(n.id)));

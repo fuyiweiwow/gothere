@@ -16,7 +16,9 @@ export function boundObject(node,level,snapshot) {
 /** A pure visual transform sampled from actual logical geometry, never the other way around. */
 export function artTransform(node,level,snapshot,{tick=snapshot?.tick??0,animate=true,variant,feedback,previewTarget}={}) {
   const object=boundObject(node,level,snapshot),state=variant??(node.bind?.type==='actor'?actorAnimationState(level,snapshot):object?.passage?(object.state==='active'&&object.passage.enabled?'passage-enabled':'passage-disabled'):object?.state);
-  const variantData=node.variants?.[state]??(node.bind?.type==='actor'&&['walk-left','walk-right','inward','outward'].includes(state)?node.variants?.walking:object?.passage?node.variants?.[object.state]:undefined),n={...node,...variantData};
+  const stateData=node.variants?.[state]??(node.bind?.type==='actor'&&['walk-left','walk-right','inward','outward'].includes(state)?node.variants?.walking:object?.passage?node.variants?.[object.state]:undefined);
+  const moving=variant===undefined&&node.bind?.type==='entity'&&object?.state==='active'&&object.translation?node.variants?.moving:undefined;
+  const variantData=moving?{...stateData,...moving}:stateData,n={...node,...variantData};
   if(n.ground){const g=n.ground,p=projectSpace(level,{x:g.x,depth:g.depth+g.depthSize,height:g.height}),q=projectSpace(level,{x:g.x+g.width,depth:g.depth,height:g.height});
     return {...n,x:Math.min(p.x,q.x,g.x+g.depth*level.spatial.projection.depthX),y:p.y,width:g.width+Math.abs(g.depthSize*level.spatial.projection.depthX),height:q.y-p.y,rotation:0};}
   if(!snapshot&&previewTarget===node.id)n.visible=true;
