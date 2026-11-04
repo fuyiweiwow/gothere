@@ -4,7 +4,7 @@ import {snapSpacePoint} from './spatial-snapping.js';
 
 const el=(tag,text)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;return e;};
 const button=(text,fn)=>{const b=el('button',text);b.type='button';b.className='button secondary';b.onclick=fn;return b;};
-export function createSpatialUI({document:current,change,preview,choose,selection,behaviorFields,wireRender,renderWires}) {
+export function createSpatialUI({document:current,change,preview,choose,selection,behaviorFields,wireRender,renderWires,tool,wireEntity}) {
   const overlay=document.getElementById('editor-overlay');let selectedNode=null,gesture=null,suppress=false;
   const round=v=>Math.round(v*10)/10;
   function number(parent,label,id,value,update,min=0,max=1200){
@@ -63,11 +63,11 @@ export function createSpatialUI({document:current,change,preview,choose,selectio
     const objects=[...d.platforms.map((o,index)=>({o,ref:{type:'platform',index}})),...d.entities.map(o=>({o,ref:{type:'entity',id:o.id}})),{o:d.actor,ref:{type:'actor'}},{o:d.goal,ref:{type:'goal'}}];
     for(const {o,ref} of objects){const b=spaceBounds(d,o.kind??ref.type,o),key=ref.type+(ref.id?':'+ref.id:ref.index!==undefined?':'+ref.index:':'),v=button('',()=>{});v.className='edit-object '+(o.kind??ref.type);v.dataset.ref=key;v.setAttribute('aria-label','选择：'+(o.label??ref.type));
       Object.assign(v.style,{left:b.x/12+'%',top:b.y/6.4+'%',width:Math.max(14,b.width)/12+'%',height:Math.max(14,b.height)/6.4+'%'});
-      v.onpointerdown=e=>begin(e,{ref});v.onclick=e=>{e.stopPropagation();if(suppress){suppress=false;return;}selectedNode=null;choose(ref);};overlay.append(v);
+      v.onpointerdown=e=>{if(tool()==='select')begin(e,{ref});};v.onclick=e=>{if(tool()==='wire'){if(ref.type==='entity'){e.stopPropagation();wireEntity(ref.id);}return;}if(tool()!=='select')return;e.stopPropagation();if(suppress){suppress=false;return;}selectedNode=null;choose(ref);};overlay.append(v);
       const selected=selection();if(selected?.type===ref.type&&(ref.type==='entity'?selected.id===ref.id:ref.type==='platform'?selected.index===ref.index:true)&&['entity','platform'].includes(ref.type))for(const handle of ['e','n']){const h=button('',()=>{});h.className='resize-handle';h.dataset.resize=handle;h.setAttribute('aria-label','调整'+handle);Object.assign(h.style,{left:(b.x+(handle==='e'?b.width:b.width/2))/12+'%',top:(b.y+(handle==='n'?0:b.height/2))/6.4+'%'});h.onpointerdown=e=>begin(e,{ref,handle});overlay.append(h);}
     }
     for(const n of d.spatial.nodes){const p=projectSpace(d,n),v=button('',()=>{});v.className='space-route-node';v.dataset.spaceNode=n.id;v.setAttribute('aria-label','路线节点 '+n.id);v.title=n.id+' · 高度 '+n.height;
-      Object.assign(v.style,{left:p.x/12+'%',top:p.y/6.4+'%'});v.onpointerdown=e=>begin(e,{node:n.id});v.onclick=e=>{e.stopPropagation();if(suppress){suppress=false;return;}selectedNode=n.id;choose(null);};overlay.append(v);}
+      Object.assign(v.style,{left:p.x/12+'%',top:p.y/6.4+'%'});v.onpointerdown=e=>{if(tool()==='select')begin(e,{node:n.id});};v.onclick=e=>{if(tool()!=='select')return;e.stopPropagation();if(suppress){suppress=false;return;}selectedNode=n.id;choose(null);};overlay.append(v);}
     wireRender(d);
   }
   window.addEventListener('pointermove',e=>{if(!gesture||e.pointerId!==gesture.pointer)return;const r=overlay.getBoundingClientRect();gesture.dx=(e.clientX-gesture.x)/r.width*1200;gesture.dy=(e.clientY-gesture.y)/r.height*640;gesture.threshold=12*1200/r.width;gesture.disabled=e.altKey;const d=structuredClone(gesture.before);apply(d,gesture);renderOverlay(d);preview(d);});

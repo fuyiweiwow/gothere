@@ -104,10 +104,18 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     showTab('logic');render();
   }
   wireUI=createWireUI({overlay:$('editor-overlay'),document:()=>store.document(),enabled:()=>mode==='editing'&&document.body.dataset.editTarget!=='art',change:edit,notify});
-  const spatialUI=createSpatialUI({document:()=>store.document(),change:edit,preview:onPreview,choose:ref=>{selection=ref;selectedWire=null;tool='select';showTab('object');render();},selection:()=>selection,
+  const spatialUI=createSpatialUI({document:()=>store.document(),change:edit,preview:onPreview,tool:()=>tool,wireEntity:id=>{if(!wireSource){wireSource=id;wireEvent=null;}else{wireTarget=id;wireBehavior=null;}showTab('logic');renderWireControls(store.document());},choose:ref=>{selection=ref;selectedWire=null;tool='select';showTab('object');render();},selection:()=>selection,
     renderWires,wireRender:d=>wireUI.render(d,{selection,wireTool:tool==='wire'}),behaviorFields:(d,target,box)=>{
       renderSlots(d,target,box);
+      box.append(field('显示名称',input(target.label,'显示名称',value=>edit(doc=>{resolveObject(doc,selection).label=value;}),{id:'object-label',maxLength:30})));
       const state=select(STATES[target.kind].map(s=>[s,stateLabel(s)]),target.state,'初始状态',value=>edit(doc=>{resolveObject(doc,selection).state=value;}));state.id='object-state';box.append(field('初始状态',state));
+      if(target.kind==='object'){
+        const patrol=element('input');patrol.type='checkbox';patrol.checked=Boolean(target.motion);patrol.id='object-motion';patrol.onchange=()=>edit(doc=>{const e=resolveObject(doc,selection);if(patrol.checked)e.motion={type:'patrol',minX:Math.max(25,e.x-50),maxX:Math.min(1200-(e.width??28),e.x+50),speed:45};else delete e.motion;});box.append(field('左右巡逻',patrol));
+        if(target.motion)for(const [key,label,min,max] of [['minX','巡逻左界',25,1175],['maxX','巡逻右界',35,1190],['speed','巡逻速度',15,180]])box.append(field(label,input(target.motion[key],label,value=>edit(doc=>{resolveObject(doc,selection).motion[key]=value;}),{id:'object-motion-'+(key==='speed'?'speed':key),type:'number',min,max,step:1})));
+        for(const [key,label] of [['surface','承托面'],['collider','矩形碰撞体']]){
+          const enabled=element('input');enabled.type='checkbox';enabled.id='object-'+key;enabled.checked=Boolean(target[key]?.enabled);enabled.onchange=()=>edit(doc=>{const e=resolveObject(doc,selection);if(e[key])e[key].enabled=enabled.checked;else if(enabled.checked)e[key]={enabled:true};});box.append(field(label,enabled));
+        }
+      }
       box.append(field('接触效果',select([['','无特殊效果'],['lethal','接触致命']],target.contact?.effect??'','接触效果',value=>edit(doc=>{const e=resolveObject(doc,selection);if(value)e.contact={effect:value};else delete e.contact;}))));
       for(const behavior of target.behaviors??[]){const card=element('div',undefined,'behavior-card');card.dataset.behavior=behavior.id;card.append(element('h3',behavior.label));renderActions(d,behavior.actions,card,fn=>edit(doc=>fn(resolveObject(doc,selection).behaviors.find(b=>b.id===behavior.id))));box.append(card);}
       box.append(button('＋ 新行为',()=>edit(doc=>addBehavior(resolveObject(doc,selection))),'text-button'));
@@ -500,7 +508,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
       const changeAction=fn=>changeRule(r=>{const items=actionList(r.actions,path);fn(items[ai],items);});
       const row=element('div',undefined,'rule-row action-row');
       if(action.type!=='after') {
-        row.append(select([['set','改变状态'],...(d.entities.some(e=>e.kind==='object')?[['hold','拿起']]:[]),['drop','放下'],['hurt','伤害主角'],...(d.entities.some(e=>e.behaviors?.length)?[['invoke','调用行为']]:[]),...(d.entities.some(e=>e.pose)?[['rotate','旋转至角度']]:[]),...(capable.length?[['enable','启用 / 停用能力']]:[]),['turn','改变朝向']],action.type,'动作类型',value=>changeAction((a,items)=>{
+        row.append(select([['set','改变状态'],...(!d.spatial&&d.entities.some(e=>e.kind==='object')?[['hold','拿起']]:[]),...(!d.spatial?[['drop','放下']]:[]),['hurt','伤害主角'],...(d.entities.some(e=>e.behaviors?.length)?[['invoke','调用行为']]:[]),...(d.entities.some(e=>e.pose)?[['rotate','旋转至角度']]:[]),...(capable.length?[['enable','启用 / 停用能力']]:[]),...(!d.spatial?[['turn','改变朝向']]:[])],action.type,'动作类型',value=>changeAction((a,items)=>{
           if(value===a.type)return;
           items[ai]=value==='set'?{type:'set',target:d.entities[0].id,state:d.entities[0].state}:
             value==='hold'?{type:'hold',target:d.entities.find(e=>e.kind==='object').id}:

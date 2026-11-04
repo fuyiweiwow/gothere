@@ -24,7 +24,7 @@ try{
   await p.locator('[data-ref="entity:traffic"]').click();await p.locator('#object-space-depth').fill('60');await p.locator('#object-space-depth').press('Enter');assert.equal((await draft(p)).entities.find(e=>e.id==='traffic').space.depth,60);await p.locator('#editor-undo').click();
   await p.locator('#object-label').fill('测试移动物');await p.locator('#object-label').press('Enter');assert.equal((await draft(p)).entities.find(e=>e.id==='traffic').label,'测试移动物');await p.locator('#editor-undo').click();
   await p.locator('#object-motion-speed').fill('60');await p.locator('#object-motion-speed').press('Enter');assert.equal((await draft(p)).entities.find(e=>e.id==='traffic').motion.speed,60);await p.locator('#editor-undo').click();
-  const count=(await draft(p)).entities.length;await p.locator('[data-tool="object"]').click();const placement=await p.locator('#editor-overlay').boundingBox();
+  const count=(await draft(p)).entities.length;await p.locator('#editor-tab-library').click();await p.locator('[data-tool="object"]').click();const placement=await p.locator('#editor-overlay').boundingBox();
   await p.locator('#editor-overlay').click({position:{x:placement.width*.5,y:placement.height*.65}});await p.locator('#editor-overlay').click({position:{x:placement.width*.6,y:placement.height*.7}});
   assert.equal((await draft(p)).entities.length,count+2,'adding over an existing road remains continuous');await p.keyboard.press('Escape');await p.locator('#editor-undo').click();await p.locator('#editor-undo').click();
   const logic=structuredClone(await draft(p));await p.locator('#display-mode').selectOption('scene');
