@@ -30,5 +30,9 @@ export function createBusStopScene(){
   cue('stop-bus',{type:'behavior',source:'bus',behavior:'leave'},{motion:'recoil',sound:'puff',duration:40,strength:.12});
   cue('stop-player',{type:'lost'},{motion:'fall',particles:'dust',sound:'thud',duration:70,hold:true,strength:.6});
   cue('stop-player',{type:'won'},{motion:'hop',sound:'success',duration:40,strength:.15});
+  scene.compositions=[
+    {id:'stop-background',label:'晨间街景 · 背景',origin:{x:0,y:0},nodes:scene.nodes.filter(n=>!n.bind).map(n=>n.id),entities:[]},
+    {id:'stop-encounter',label:'公交与候车队伍',origin:{x:680,y:490},nodes:scene.nodes.filter(n=>n.bind?.type==='entity').map(n=>n.id),entities:['bus','boarding','depart-ready','passenger-a','passenger-b','passenger-c','approach']},
+  ];
   return scene;
 }

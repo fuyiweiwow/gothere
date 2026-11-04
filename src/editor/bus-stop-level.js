@@ -23,7 +23,7 @@ export function createBusStopLevel(){
       object('bus','公交车',680,40,106,{behaviors:[
         {id:'open',label:'开门招呼排队乘客',actions:[set('boarding','inactive'),set('bus','inactive'),invoke('passenger-c','board')]},
         {id:'close',label:'最后一位上车后关门',actions:[after(30,[set('bus','active'),set('depart-ready','active')])]},
-        {id:'leave',label:'关门后驶出画面',actions:[set('depart-ready','inactive'),after(18,[move('bus',1240,238)])]}
+        {id:'leave',label:'关门后驶出画面',actions:[set('depart-ready','inactive'),after(18,[{...move('bus',1240,238),editor:{waypoints:[],keepWorldX:true}}])]}
       ]}),
       object('boarding','是否仍接受开门',680,8,8),
       object('depart-ready','已关门等候驶出',680,8,8,{state:'inactive'}),

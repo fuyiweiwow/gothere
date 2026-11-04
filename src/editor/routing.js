@@ -9,7 +9,7 @@ export function setWirePoints(level,wire,points) {
   const action=wireAction(level,wire);
   if(!action)throw new Error('这条连线已不存在。');
   if(points.length>16)throw new Error('每条连线最多 16 个转接点。');
-  if(points.length)action.editor={waypoints:points.map(snapPoint)};
+  if(points.length||Object.keys(action.editor??{}).some(k=>k!=='waypoints'))action.editor={...action.editor,waypoints:points.map(snapPoint)};
   else delete action.editor;
 }
 /** Orthogonal segments retain their insertion index for adding a waypoint on any bend. */

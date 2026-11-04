@@ -7,6 +7,7 @@ import {validateScene} from '../core/scene-schema.js';
 import {pruneFeedback} from '../core/feedback-schema.js';
 import {validateSpatial,unprojectSpace,isLayered,projectSpace,syncPassageObject} from '../core/spatial.js';
 import {normalizeLevel,levelVersionValid} from '../core/level-version.js';
+import {pruneCompositions} from '../core/compositions.js';
 
 const clone = (value) => structuredClone(value);
 const finiteY = value => value?.y === undefined || Number.isFinite(value.y);
@@ -71,7 +72,7 @@ export function createEditorStore(serialized) {
     document: () => clone(current().level),
     entries: () => [...slots].map(([key, slot]) => ({ key, name:slot.level.name })),
     change(edit) {
-      const slot = current(), next = clone(slot.level); edit(next);
+      const slot = current(), next = clone(slot.level); edit(next);pruneCompositions(next);
       if (JSON.stringify(next) === JSON.stringify(slot.level)) return false;
       if (!shape(next)) throw new Error('修改超出编辑器范围。');
       slot.past.push(slot.level); if (slot.past.length > 100) slot.past.shift();

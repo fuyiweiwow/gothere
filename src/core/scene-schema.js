@@ -1,5 +1,6 @@
 import {ASSET_IDS} from '../content/asset-ids.js';
 import {validateFeedback} from './feedback-schema.js';
+import {validateCompositions} from './compositions.js';
 
 const obj=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
 const num=(v,a,b)=>Number.isFinite(v)&&v>=a&&v<=b;
@@ -54,5 +55,5 @@ export function validateScene(level) {
     if(n.passageView!==undefined)check(n.fitPassage===true&&obj(n.passageView)&&num(n.passageView.endScale,.2,2),'通路透视需要沿连接铺设图片及出口宽度比例（0.2～2）。');
     if(n.variants!==undefined)check(obj(n.variants)&&Object.keys(n.variants).length<=16&&Object.entries(n.variants).every(([key,v])=>id(key)&&transform(v,true)),'资源状态变体无效：'+n.id);
   }
-  return [...errors,...validateFeedback(level)];
+  return [...errors,...validateFeedback(level),...validateCompositions(level)];
 }

@@ -566,6 +566,8 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
             const control=input(key==='ticks'?action.ticks/60:action[key],label,value=>changeAction(a=>{a[key]=key==='ticks'?Math.max(1,Math.round(value*60)):value;}),{type:'number',min,max,step:'any'});
             control.setAttribute('data-move-'+(key==='ticks'?'duration':key),'');row.append(field(label,control));
           }
+          if(!onPassage){const fixed=element('input');fixed.type='checkbox';fixed.checked=Boolean(action.editor?.keepWorldX);fixed.setAttribute('data-move-world-x','');
+            fixed.onchange=()=>changeAction(a=>{a.editor??={waypoints:[]};a.editor.keepWorldX=fixed.checked;});row.append(field('组合移动时固定目标 X 到地图',fixed));}
         }
         if(action.type==='hold')row.append(select(d.entities.filter(e=>e.kind==='object').map(e=>[e.id,e.label]),action.target,'拿起哪个物件',value=>changeAction(a=>{a.target=value;})));
         if(action.type==='place'){

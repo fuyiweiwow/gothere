@@ -6,17 +6,20 @@ import {createFeedbackUI} from './feedback-ui.js';
 import {ACTOR_ANIMATIONS} from '../core/locomotion.js';
 import {isLayered} from '../core/spatial.js';
 import {layeredArtOrder} from '../render/layered.js';
+import {createTemplateUI} from './template-ui.js';
+import {placeTemplate,compositionBounds,moveComposition,copyComposition,removeComposition} from './templates.js';
 
 const $=id=>document.getElementById(id);
 const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
 const button=(text,fn,cls='button secondary')=>{const b=el('button',text,cls);b.type='button';b.addEventListener('click',fn);return b;};
 
 /** Resource authoring uses the same document/history, with its own visual selection and gestures. */
-export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspectLogic=()=>{},previewFeedback=()=>{},stopFeedback=()=>{}}) {
+export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspectLogic=()=>{},previewFeedback=()=>{},stopFeedback=()=>{},createPractice=()=>{}}) {
   let selected=null,tool=null,tab='library',query='',category='全部',variant='',gesture=null,suppress=false,current;
+  let composition=null,placementPlane=null;
   const hiddenLayers=new Set(),lockedLayers=new Set();
   const panel=$('resource-panel'),overlay=$('resource-overlay');overlay.tabIndex=0;
-  panel.innerHTML='<div class="resource-title"><h2>资源场景</h2><span>图片与判定独立</span></div><div class="editor-tabs"><button id="resource-library-tab" class="editor-tab">资源库</button><button id="resource-inspect-tab" class="editor-tab">选中资源</button></div><div id="resource-content" class="resource-content"></div><div class="resource-layers"><div class="resource-layer-heading"><strong>场景图层</strong><button id="art-select" class="text-button">选择 · Esc</button></div><input id="layer-search" type="search" placeholder="筛选图层名称…" aria-label="筛选资源图层"><div id="resource-layers"></div></div>';
+  panel.innerHTML='<div class="resource-title"><h2>资源场景</h2><span>图片与判定独立</span></div><div class="editor-tabs"><button id="resource-template-tab" class="editor-tab">模板</button><button id="resource-library-tab" class="editor-tab">资源库</button><button id="resource-inspect-tab" class="editor-tab">选中资源</button></div><div id="resource-content" class="resource-content"></div><div class="resource-layers"><div class="resource-layer-heading"><strong>场景图层</strong><button id="art-select" class="text-button">选择 · Esc</button></div><input id="layer-search" type="search" placeholder="筛选图层名称…" aria-label="筛选资源图层"><div id="resource-layers"></div></div>';
   let layerQuery='',layerGroup='';$('layer-search').addEventListener('input',()=>{layerQuery=$('layer-search').value;renderLayers(current);});
   const groupTools=el('div',undefined,'resource-group-tools'),groupSelect=el('select');groupSelect.id='layer-group';groupSelect.setAttribute('aria-label','筛选场景分组');
   groupSelect.onchange=()=>{layerGroup=groupSelect.value;renderLayers(current);};
@@ -25,10 +28,14 @@ export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspe
   const groupLock=button('锁定组',()=>{const members=groupMembers(),unlock=members.every(n=>lockedLayers.has(n.id));for(const n of members)if(unlock)lockedLayers.delete(n.id);else lockedLayers.add(n.id);render(current);},'text-button');groupLock.id='group-lock';
   groupTools.append(groupSelect,groupHide,groupLock);$('layer-search').after(groupTools);
   $('resource-library-tab').onclick=()=>{tab='library';render(current);};$('resource-inspect-tab').onclick=()=>{tab='inspect';render(current);};
+  $('resource-template-tab').onclick=()=>{tab='templates';tool=null;render(current);};
   $('art-select').onclick=()=>{tool=null;render(current);};
   const change=fn=>editor.change(fn);
   const feedbackUI=createFeedbackUI({change,preview:previewFeedback,stop:stopFeedback,notify});
-  function choose(id){selected=id;tool=null;variant='';tab='inspect';render(editor.document());preview(current);overlay.focus({preventScroll:true});}
+  const templateUI=createTemplateUI({editor,select:chooseComposition,choose:id=>{tool='template:'+id;selected=null;composition=null;tab='templates';render(current);},inspect:choose,
+    practice:()=>{cancel();selected=null;composition=null;tool=null;tab='templates';createPractice();}});
+  function chooseComposition(id){composition=id;selected=null;tool=null;variant='';tab='templates';render(editor.document());preview(current);overlay.focus({preventScroll:true});}
+  function choose(id){composition=null;selected=id;tool=null;variant='';tab='inspect';render(editor.document());preview(current);overlay.focus({preventScroll:true});}
   function field(name,value,fn,{id,type='number',min,max,step=1}={}) {
     const label=el('label',undefined,'edit-field'),input=el('input');label.append(el('span',name),input);input.type=type;input.value=value;
     if(id)input.id=id;if(min!==undefined)input.min=min;if(max!==undefined)input.max=max;if(type==='number')input.step=step;
@@ -54,7 +61,7 @@ export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspe
   }
   function renderLibraryRefresh(){render(current);}
   function renderItems(d,box){box.replaceChildren();for(const asset of assetLibrary(d).filter(a=>(category==='全部'||(a.category??'自定义')===category)&&(a.label+' '+a.id).toLowerCase().includes(query.toLowerCase()))){
-    const b=button('',()=>{tool=asset.id;selected=null;render(current);},'asset-card');b.dataset.asset=asset.id;b.setAttribute('aria-pressed',String(tool===asset.id));b.title=asset.label+' · '+asset.width+' × '+asset.height;
+    const b=button('',()=>{tool=asset.id;selected=null;composition=null;render(current);},'asset-card');b.dataset.asset=asset.id;b.setAttribute('aria-pressed',String(tool===asset.id));b.title=asset.label+' · '+asset.width+' × '+asset.height;
     const image=el('img');image.src=asset.src;image.alt='';image.loading='lazy';b.append(image,el('span',asset.label));box.append(b);
   }}
   async function importImage(file){
@@ -69,6 +76,7 @@ export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspe
   }
   function renderInspector(d,box){
     const n=d.scene?.nodes.find(n=>n.id===selected);if(!n){box.append(el('p','点击地图资源或下方图层，调整图片而不改变逻辑实体。','empty-state'));return;}
+    const owner=d.scene.compositions?.find(c=>c.nodes.includes(n.id));if(owner){const b=button('整体编辑：'+owner.label,()=>chooseComposition(owner.id));b.id='inspect-composition';box.append(b);}
     const library=assetLibrary(d),editing=variant?(n.variants?.[variant]??{}):n,effective={...n,...editing};
     const animation=Object.hasOwn(editing,'animation')?editing.animation:variant&&editing.asset?null:n.animation;
     const update=(key,v)=>change(doc=>{const node=doc.scene.nodes.find(n=>n.id===selected);if(variant){node.variants??={};node.variants[variant]??={};node.variants[variant][key]=v;}else node[key]=v;});
@@ -152,23 +160,39 @@ export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspe
       b.onclick=e=>{if(tool)return;if(suppress){suppress=false;return;}e.stopPropagation();choose(n.id);};overlay.append(b);
     }
     const n=d.scene?.nodes.find(n=>n.id===selected);if(n&&!n.fitPassage&&!tool&&!hiddenLayers.has(n.id)&&!lockedLayers.has(n.id)){const corners=artCorners(n,d,undefined,{variant});for(const h of ['nw','ne','se','sw']){const handle=button('',()=>{},'resize-handle art-resize');handle.dataset.artResize=h;handle.setAttribute('aria-label','缩放资源 '+h);handle.style.left=corners[h].x/12+'%';handle.style.top=corners[h].y/6.4+'%';handle.style.zIndex='1000';handle.onpointerdown=e=>{e.preventDefault();e.stopPropagation();begin(e,n.id,h);};overlay.append(handle);}}
+    const c=d.scene?.compositions?.find(c=>c.id===composition),bounds=c?compositionBounds(d,c.id):null;
+    if(c&&bounds&&!tool){const group=button(c.label,()=>{},'composition-outline');group.dataset.compositionHandle=c.id;
+      group.setAttribute('aria-label','拖动整个组合：'+c.label);Object.assign(group.style,{left:bounds.x/12+'%',top:bounds.y/6.4+'%',width:bounds.width/12+'%',height:bounds.height/6.4+'%'});
+      group.onpointerdown=e=>{if(e.button!==0||c.nodes.some(id=>lockedLayers.has(id)))return;e.preventDefault();e.stopPropagation();
+        document.activeElement?.blur();const before=editor.document();gesture={composition:c.id,startX:e.clientX,startY:e.clientY,dx:0,dy:0,before,pointerId:e.pointerId,box:bounds,targets:[]};
+        overlay.setPointerCapture(e.pointerId);overlay.dataset.dragging='true';overlay.focus({preventScroll:true});};group.onclick=e=>e.stopPropagation();overlay.append(group);}
     overlay.dataset.placing=String(Boolean(tool));
   }
-  function begin(event,id,handle){document.activeElement?.blur();if(selected!==id)variant='';selected=id;tool=null;tab='inspect';const before=editor.document();gesture={id,handle,variant,startX:event.clientX,startY:event.clientY,dx:0,dy:0,before,pointerId:event.pointerId,
+  function begin(event,id,handle){document.activeElement?.blur();composition=null;if(selected!==id)variant='';selected=id;tool=null;tab='inspect';const before=editor.document();gesture={id,handle,variant,startX:event.clientX,startY:event.clientY,dx:0,dy:0,before,pointerId:event.pointerId,
     box:artBounds(before.scene.nodes.find(n=>n.id===id),before,undefined,{variant}),targets:before.scene.nodes.filter(n=>n.id!==id&&!hiddenLayers.has(n.id)&&artTransform(n,before).visible!==false).map(n=>artBounds(n,before))};overlay.setPointerCapture(event.pointerId);overlay.dataset.dragging='true';render(editor.document());preview(current);overlay.focus({preventScroll:true});}
-  const apply=(d,g)=>g.handle?resizeArt(d,g.id,g.handle,g.dx,g.dy,g.variant):moveArt(d,g.id,g.dx,g.dy,g.variant);
+  const apply=(d,g)=>g.composition?moveComposition(d,g.composition,g.dx,g.dy):g.handle?resizeArt(d,g.id,g.handle,g.dx,g.dy,g.variant):moveArt(d,g.id,g.dx,g.dy,g.variant);
   overlay.addEventListener('pointermove',e=>{if(!gesture||gesture.pointerId!==e.pointerId)return;const b=overlay.getBoundingClientRect();gesture.dx=Math.round((e.clientX-gesture.startX)/b.width*12000)/10;gesture.dy=Math.round((e.clientY-gesture.startY)/b.height*6400)/10;
     let guides=[];if(!gesture.handle){const aligned=alignMove(gesture.box,gesture.targets,gesture.dx,gesture.dy,{threshold:6*1200/b.width,disabled:e.altKey||!$('snap-enabled').checked});gesture.dx=aligned.dx;gesture.dy=aligned.dy;guides=aligned.guides;}drawGuides($('alignment-guides'),guides);
-    const d=structuredClone(gesture.before);apply(d,gesture);renderOverlay(d);preview(d);});
-  overlay.addEventListener('pointerup',e=>{if(!gesture||gesture.pointerId!==e.pointerId)return;const g=gesture;gesture=null;delete overlay.dataset.dragging;drawGuides($('alignment-guides'),[]);overlay.releasePointerCapture(e.pointerId);suppress=true;if(g.dx||g.dy)change(d=>apply(d,g));else render(current);});
+    if(gesture.composition&&gesture.before.scene.compositions.find(c=>c.id===gesture.composition).entities.length)gesture.dy=0;
+    const d=structuredClone(gesture.before);try{apply(d,gesture);gesture.valid=true;renderOverlay(d);preview(d);}catch{gesture.valid=false;}});
+  overlay.addEventListener('pointerup',e=>{if(!gesture||gesture.pointerId!==e.pointerId)return;const g=gesture;gesture=null;delete overlay.dataset.dragging;drawGuides($('alignment-guides'),[]);overlay.releasePointerCapture(e.pointerId);suppress=true;if(g.dx||g.dy){if(g.valid!==false)change(d=>apply(d,g));else{render(editor.document());preview(current);notify('组合超出可编辑范围，已保留原位。');}}else render(current);});
   const cancel=()=>{if(!gesture)return;const id=gesture.pointerId;gesture=null;delete overlay.dataset.dragging;drawGuides($('alignment-guides'),[]);if(overlay.hasPointerCapture(id))overlay.releasePointerCapture(id);render(editor.document());preview(editor.document());};
   overlay.addEventListener('pointerdown',()=>{suppress=false;},{capture:true});
   overlay.addEventListener('lostpointercapture',cancel);overlay.addEventListener('pointercancel',cancel);window.addEventListener('blur',cancel);
-  overlay.addEventListener('click',e=>{if(suppress){suppress=false;return;}if(!tool){selected=null;variant='';render(current);preview(current);return;}const b=overlay.getBoundingClientRect(),asset=assetLibrary(editor.document()).find(a=>a.id===tool);change(d=>addArt(d,asset,Math.round((e.clientX-b.left)/b.width*1200),Math.round((e.clientY-b.top)/b.height*640)));});
+  overlay.addEventListener('click',e=>{if(suppress){suppress=false;return;}if(!tool){selected=null;composition=null;variant='';render(current);preview(current);return;}
+    const b=overlay.getBoundingClientRect(),x=Math.round((e.clientX-b.left)/b.width*1200),y=Math.round((e.clientY-b.top)/b.height*640);
+    if(tool.startsWith('template:')){const t=templateUI.find(tool.slice(9));change(d=>placeTemplate(d,t,t.placement==='canvas'?{}:{x,y,plane:placementPlane??d.spatial?.planes?.[0]?.id}));return;}
+    const asset=assetLibrary(editor.document()).find(a=>a.id===tool);change(d=>addArt(d,asset,x,y));});
   document.addEventListener('keydown',e=>{
     if(document.body.dataset.editTarget!=='art'||!editor.isEditing()||e.isComposing||e.target.matches('input,select,textarea')||document.querySelector('dialog[open]'))return;
-    if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();cancel();tool=null;selected=null;variant='';render(editor.document());preview(current);return;}
+    if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();cancel();tool=null;selected=null;composition=null;variant='';render(editor.document());preview(current);return;}
     if(gesture){if(e.ctrlKey&&e.key.toLowerCase()==='z'){e.preventDefault();e.stopImmediatePropagation();cancel();}return;}
+    if(composition&&(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Delete','Backspace'].includes(e.key)||e.ctrlKey&&e.key.toLowerCase()==='d')){
+      e.preventDefault();e.stopImmediatePropagation();const c=current.scene.compositions.find(c=>c.id===composition);if(c.nodes.some(id=>lockedLayers.has(id)))return;
+      if(['Delete','Backspace'].includes(e.key)){const id=composition;composition=null;change(d=>removeComposition(d,id));}
+      else if(e.ctrlKey){let id;if(change(d=>{id=copyComposition(d,composition);}))chooseComposition(id);}
+      else{const distance=e.shiftKey?10:1;change(d=>moveComposition(d,composition,(e.key==='ArrowLeft'?-1:e.key==='ArrowRight'?1:0)*distance,c.entities.length?0:(e.key==='ArrowUp'?-1:e.key==='ArrowDown'?1:0)*distance));}return;
+    }
     if(selected&&lockedLayers.has(selected)&&(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Delete','Backspace'].includes(e.key)||e.ctrlKey&&e.key.toLowerCase()==='d')){e.preventDefault();e.stopImmediatePropagation();return;}
     if(selected&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Delete','Backspace'].includes(e.key)){e.preventDefault();e.stopImmediatePropagation();const id=selected;if(['Delete','Backspace'].includes(e.key)){selected=null;change(d=>deleteArt(d,id));}else change(d=>moveArt(d,id,(e.key==='ArrowLeft'?-1:e.key==='ArrowRight'?1:0)*(e.shiftKey?10:1),(e.key==='ArrowUp'?-1:e.key==='ArrowDown'?1:0)*(e.shiftKey?10:1),variant));}
     if(selected&&e.ctrlKey&&e.key.toLowerCase()==='d'){e.preventDefault();let id;change(d=>{id=duplicateArt(d,selected);});choose(id);}
@@ -177,8 +201,11 @@ export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspe
     if(!e.ctrlKey&&e.key.toLowerCase()==='v'){e.preventDefault();tool=null;render(current);}
   },true);
   function render(d){if(!d)return;current=d;if(selected&&!d.scene?.nodes.some(n=>n.id===selected))selected=null;
+    if(composition&&!d.scene?.compositions?.some(c=>c.id===composition))composition=null;
+    if(placementPlane&&!d.spatial?.planes?.some(p=>p.id===placementPlane))placementPlane=null;
+    $('resource-template-tab').setAttribute('aria-selected',String(tab==='templates'));
     $('resource-library-tab').setAttribute('aria-selected',String(tab==='library'));$('resource-inspect-tab').setAttribute('aria-selected',String(tab==='inspect'));
-    const box=$('resource-content');box.replaceChildren();if(tab==='library')renderLibrary(d,box);else renderInspector(d,box);renderLayers(d);renderOverlay(d);
+    const box=$('resource-content');box.replaceChildren();if(tab==='templates')templateUI.render(d,box,composition,tool,placementPlane,v=>{placementPlane=v;});else if(tab==='library')renderLibrary(d,box);else renderInspector(d,box);renderLayers(d);renderOverlay(d);
   }
   return {render,select:choose,cancel,selected:()=>selected,hiddenLayers:()=>hiddenLayers,variant:()=>selected?{id:selected,state:variant}:null};
 }

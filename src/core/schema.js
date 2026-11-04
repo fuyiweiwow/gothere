@@ -169,7 +169,8 @@ export function validateLevel(input,{spatialDraft=false}={}) {
       if (actionCount > 512) { errors.push('关卡动作总数不能超过 512。'); return; }
       if (!object(action)) { errors.push('动作必须是对象。'); continue; }
       if(action.editor!==undefined)check(object(action.editor) && Array.isArray(action.editor.waypoints) &&
-        action.editor.waypoints.length<=16 && action.editor.waypoints.every(p=>object(p)&&number(p.x,0,1200)&&number(p.y,20,620)),
+        action.editor.waypoints.length<=16 && action.editor.waypoints.every(p=>object(p)&&number(p.x,0,1200)&&number(p.y,20,620))&&
+        (action.editor.keepWorldX===undefined||typeof action.editor.keepWorldX==='boolean'),
         '连线转接点需要合法坐标，每条最多 16 个。');
       if (action.type === 'set') {
         const entity = byId.get(action.target);
