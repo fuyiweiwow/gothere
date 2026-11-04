@@ -1,5 +1,5 @@
 import {projectSpace,spaceObjectSurface} from '../core/spatial.js';
-import {artTransform,artBounds,assetImage,assetLibrary} from './resources.js';
+import {artTransform,artBounds,artCorners,boundObject,assetImage,assetLibrary} from './resources.js';
 import {createDepthBuffer} from './depth-buffer.js';
 
 const frames=new WeakMap();
@@ -19,7 +19,7 @@ export function drawSpatial(ctx,level,snapshot,{logic=false,...options}={}) {
   ctx.fillStyle=level.scene?.background??'#161e2b';ctx.fillRect(0,0,1200,640);
   const project=(x,depth,height)=>({...projectSpace(level,{x,depth,height}),depth});
   ctx.strokeStyle='#ffffff0a';ctx.lineWidth=1;
-  for(let d=0;d<=400;d+=40){const a=project(30,d,0),b=project(1150,d,0);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}
+  if(logic)for(let d=0;d<=400;d+=40){const a=project(30,d,0),b=project(1150,d,0);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}
   const frame=frameFor(ctx),commands=[],labels=[];
   function face(points,fill,stroke,opacity=1){
     commands.push({points,color:rgba(fill,opacity)});
@@ -36,6 +36,8 @@ export function drawSpatial(ctx,level,snapshot,{logic=false,...options}={}) {
     commands.push({x,y,width,height,data:s.getImageData(0,0,width,height).data,depth,depthY,bias});
   }
   const library=new Map(assetLibrary(level).map(a=>[a.id,a]));
+  const boundLayers=new Map();
+  for(const n of [...(level.scene?.nodes??[])].sort((a,b)=>a.layer-b.layer))if(n.bind){const b=n.bind,key=b.type+':'+(b.id??b.index??'');if(!boundLayers.has(key))boundLayers.set(key,[]);boundLayers.get(key).push(n);}
   function image(n,depth,bias=-.15){
     if(options.hiddenLayers?.has(n.id))return;
     const settings={...options,variant:options.previewVariant?.id===n.id?options.previewVariant.state:undefined};
@@ -47,21 +49,30 @@ export function drawSpatial(ctx,level,snapshot,{logic=false,...options}={}) {
       if(t.tile){s.beginPath();s.rect(0,0,t.width,t.height);s.clip();for(let y=0;y<t.height;y+=t.tile.height)for(let x=0;x<t.width;x+=t.tile.width)s.drawImage(img,x,y,t.tile.width,t.tile.height);}
       else s.drawImage(img,0,0,t.width,t.height);s.restore();
     }
-    if(depth===undefined)paint(ctx);
+    if(n.ground){
+      const {nw,ne,sw}=artCorners(n,level,snapshot),bounds=artBounds(n,level,snapshot),g=n.ground;
+      const top=Math.max(0,Math.floor(bounds.y-2));
+      sprite(bounds,(top-level.spatial.projection.originY+g.height)/level.spatial.projection.depthY,s=>{
+        s.save();s.globalAlpha=(t.opacity??1)*(options.artOpacity??1);s.transform((ne.x-nw.x)/t.width,(ne.y-nw.y)/t.width,(sw.x-nw.x)/t.height,(sw.y-nw.y)/t.height,nw.x,nw.y);
+        s.drawImage(img,0,0,t.width,t.height);s.restore();
+      },-.03,1/level.spatial.projection.depthY);
+    }else if(depth===undefined)paint(ctx);
     else sprite(artBounds(n,level,snapshot,settings),depth,paint,bias);
   }
-  if(!logic)for(const n of (level.scene?.nodes??[]).filter(n=>!n.bind).sort((a,b)=>a.layer-b.layer))image(n);
+  if(!logic)for(const n of (level.scene?.nodes??[]).filter(n=>!n.bind).sort((a,b)=>a.layer-b.layer))image(n,n.anchor?.depth);
   const objects=[...level.platforms.map((p,index)=>({...p,renderKind:'platform',ref:{type:'platform',index}})),
     ...Object.values(snapshot?.entities??Object.fromEntries(level.entities.map(e=>[e.id,e]))).map(e=>({...e,renderKind:e.kind,ref:{type:'entity',id:e.id}})),
     {...level.goal,renderKind:'goal',ref:{type:'goal'}},{...(snapshot?.actor??level.actor),renderKind:'actor',ref:{type:'actor'}}];
   for(const o of objects){
     const s=o.space??{},x=o.x,d=s.depth??0,h=s.height??0,w=o.width??28,ds=s.depthSize??24,opacity=['inactive','disabled'].includes(o.state)?.4:1;
+    const layers=boundLayers.get(o.ref.type+':'+(o.ref.id??o.ref.index??''))??[];
+    const hasArt=!logic&&layers.some(n=>!options.hiddenLayers?.has(n.id)&&artTransform(n,level,snapshot,options).visible!==false);
     const color=o.renderKind==='platform'?h>0?'#6c8eac':'#52686b':o.contact?'#d58476':'#90a9aa',p=project(x,d,h);
-    if(o.renderKind==='platform'||o.pose&&o.surface){
+    if(!hasArt&&(o.renderKind==='platform'||o.pose&&o.surface)){
       const surface=o.pose?spaceObjectSurface(o):o,{x,width:w,space:s}=surface,h=s.height,d=s.depth,ds=s.depthSize??24;
       const end=s.heightEnd??h,top=[project(x,d,h),project(x+w,d,end),project(x+w,d+ds,end),project(x,d+ds,h)];
       face([top[0],top[1],project(x+w,d,end-7),project(x,d,h-7)],'#253448');face(top,color,'#a2b6bf');
-    }else if(o.renderKind==='actor'){
+    }else if(!hasArt&&o.renderKind==='actor'){
       const bounds={x:p.x-16,y:p.y-40,width:32,height:46};
       const shadowTop=Math.max(0,Math.floor(p.y-5));
       sprite({x:p.x-14,y:shadowTop+2,width:28,height:12},(shadowTop-level.spatial.projection.originY+h)/level.spatial.projection.depthY,
@@ -71,19 +82,28 @@ export function drawSpatial(ctx,level,snapshot,{logic=false,...options}={}) {
         s.strokeStyle='#efddb0';s.lineWidth=3;const step=options.animate===false?0:Math.sin((snapshot?.tick??0)*.3)*4;
         s.beginPath();s.moveTo(p.x-4,p.y-6);s.lineTo(p.x-6+step,p.y);s.moveTo(p.x+4,p.y-6);s.lineTo(p.x+6-step,p.y);s.stroke();
       });
-    }else if(o.renderKind==='goal'){
+    }else if(!hasArt&&o.renderKind==='goal'){
       sprite({x:p.x-15,y:p.y-39,width:30,height:42},d,s=>{s.strokeStyle='#a7d7bc';s.lineWidth=3;s.strokeRect(p.x-13,p.y-37,26,37);s.fillStyle='#a7d7bc33';s.fillRect(p.x-13,p.y-37,26,37);});
-    }else if(logic||o.renderKind!=='zone'){
+    }else if(!hasArt&&(logic||o.renderKind!=='zone')){
       const tall=o.height??36,a=project(x,d,h+tall),b=project(x+w,d,h+tall),c=project(x+w,d+ds,h+tall);
       face([a,b,project(x+w,d,h),project(x,d,h)],color,'#d3dee1',opacity);
       const side=level.spatial.projection.depthX<0?x:x+w;
       face([project(side,d,h+tall),project(side,d+ds,h+tall),project(side,d+ds,h),project(side,d,h)],color+'99','#b5c9cd',opacity);
       face([a,b,c,project(x,d+ds,h+tall)],color+'bb','#d8e3e6',opacity);
     }
-    if(!logic)(level.scene?.nodes??[]).filter(n=>n.bind&&n.bind.type===o.ref.type&&
-      (o.ref.type==='entity'?n.bind.id===o.ref.id:o.ref.type==='platform'?n.bind.index===o.ref.index:true)).sort((a,b)=>a.layer-b.layer)
-      .forEach((n,index)=>image(n,d,-.15-index*.00001));
+    if(!logic)layers.forEach((n,index)=>image(n,d,-.15-index*.00001));
     if(logic&&o.label)labels.push({text:o.label,x:p.x,y:p.y-(o.height??36)-15});
+  }
+  if(!logic)for(const p of options.feedback?.particles??[]){
+    const n=level.scene.nodes.find(n=>n.id===p.target);if(!n||options.hiddenLayers?.has(n.id))continue;
+    const t=artTransform(n,level,snapshot,options);if(t.visible===false||n.ground)continue;
+    const r=t.rotation*Math.PI/180,x=t.x+Math.cos(r)*p.x*t.width-Math.sin(r)*p.y*t.height,
+      y=t.y+Math.sin(r)*p.x*t.width+Math.cos(r)*p.y*t.height,size=Math.max(3,Math.min(90,Math.max(t.width,t.height)*p.size));
+    const paint=s=>{s.save();s.globalAlpha=p.alpha*(options.artOpacity??1);s.fillStyle=p.color;
+      if(p.kind==='smoke'){const g=s.createRadialGradient(x,y,0,x,y,size);g.addColorStop(0,p.color+'bb');g.addColorStop(1,p.color+'00');s.fillStyle=g;}
+      s.beginPath();s.arc(x,y,size,0,Math.PI*2);s.fill();s.restore();};
+    const depth=boundObject(n,level,snapshot)?.space?.depth??n.anchor?.depth;
+    if(depth===undefined)paint(ctx);else sprite({x:x-size,y:y-size,width:2*size,height:2*size},depth,paint,-.16);
   }
   frame.buffer.render(commands);frame.image.data.set(frame.buffer.data);frame.out.putImageData(frame.image,0,0);ctx.drawImage(frame.canvas,0,0);
   if(logic){

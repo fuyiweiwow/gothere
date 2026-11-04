@@ -16,8 +16,11 @@ export function boundObject(node,level,snapshot) {
 export function artTransform(node,level,snapshot,{tick=snapshot?.tick??0,animate=true,variant,feedback,previewTarget}={}) {
   const object=boundObject(node,level,snapshot),state=variant??object?.state;
   const variantData=node.variants?.[state],n={...node,...variantData};
+  if(n.ground){const g=n.ground,p=projectSpace(level,{x:g.x,depth:g.depth+g.depthSize,height:g.height}),q=projectSpace(level,{x:g.x+g.width,depth:g.depth,height:g.height});
+    return {...n,x:Math.min(p.x,q.x,g.x+g.depth*level.spatial.projection.depthX),y:p.y,width:g.width+Math.abs(g.depthSize*level.spatial.projection.depthX),height:q.y-p.y,rotation:0};}
   if(!snapshot&&previewTarget===node.id)n.visible=true;
   let x=n.x,y=n.y,rotation=n.rotation??0;
+  if(node.anchor){const p=projectSpace(level,node.anchor);x+=p.x;y+=p.y;}
   if(object){
     const angle=object.pose?.angle??0,r=angle*Math.PI/180,pivot=(object.width??28)*(object.pose?.pivot??0);
     x=object.x+pivot+(n.x-pivot)*Math.cos(r)-n.y*Math.sin(r);
@@ -27,10 +30,11 @@ export function artTransform(node,level,snapshot,{tick=snapshot?.tick??0,animate
   const animation=variantData&&Object.hasOwn(variantData,'animation')?variantData.animation:variantData?.asset?null:node.animation;
   const frames=animation?.frames,frame=animate&&!['lost','won'].includes(snapshot?.status)?Math.floor(tick*(animation?.fps??1)/60):0;
   return applyMotion({...n,x,y,rotation,asset:frames?.[frame%frames.length]??n.asset,
-    flipX:Boolean(n.flipX)!==Boolean(n.flipWithDirection&&object?.direction===-1)},feedback?.motions[node.id]);
+    flipX:Boolean(n.flipX)!==Boolean(n.flipWithDirection&&(object?.direction??object?.motionDirection)===-1)},feedback?.motions[node.id]);
 }
 
 export function artCorners(node,level,snapshot,options) {
+  if(node.ground){const g=node.ground;return Object.fromEntries([['nw',0,0],['ne',g.width,0],['se',g.width,g.depthSize],['sw',0,g.depthSize]].map(([key,x,depth])=>[key,projectSpace(level,{x:g.x+x,depth:g.depth+depth,height:g.height})]));}
   const n=artTransform(node,level,snapshot,options),r=n.rotation*Math.PI/180,C=Math.cos(r),S=Math.sin(r);
   return Object.fromEntries([['nw',0,0],['ne',n.width,0],['se',n.width,n.height],['sw',0,n.height]].map(([key,x,y])=>[key,{x:n.x+x*C-y*S,y:n.y+x*S+y*C}]));
 }

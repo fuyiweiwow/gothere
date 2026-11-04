@@ -16,7 +16,7 @@ export const eventTypes = (source) => {const kind=typeof source==='string'?sourc
   ...(kind==='plate'||kind==='zone'?['enter']:[]), ...(['zone','object'].includes(kind)?[]:['contact']),
   ...(kind==='lift'?['board','arrive']:[]), ...(kind==='ladder'||(kind==='object'&&verticalTransport(source))?['arrive']:[]),
   ...(typeof source==='object'&&source?.pose?['rotated']:[]),
-  ...(typeof source==='object'&&source?.kind==='object'?['moved']:[]),
+  ...(typeof source==='object'&&source?.kind==='object'&&source.space?['moved']:[]),
   ...(source?.body||source?.supportProbe?['supportlost']:[]),...(source?.body?['landed']:[]),
   ...(source?.supportProbe?['supportfound']:[]),...(source?.collider||source?.surface?['impact','actorlanded']:[]), 'done'];};
 const object = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);

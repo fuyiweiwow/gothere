@@ -12,7 +12,7 @@ try{
  for(const url of ['http://127.0.0.1:'+server.address().port+'/',pathToFileURL((await buildEditor()).path).href]){
   const context=await browser.newContext({viewport:{width:1600,height:1100}}),p=await context.newPage(),requests=[];
   p.setDefaultTimeout(8000);p.on('pageerror',e=>errors.push(e.message));p.on('request',r=>{if(url.startsWith('file:')&&/^https?:/.test(r.url()))requests.push(r.url());});
-  await p.clock.install();await p.goto(url);await p.locator('#scene[data-assets=ready]').waitFor();await p.clock.pauseAt(new Date(Date.now()+1000));
+  const target=new URL(url);target.searchParams.set('sample','graybox');await p.clock.install();await p.goto(target.href);await p.locator('#scene[data-assets=ready]').waitFor();await p.clock.pauseAt(new Date(Date.now()+1000));
   assert.equal((await draft(p)).id,'spatial-graybox');
   await p.locator('#display-mode').selectOption('logic');
   await p.locator('[data-space-node="far-turn"]').click();assert.equal(await p.locator('#space-node-depth').inputValue(),'300');

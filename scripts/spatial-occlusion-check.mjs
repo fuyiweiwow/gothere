@@ -61,6 +61,23 @@ try{
       drawSpatial(ctx,art,{tick:0,actor,entities:{}},{animate:false});
       cases.push({name:'bound art '+height,sample:[...ctx.getImageData(Math.round(p.x),Math.round(p.y-18),1,1).data],expected:height===80?[0,255,255,255]:[108,142,172,255]});
     }
+    // Independent scenery has real depth too; it must not paint over every
+    // foreground actor just because the layer was added later.
+    const decor=createSpatialLevel();decor.entities=[];decor.platforms=[];
+    decor.scene={background:'#161e2b',assets:art.scene.assets,nodes:[{id:'tree-art',label:'test',asset:'occlusion-test',x:-40,y:-90,width:80,height:90,layer:0,anchor:{x:430,depth:160,height:0}}]};
+    for(const depth of [140,180]){
+      const actor={x:430,space:{depth,height:0}},p=projectSpace(decor,{x:actor.x,...actor.space});drawSpatial(ctx,decor,{tick:0,actor,entities:{}},{animate:false});
+      cases.push({name:'anchored art '+depth,sample:[...ctx.getImageData(Math.round(p.x),Math.round(p.y-18),1,1).data],expected:depth<160?[234,198,126,255]:[0,255,255,255]});
+    }
+    const floor=decor.scene.nodes[0];delete floor.anchor;floor.ground={x:300,depth:100,height:0,width:300,depthSize:100};
+    const middle=projectSpace(decor,{x:450,depth:150,height:0});
+    drawSpatial(ctx,decor,{tick:0,actor:{x:100,space:{depth:20,height:0}},entities:{}},{animate:false});
+    cases.push({name:'ground art projected plane',sample:[...ctx.getImageData(Math.round(middle.x),Math.round(middle.y),1,1).data],expected:[0,255,255,255]});
+    // Feedback changes only the rendered sprite, through the same slot sampling
+    // used by the rooftop editor. It must also apply in spatial mode.
+    const painted={tick:0,actor:{x:820,space:{depth:180,height:80}},entities:{}},at=projectSpace(art,{x:painted.actor.x,...painted.actor.space});
+    const settings={animate:false,feedback:{motions:{'actor-art':{dx:2,dy:0,rotation:0,scaleX:1,scaleY:1,opacity:1}},particles:[]}};
+    drawSpatial(ctx,art,painted,settings);cases.push({name:'spatial feedback offset',sample:[...ctx.getImageData(Math.round(at.x+32),Math.round(at.y-18),1,1).data],expected:[0,255,255,255]});
     const times=[];
     for(let i=0;i<40;i++){const start=performance.now();drawSpatial(ctx,level,simulation.snapshot(),{animate:false});times.push(performance.now()-start);}
     times.sort((a,b)=>a-b);
@@ -70,5 +87,5 @@ try{
   const hidden=result.pixels.filter(p=>p.sample.slice(0,3).some((v,i)=>v!==[234,198,126][i]));
   assert.deepEqual(hidden,[],'the upper body must remain visible on the slope and along the bridge, in both views');
   for(const c of result.cases)assert.deepEqual(c.sample,c.expected,c.name);
-  assert.deepEqual(errors,[]);console.log('PASS occlusion: 48 slope/bridge torso/waist samples; above/below bridge, front/behind box with 2 projections; bound art; scaled canvas. Median render '+result.medianMs.toFixed(1)+' ms.');
+  assert.deepEqual(errors,[]);console.log('PASS occlusion: 48 slope/bridge torso/waist samples; above/below bridge, front/behind box with 2 projections; bound and anchored art; ground textures; feedback; scaled canvas. Median render '+result.medianMs.toFixed(1)+' ms.');
 }finally{await browser.close();await new Promise(r=>server.close(r));}

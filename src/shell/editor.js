@@ -14,11 +14,15 @@ import {createBindingUI} from '../editor/binding-ui.js';
 import {createFeedbackPlayer} from '../render/feedback.js';
 import {createSoundPlayer} from '../render/audio.js';
 import {createSpatialLevel} from '../editor/spatial-level.js';
+import {createCommuteLevel} from '../editor/commute-level.js';
 import {drawSpatial} from '../render/spatial.js';
 import {spaceBounds} from '../core/spatial.js';
 
 const $=id=>document.getElementById(id),canvas=$('scene'),ctx=canvas.getContext('2d');
-const spatialEntry=!new URLSearchParams(location.search).has('legacy');
+const params=new URLSearchParams(location.search),spatialEntry=!params.has('legacy');
+const graybox=params.get('sample')==='graybox';
+const sample=spatialEntry?(graybox?createSpatialLevel:createCommuteLevel):createFirstLevel;
+const sampleKey=spatialEntry?(graybox?'spatial:01':'commute:spatial:01'):'milestone:02:v017';
 const standaloneHTML=document.getElementById('standalone-editor')?'<!doctype html>\n'+document.documentElement.outerHTML:null;
 let editor,resourceUI,bindingUI,lastDraft,loadSerial=0,preview=null,previewLevel=null,accumulator=0,last=0,debugLast=0,toastTimer,serial=0;
 let feedback=null,feedbackFrame=null,audition=null,endingTicks=0;
@@ -34,7 +38,8 @@ function draw(level,state){
     audition?audition.player.sample({tick:Math.floor(audition.tick),status:'running',signals:[]},{enabled:$('animation-toggle').checked,audible:$('sound-toggle').checked}):null;
   canvas.dataset.feedbackActive=String(feedbackFrame?.active??0);canvas.dataset.feedbackParticles=String(feedbackFrame?.particles.length??0);canvas.dataset.feedbackEnded=String(feedbackFrame?.tailFinished??true);
   canvas.dataset.view=displayMode;
-  if(level.spatial)drawSpatial(ctx,level,state,{logic:displayMode==='logic',animate:$('animation-toggle').checked,hiddenLayers:state?null:resourceUI?.hiddenLayers(),previewVariant:state?null:resourceUI?.variant()});
+  if(level.spatial)drawSpatial(ctx,level,state,{logic:displayMode==='logic',animate:$('animation-toggle').checked,hiddenLayers:state?null:resourceUI?.hiddenLayers(),previewVariant:state?null:resourceUI?.variant(),
+    feedback:feedbackFrame,previewTarget:state?null:audition?.target,artOpacity:displayMode==='binding'?Number($('calibration-art-opacity').value):1});
   else if(displayMode!=='logic')drawScene(ctx,level,state,{animate:$('animation-toggle').checked,previewVariant:state?null:resourceUI?.variant(),
     feedback:feedbackFrame,previewTarget:state?null:audition?.target,hiddenLayers:state?null:resourceUI?.hiddenLayers(),artOpacity:displayMode==='binding'?Number($('calibration-art-opacity').value):1});else drawDiagram(ctx,level,state);
   if(displayMode==='binding')bindingUI?.render(level,state);
@@ -114,8 +119,10 @@ resourceUI=createResourceUI({editor,notify,preview:draw,requestBind:id=>{changeD
     const player=createFeedbackPlayer(level,{onSound:e=>sound.play(e)});player.preview({...f,delay:0},0);audition={player,tick:0,duration:f.duration,target:f.target};$('animation-toggle').checked=true;draw(level);
   }});
 bindingUI=createBindingUI({editor,resources:resourceUI,paint:draw,notify});
-if(spatialEntry)editor.open(createSpatialLevel(),'spatial:01');
+if(spatialEntry)editor.open(sample(),sampleKey);
 else editor.open(createFirstLevel(),'milestone:02:v017',{workspaceRevision:'milestone-02-v017'});
+// An explicit sample link selects its saved slot, preserving authored edits.
+if(spatialEntry&&params.has('sample'))editor.openDocument(sample(),sampleKey);
 if(editor.document().id==='editor-first-level'&&!editor.document().scene)editor.change(d=>{d.scene=createFirstScene(d);});
 workspace();resourceUI.render(editor.document());
 createViewport({isEditing:()=>editor.isEditing(),onChange:()=>{
@@ -123,8 +130,11 @@ createViewport({isEditing:()=>editor.isEditing(),onChange:()=>{
   const width=Math.round(1200*scale),height=Math.round(640*scale);if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;ctx.setTransform(width/1200,0,0,height/640,0,0);}
   if(preview)draw(previewLevel,preview.snapshot());else draw(lastDraft??editor.document());
 }});
-$('reset-level').textContent=spatialEntry?'新建空间灰盒副本':'新建首关副本';
-$('reset-level').addEventListener('click',()=>editor.openDocument(spatialEntry?createSpatialLevel():createFirstLevel(),'sample:'+Date.now().toString(36)+'-'+serial++));
+$('editor-example').value=spatialEntry?(editor.document().id==='spatial-graybox'?'graybox':'commute'):'rooftop';
+$('editor-example').addEventListener('change',()=>{const url=new URL(location.href);url.searchParams.delete('legacy');url.searchParams.delete('sample');
+  if($('editor-example').value==='rooftop')url.searchParams.set('legacy','1');else url.searchParams.set('sample',$('editor-example').value);location.href=url.href;});
+$('reset-level').textContent='新建示例副本';
+$('reset-level').addEventListener('click',()=>editor.openDocument(sample(),'sample:'+Date.now().toString(36)+'-'+serial++));
 $('preview-toggle').addEventListener('click',()=>{
   if(editor.isEditing()){editor.preview();return;}
   const state=preview.snapshot();if(state.status==='running'){preview.pause();sound.setPaused(true);}else{if(['won','lost'].includes(state.status)){preview.reset();resetFeedback();}preview.start();sound.setPaused(false);sound.unlock();}

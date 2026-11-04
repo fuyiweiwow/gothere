@@ -63,7 +63,7 @@ export function validateSpatial(level,{draft=false}={}) {
   for(const n of nodes)if(n?.next!==undefined){
     const target=nodes.find(t=>t?.id===n.next);
     check(ids.has(n.next)&&n.next!==n.id,'下一节点不存在或指向自身。');
-    if(target)check(Math.hypot(n.x-target.x,n.depth-target.depth)>EPS,'相连节点需要不同地面位置，升降能力暂不支持。');
+    if(target)check(Math.hypot(n.x-target.x,n.depth-target.depth)>EPS,'相连路线节点需要不同地面位置；垂直升降由物体的 move 动作承载。');
   }
   check(ids.has(s.start),'起始节点不存在。');
   for(const [name,o] of [['主角',level.actor],['终点',level.goal],...(level.platforms??[]).map((o,i)=>['路面'+(i+1),o]),...(level.entities??[]).map(o=>[o?.label,o])]){
@@ -94,24 +94,31 @@ export function initializeSpatialActor(level,actor) {
 
 /** Advance only world movement. Events, behavior calls, input and timers belong to the shared engine. */
 export function advanceSpatialActor(level,entities,actor) {
-  let remaining=1/60,transitions=0;const trace=[],landings=[],nodes=level.spatial.nodes;
+  let remaining=1/60,transitions=0;const trace=[],landings=[],nodes=level.spatial.nodes,surfaces=spaceSurfaces(level,entities,actor.holding);
   while(remaining>EPS&&transitions++<64){
     const from=position(actor),target=nodes.find(n=>n.id===actor.targetNode);
     const dx=target?target.x-actor.x:actor.heading.x,dd=target?target.depth-actor.space.depth:actor.heading.depth;
     const distance=Math.hypot(dx,dd);
     if(target&&distance<EPS){actor.targetNode=Math.abs(actor.space.height-target.height)<EPS?target.next??null:null;if(Math.abs(actor.space.height-target.height)<EPS)actor.routeNode=target.id;continue;}
     if(distance>EPS)actor.heading={x:dx/distance,depth:dd/distance};
-    const dt=target?Math.min(remaining,distance/level.actor.speed):remaining,travel=dt*level.actor.speed;
+    let dt=target?Math.min(remaining,distance/level.actor.speed):remaining;
+    // Split at actual footprint edges so adjoining ramps meet exactly within a
+    // tick, including a new surface whose slope differs from the previous one.
+    for(const s of surfaces)for(const [key,edges] of [['x',[s.x,s.x+s.width]],['depth',[s.space.depth,s.space.depth+(s.space.depthSize??24)]]]){
+      const speed=actor.heading[key]*level.actor.speed;if(Math.abs(speed)<EPS)continue;
+      for(const edge of edges){const time=(edge-from[key])/speed;if(time>EPS&&time<dt)dt=time;}
+    }
+    const travel=dt*level.actor.speed;
     actor.x+=actor.heading.x*travel;actor.space.depth+=actor.heading.depth*travel;
     if(Math.abs(actor.heading.x)>EPS)actor.direction=actor.heading.x>0?1:-1;
-    const support=spaceSurfaces(level,entities,actor.holding).map(s=>({id:s.id,height:surfaceAt(s,actor.x,actor.space.depth),before:surfaceAt(s,from.x,from.depth)}))
+    const support=surfaces.map(s=>({id:s.id,height:surfaceAt(s,actor.x,actor.space.depth),before:surfaceAt(s,from.x,from.depth)}))
       .filter(s=>s.height!==null&&s.before!==null&&Math.abs(s.before-from.height)<EPS).sort((a,b)=>b.height-a.height)[0];
     if(actor.mode==='walking'&&support){actor.space.height=support.height;actor.support=support.id;actor.vh=0;}
     else {
       if(actor.mode!=='falling'){actor.mode='falling';actor.vh=0;actor.support=null;}
       const g=level.world.physics.gravity,v=Math.max(-level.world.physics.maxFallSpeed,actor.vh-g*dt);
       const nextHeight=actor.space.height+(actor.vh+v)*dt/2;actor.vh=v;
-      const hits=spaceSurfaces(level,entities,actor.holding).map(s=>({id:s.id,height:surfaceAt(s,actor.x,actor.space.depth)}))
+      const hits=surfaces.map(s=>({id:s.id,height:surfaceAt(s,actor.x,actor.space.depth)}))
         .filter(s=>s.height!==null&&s.height<=from.height+EPS&&s.height>=nextHeight-EPS).sort((a,b)=>b.height-a.height);
       if(hits.length){actor.space.height=hits[0].height;actor.support=hits[0].id;actor.mode='walking';landings.push({support:actor.support,speed:-actor.vh});actor.vh=0;}
       else actor.space.height=nextHeight;

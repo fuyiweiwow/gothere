@@ -32,7 +32,7 @@ export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspe
     const search=el('input');search.type='search';search.id='asset-search';search.placeholder='搜索图片、窗、屋顶…';search.value=query;search.setAttribute('aria-label','搜索美术资源');box.append(search);
     search.oninput=()=>{query=search.value;renderItems(d,items);};
     const filters=el('div',undefined,'library-categories');box.append(filters);
-    for(const name of ['全部','墙面','屋顶','窗门','细节','机关','角色','天空远景','自定义']){const b=button(name,()=>{category=name;renderLibraryRefresh();},'library-filter');b.setAttribute('aria-pressed',String(name===category));filters.append(b);}
+    for(const name of ['全部','墙面','屋顶','窗门','细节','机关','城市','角色','天空远景','自定义']){const b=button(name,()=>{category=name;renderLibraryRefresh();},'library-filter');b.setAttribute('aria-pressed',String(name===category));filters.append(b);}
     const hint=el('p',tool?'点击地图连续放置 · Esc 切回选择':'选择图片后连续放置；点击图层编辑资源。','panel-note');box.append(hint);
     box.append(field('场景底色',d.scene?.background??'#182044',v=>change(doc=>{ensureScene(doc).background=v;}),{id:'scene-background',type:'color'}));
     const upload=el('input');upload.type='file';upload.accept='image/png,image/jpeg,image/webp';upload.id='asset-upload';upload.hidden=true;upload.onchange=()=>importImage(upload.files[0]);
@@ -63,6 +63,17 @@ export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspe
     const animation=Object.hasOwn(editing,'animation')?editing.animation:variant&&editing.asset?null:n.animation;
     const update=(key,v)=>change(doc=>{const node=doc.scene.nodes.find(n=>n.id===selected);if(variant){node.variants??={};node.variants[variant]??={};node.variants[variant][key]=v;}else node[key]=v;});
     box.append(field('图层名称',n.label,v=>change(doc=>{doc.scene.nodes.find(n=>n.id===selected).label=v;}),{id:'art-label',type:'text'}));
+    if(d.spatial&&!n.bind){
+      box.append(select('空间形式',[['backdrop','背景图片'],['anchor','空间中的直立图片'],['ground','贴在地面上的图片']],n.ground?'ground':n.anchor?'anchor':'backdrop',value=>change(doc=>{
+        const node=doc.scene.nodes.find(n=>n.id===selected),t=artTransform(node,doc);delete node.anchor;delete node.ground;
+        if(value==='anchor'){node.anchor={x:Math.max(0,Math.min(1200,t.x)),depth:0,height:0};node.x=0;node.y=t.y-doc.spatial.projection.originY;}
+        else if(value==='ground'){node.ground={x:Math.max(0,Math.min(1100,t.x)),depth:80,height:140,width:Math.min(200,node.width),depthSize:80};}
+        else{node.x=t.x;node.y=t.y;node.width=t.width;node.height=t.height;}
+      }),'art-space-mode'));
+      const space=n.ground??n.anchor;
+      if(space)for(const [key,label,max] of [['x','空间 X',1200],['depth','地面纵深',600],['height','离地高度',360],...(n.ground?[['width','平面宽度',1200],['depthSize','平面深度',600]]:[])])
+        box.append(field(label,space[key],value=>change(doc=>{const node=doc.scene.nodes.find(n=>n.id===selected);(node.ground??node.anchor)[key]=value;}),{id:'art-space-'+key,min:['width','depthSize'].includes(key)?1:0,max,step:'any'}));
+    }
     const bindings=[['','独立布景（无逻辑）'],['actor','主角'],['goal','终点'],...d.entities.map(e=>['entity:'+e.id,e.label]),...d.platforms.map((_,i)=>['platform:'+i,'路面 '+(i+1)])];
     const b=n.bind,value=b?.type==='entity'?'entity:'+b.id:b?.type==='platform'?'platform:'+b.index:b?.type??'';
     box.append(select('跟随逻辑对象',bindings,value,v=>{variant='';change(doc=>bindArt(doc,selected,!v?null:v.startsWith('entity:')?{type:'entity',id:v.slice(7)}:v.startsWith('platform:')?{type:'platform',index:Number(v.slice(9))}:{type:v}));},'art-bind'));
@@ -76,7 +87,7 @@ export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspe
     box.append(select('图片',library.map(a=>[a.id,a.label]),effective.asset,v=>update('asset',v),'art-asset'));
     const image=el('img',undefined,'asset-inspector-image');image.src=library.find(a=>a.id===effective.asset)?.src??'';image.alt=effective.label;box.append(image);
     const grid=el('div',undefined,'asset-field-grid');box.append(grid);
-    for(const [k,label,min,max]of [['x',n.bind?'偏移 X':'位置 X',-2400,3600],['y',n.bind?'偏移 Y':'位置 Y',-1280,1920],['width','图片宽度',1,2400],['height','图片高度',1,1920],['rotation','附加角度',-180,180],['layer','显示层级',-100,100]])
+    for(const [k,label,min,max]of (n.ground?[['layer','显示层级',-100,100]]:[['x',n.bind||n.anchor?'偏移 X':'位置 X',-2400,3600],['y',n.bind||n.anchor?'偏移 Y':'位置 Y',-1280,1920],['width','图片宽度',1,2400],['height','图片高度',1,1920],['rotation','附加角度',-180,180],['layer','显示层级',-100,100]]))
       grid.append(field(label,effective[k]??0,v=>update(k,v),{id:'art-'+k,min,max,step:k==='rotation'?.1:1}));
     box.append(field('不透明度',effective.opacity??1,v=>update('opacity',v),{id:'art-opacity',min:0,max:1,step:.05}));
     box.append(checkbox('水平翻转',effective.flipX??false,v=>update('flipX',v),'art-flip'));
@@ -107,6 +118,7 @@ export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspe
       const t=artTransform(n,d,undefined,{variant:selected===n.id?variant:undefined});if((t.visible===false&&selected!==n.id)||hiddenLayers.has(n.id)||lockedLayers.has(n.id))continue;
       const b=button('',()=>{},'art-object');b.dataset.art=n.id;b.title=n.label;b.setAttribute('aria-label','选择资源：'+n.label);b.setAttribute('aria-pressed',String(n.id===selected));
       Object.assign(b.style,{left:t.x/12+'%',top:t.y/6.4+'%',width:t.width/12+'%',height:t.height/6.4+'%',transform:'rotate('+t.rotation+'deg)',zIndex:String(n.layer+101)});
+      if(n.ground)b.style.clipPath='polygon('+Object.values(artCorners(n,d)).map(p=>(p.x-t.x)/t.width*100+'% '+(p.y-t.y)/t.height*100+'%').join(',')+')';
       b.onpointerdown=e=>{if(tool||e.button!==0)return;e.preventDefault();e.stopPropagation();begin(e,n.id);};
       b.onclick=e=>{if(tool)return;if(suppress){suppress=false;return;}e.stopPropagation();choose(n.id);};overlay.append(b);
     }

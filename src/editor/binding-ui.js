@@ -22,7 +22,7 @@ export function createBindingUI({editor,resources,paint,notify}) {
       {ref:{type:'actor'},p:snapshot?.actor??level.actor,kind:'actor',label:'主角'},{ref:{type:'goal'},p:level.goal,kind:'goal',label:'终点'}];
     for(const {ref,p,kind,label}of objects){
       const b=level.spatial?spaceBounds(level,kind,p):diagramBounds(kind,p),chosen=key(ref)===highlight,group=svg('g',{'data-binding-ref':key(ref),class:chosen?'binding-shape selected':'binding-shape'});
-      const shape=p.pose?svg('polygon',{points:posePolygon(p).map(p=>p.x+','+p.y).join(' ')}):kind==='platform'&&!level.spatial?
+      const shape=p.pose&&!level.spatial?svg('polygon',{points:posePolygon(p).map(p=>p.x+','+p.y).join(' ')}):kind==='platform'&&!level.spatial?
         svg('polygon',{points:`${p.x},${floorY(p)} ${p.x+p.width},${surfaceEndY(p)} ${p.x+p.width},${surfaceEndY(p)+10} ${p.x},${floorY(p)+10}`}):svg('rect',{x:b.x,y:b.y,width:b.width,height:b.height});
       const title=svg('title');title.textContent=label;group.append(title,shape);
       if(chosen||picking){const text=svg('text',{x:b.x,y:Math.max(12,b.y-6)});text.textContent=label;group.append(text);}
@@ -31,7 +31,7 @@ export function createBindingUI({editor,resources,paint,notify}) {
         group.addEventListener('click',choose);group.addEventListener('keydown',e=>{if(['Enter',' '].includes(e.key))choose(e);});}
       overlay.append(group);
     }
-    if(selected?.bind&&!picking){const target=objects.find(o=>key(o.ref)===key(selected.bind));if(target){const a=artBounds(selected,level,snapshot),b=diagramBounds(target.kind,target.p);overlay.append(svg('line',{x1:a.x+a.width/2,y1:a.y+a.height/2,x2:b.x+b.width/2,y2:b.y+b.height/2,class:'binding-link'}));}}
+    if(selected?.bind&&!picking){const target=objects.find(o=>key(o.ref)===key(selected.bind));if(target){const a=artBounds(selected,level,snapshot),b=level.spatial?spaceBounds(level,target.kind,target.p):diagramBounds(target.kind,target.p);overlay.append(svg('line',{x1:a.x+a.width/2,y1:a.y+a.height/2,x2:b.x+b.width/2,y2:b.y+b.height/2,class:'binding-link'}));}}
   }
   document.getElementById('cancel-binding').onclick=()=>{cancel();paint(editor.document());};
   window.addEventListener('keydown',e=>{if(picking&&e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();cancel();paint(editor.document());}},true);

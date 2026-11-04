@@ -16,3 +16,5 @@ Palette adaptations wallLavender, wallTeal, wallIndigo, wallRose, wallStone and 
 library.json records the source, license, size and relative file of every library entry. Run `node scripts/pack-assets.mjs` after changing artwork or the manifest to regenerate the embedded library used by both online and offline editors. The delivered HTML contains the artwork locally and needs no CDN or network requests.
 
 The v0.16.0 smoke, dust and sparks are drawn procedurally; the six built-in audio cues are synthesized by project code. They add no third-party image/audio files. User-imported audio remains part of the user's level document.
+
+The spatial commute study adds modular street props in original/commute/ (bus, cars, scooters, rails, signals, road textures and office equipment), authored for this project and released under the same LICENSE-original.txt CC0 dedication. Its four worker PNGs are palette adaptations of the bundled Kenney Toon Characters, retaining that pack's CC0 license. These assets are editable library entries; they contain no original Snoozleberg artwork or in-scene text.

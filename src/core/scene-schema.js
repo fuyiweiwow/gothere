@@ -40,6 +40,8 @@ export function validateScene(level) {
     check(id(n.id)&&!ids.has(n.id),'资源图层标识无效或重复。');ids.add(n.id);
     check(typeof n.label==='string'&&n.label.length>0&&n.label.length<=60,'图层名称最多60字。');
     check(transform(n),'资源图层的图片或变换范围无效：'+n.id);
+    if(n.anchor!==undefined)check(Boolean(level.spatial)&&obj(n.anchor)&&!n.bind&&!n.ground&&num(n.anchor.x,0,1200)&&num(n.anchor.depth,0,600)&&num(n.anchor.height,0,360),'资源空间锚点无效：'+n.id);
+    if(n.ground!==undefined)check(Boolean(level.spatial)&&obj(n.ground)&&!n.bind&&!n.anchor&&num(n.ground.x,0,1200)&&num(n.ground.width,1,1200-n.ground.x)&&num(n.ground.depth,0,600)&&num(n.ground.depthSize,1,600-n.ground.depth)&&num(n.ground.height,0,360),'地面资源需要合法的空间平面：'+n.id);
     if(n.tile!==undefined)check(obj(n.tile)&&num(n.tile.width,8,512)&&num(n.tile.height,8,512),'资源平铺尺寸需要8～512：'+n.id);
     if(n.bind!==undefined){const b=n.bind;
       check(obj(b)&&(['actor','goal'].includes(b.type)||(b.type==='entity'&&(level.entities??[]).some(e=>e.id===b.id))||
