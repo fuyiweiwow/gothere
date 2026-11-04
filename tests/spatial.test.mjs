@@ -137,3 +137,9 @@ test('malformed spatial records produce validation errors instead of crashing im
     const l=spatialFixture();mutate(l);assert.doesNotThrow(()=>assert.equal(validateLevel(l).valid,false));
   }
 });
+
+test('a route node at another height cannot redirect a walker underneath it',()=>{
+  const l=spatialFixture();l.spatial.nodes[1].height=80;
+  const a=createSimulation(l).start().step(90).snapshot().actor;
+  assert.equal(a.space.height,0);assert.equal(a.space.depth,40);assert.ok(a.x>220,'continue walking when the elevated waypoint cannot be reached');
+});
