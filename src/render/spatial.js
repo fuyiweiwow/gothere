@@ -1,4 +1,4 @@
-import {projectSpace} from '../core/spatial.js';
+import {projectSpace,spaceObjectSurface} from '../core/spatial.js';
 import {artTransform,artBounds,assetImage,assetLibrary} from './resources.js';
 import {createDepthBuffer} from './depth-buffer.js';
 
@@ -57,7 +57,8 @@ export function drawSpatial(ctx,level,snapshot,{logic=false,...options}={}) {
   for(const o of objects){
     const s=o.space??{},x=o.x,d=s.depth??0,h=s.height??0,w=o.width??28,ds=s.depthSize??24,opacity=['inactive','disabled'].includes(o.state)?.4:1;
     const color=o.renderKind==='platform'?h>0?'#6c8eac':'#52686b':o.contact?'#d58476':'#90a9aa',p=project(x,d,h);
-    if(o.renderKind==='platform'){
+    if(o.renderKind==='platform'||o.pose&&o.surface){
+      const surface=o.pose?spaceObjectSurface(o):o,{x,width:w,space:s}=surface,h=s.height,d=s.depth,ds=s.depthSize??24;
       const end=s.heightEnd??h,top=[project(x,d,h),project(x+w,d,end),project(x+w,d+ds,end),project(x,d+ds,h)];
       face([top[0],top[1],project(x+w,d,end-7),project(x,d,h-7)],'#253448');face(top,color,'#a2b6bf');
     }else if(o.renderKind==='actor'){
@@ -72,7 +73,7 @@ export function drawSpatial(ctx,level,snapshot,{logic=false,...options}={}) {
       });
     }else if(o.renderKind==='goal'){
       sprite({x:p.x-15,y:p.y-39,width:30,height:42},d,s=>{s.strokeStyle='#a7d7bc';s.lineWidth=3;s.strokeRect(p.x-13,p.y-37,26,37);s.fillStyle='#a7d7bc33';s.fillRect(p.x-13,p.y-37,26,37);});
-    }else{
+    }else if(logic||o.renderKind!=='zone'){
       const tall=o.height??36,a=project(x,d,h+tall),b=project(x+w,d,h+tall),c=project(x+w,d+ds,h+tall);
       face([a,b,project(x+w,d,h),project(x,d,h)],color,'#d3dee1',opacity);
       const side=level.spatial.projection.depthX<0?x:x+w;

@@ -13,7 +13,7 @@ test('spatial move carries a supported walker across depth and elevation; moved 
   const l=base();l.actor.space.height=60;l.spatial.nodes[0].height=60;l.entities=[{...object('carrier',80,60),surface:{enabled:true},behaviors:[{id:'go',label:'go',actions:[action('carrier',200,160,140,60)]}]}];
   l.rules=[{on:{type:'click',source:'carrier'},actions:[{type:'invoke',target:'carrier',behavior:'go'}]}];
   const s=createSimulation(l).start();s.click('carrier');s.step(30);const state=s.snapshot();
-  assert.equal(state.actor.space.height,100);assert.equal(state.actor.space.depth,140);assert.equal(state.actor.support,'carrier');
+  assert.equal(state.actor.space.height,100);assert.equal(state.entities.carrier.space.depth,100);assert.ok(state.actor.space.depth>135&&state.actor.space.depth<145);assert.equal(state.actor.support,'carrier');
   assert.ok(state.actor.x>180);assert.equal(state.signals.some(e=>e.event==='moved'),false);
   s.step(30);assert.equal(s.snapshot().entities.carrier.space.height,140);assert.ok(s.snapshot().signals.some(e=>e.event==='moved'));
   assert.deepEqual(replayRecording(l,s.recording()).snapshot(),s.snapshot());

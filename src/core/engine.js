@@ -4,7 +4,7 @@ import { collectSurfaces, advanceWalker, touchesFootPath, touchesSurfacePath, su
 import { posedSurface } from './pose.js';
 import { initializeBodies, advanceBodies } from './bodies.js';
 import { updateSupportProbes } from './support.js';
-import {initializeSpatialActor,advanceSpatialActor,spaceTouches,spaceGoalReached} from './spatial.js';
+import {initializeSpatialActor,advanceSpatialActor,spaceTouches,spaceGoalReached,spaceSupport,spaceSurfaces} from './spatial.js';
 import {normalizeLevel} from './level-version.js';
 export { validateLevel } from './schema.js';
 export const TICKS_PER_SECOND = 60;
@@ -56,6 +56,12 @@ export function createSimulation(input) {
         }
       } else if (action.type==='hold') {
         const e=state.entities[action.target], a=state.actor;
+        if(level.spatial){
+          if(a.holding===null&&e.state==='active'&&spaceTouches([{from:{x:a.x,...a.space},to:{x:a.x,...a.space}}],e)){
+            a.holding=e.id;delete e.translation;delete e.rotation;emit('拿上了'+e.label);syncHeld();
+          }
+          continue;
+        }
         const s=e.pose?posedSurface(e):{x:e.x,y:e.y,width:e.width};
         const height=surfaceHeight(s,Math.max(s.x,Math.min(s.x+s.width,a.x)));
         if (a.holding===null && a.connector!==e.id && e.state==='active' && Math.abs(a.y-height)<1e-7 && a.x+24>=s.x && a.x-24<=s.x+s.width) {
@@ -63,7 +69,7 @@ export function createSimulation(input) {
         }
       } else if (action.type==='drop') {
         const a=state.actor,e=a.holding===null?null:state.entities[a.holding];
-        if(e){e.x=Math.max(25,Math.min(1200-e.width,a.x-a.direction*(e.width+24)));e.y=a.y;
+        if(e){e.x=Math.max(25,Math.min(1200-e.width,a.x-a.direction*(e.width+24)));e.y=a.y;if(level.spatial)e.space={...e.space,depth:a.space.depth,height:a.space.height};
           a.holding=null;emit('放下了'+e.label);}
       } else if (action.type==='hurt') {
         lose('hurt', action.message??'碰上了一个不太友好的东西。下次换个办法打招呼。');
@@ -80,6 +86,9 @@ export function createSimulation(input) {
       } else if (action.type==='rotate') {
         const e=state.entities[action.target];
         e.rotation={from:e.pose.angle,to:action.angle,ticks:action.ticks,elapsed:0};
+      } else if(action.type==='move') {
+        const e=state.entities[action.target];if(state.actor.holding===e.id)continue;
+        e.translation={from:{x:e.x,depth:e.space.depth,height:e.space.height},to:{x:action.x,depth:action.depth,height:action.height},ticks:action.ticks,elapsed:0};
       } else if (action.type==='enable') {
         const e=state.entities[action.target];e[action.capability].enabled=action.enabled;
         emit(e.label+' · '+(action.capability==='collider'?'碰撞':'承托')+(action.enabled?'启用':'停用'));
@@ -129,16 +138,22 @@ export function createSimulation(input) {
   };
   const lose = (reason, message) => { state.status = 'lost'; state.reason = reason; signal('lost','actor',{reason});emit(message, 'lost'); };
   const approach=(from,to,amount)=>from<to?Math.min(to,from+amount):Math.max(to,from-amount);
-  const syncHeld=()=>{const a=state.actor,e=a.holding===null?null:state.entities[a.holding];if(e){e.x=a.x+a.direction*18-e.width/2;const t=verticalTransport(e);if(t)t.toY+=a.y-e.y;e.y=a.y;}};
+  const syncHeld=()=>{const a=state.actor,e=a.holding===null?null:state.entities[a.holding];if(e){e.x=a.x+a.direction*18-e.width/2;const t=verticalTransport(e);if(t)t.toY+=a.y-e.y;e.y=a.y;if(level.spatial)e.space={...e.space,depth:a.space.depth,height:a.space.height};}};
   function updateMotion() {
     const a=state.actor,held=a.holding;
     const before=level.spatial?[]:collectSurfaces(level,state.entities,held);
     const support=a.mode==='walking'?supportAt(before,a.x,a.y,a.support):null;
     const carrier=support?state.entities[support.id]:null;
     const local=carrier&&(carrier.surface||carrier.collider)?(a.x-support.x)/support.width:null;
+    const spatialSupport=level.spatial&&a.mode==='walking'?spaceSupport(level,state.entities,a):null;
+    const spaceCarrier=spatialSupport?state.entities[spatialSupport.id]:null;
+    const oldSurface=spaceCarrier?spaceSurfaces(level,state.entities,held).find(s=>s.id===spaceCarrier.id):null;
+    const relative=oldSurface?{x:(a.x-oldSurface.x)/oldSurface.width,depth:a.space.depth-oldSurface.space.depth}:null;
+    const carriedFrom=level.spatial?{x:a.x,depth:a.space.depth,height:a.space.height}:null;
     const completed=[];
     for(const e of Object.values(state.entities)) {
       e.previousX=e.x;
+      if(level.spatial)e.previousSpace=clone(e.space);
       if(e.kind==='lift')e.carY=approach(e.carY,e.state==='upper'?e.toY:e.y,e.speed/60);
       if(e.motion && e.state==='active' && state.actor.holding!==e.id) {
         const m=e.motion;let x=Math.max(m.minX,Math.min(m.maxX,e.x))+e.motionDirection*m.speed/60;
@@ -149,18 +164,29 @@ export function createSimulation(input) {
       if(e.rotation){
         const r=e.rotation;r.elapsed++;
         e.pose.angle=r.elapsed===r.ticks?r.to:r.from+(r.to-r.from)*r.elapsed/r.ticks;
-        if(r.elapsed===r.ticks){delete e.rotation;completed.push(e.id);}
+        if(r.elapsed===r.ticks){delete e.rotation;completed.push({id:e.id,type:'rotated'});}
+      }
+      if(e.translation){
+        const t=e.translation;t.elapsed++;const phase=t.elapsed/t.ticks;
+        e.x=t.from.x+(t.to.x-t.from.x)*phase;e.space.depth=t.from.depth+(t.to.depth-t.from.depth)*phase;e.space.height=t.from.height+(t.to.height-t.from.height)*phase;
+        if(t.elapsed===t.ticks){e.x=t.to.x;e.space.depth=t.to.depth;e.space.height=t.to.height;delete e.translation;completed.push({id:e.id,type:'moved'});}
       }
     }
     const bodyEvents=level.world.physics?[...advanceBodies(level,state.entities,held,before),...updateSupportProbes(level,state.entities,held)]:[];
     if(local!==null){const surface=collectSurfaces(level,state.entities,held).find(s=>s.id===carrier.id);if(surface){a.x=surface.x+surface.width*local;a.y=surfaceHeight(surface,a.x);a.support=carrier.id;}}
-    for(const id of completed){emit(state.entities[id].label+' 旋转结束。','rotated');trigger('rotated',id);}
+    if(relative){const surface=spaceSurfaces(level,state.entities,held).find(s=>s.id===spaceCarrier.id);if(surface){
+      a.x=surface.x+surface.width*relative.x;a.space.depth=surface.space.depth+relative.depth;
+      a.space.height=surface.space.height+((surface.space.heightEnd??surface.space.height)-surface.space.height)*relative.x;a.support=surface.id;
+    }}
+    for(const {id,type} of completed){emit(state.entities[id].label+(type==='moved'?' 位移结束。':' 旋转结束。'),type);trigger(type,id);}
     for(const event of bodyEvents){
       if(state.status!=='running')break;
       const source=state.entities[event.source],other=state.entities[event.other]?.label??'路面';
       emit(source.label+({supportlost:' 失去支撑。',supportfound:' 获得支撑。',landed:' 落到 '+other+'。',impact:' 被 '+other+' 撞击。'}[event.type]),event.type,event);
       trigger(event.type,event.source,undefined,event.other);
     }
+    return carriedFrom&&Math.hypot(a.x-carriedFrom.x,a.space.depth-carriedFrom.depth,a.space.height-carriedFrom.height)>1e-7?
+      {from:carriedFrom,to:{x:a.x,depth:a.space.depth,height:a.space.height}}:null;
   }
   function finishConnection(e) {
     const a=state.actor,t=verticalTransport(e)??e;
@@ -266,23 +292,25 @@ export function createSimulation(input) {
     }
     pending = [];
     if (state.status !== 'running') return;
-    updateMotion();
+    const carriedTrace=updateMotion();
     if(state.status!=='running')return;
     if(level.spatial){
       const {trace,landings}=advanceSpatialActor(level,state.entities,state.actor),touching=new Set();
+      if(carriedTrace)trace.unshift(carriedTrace);syncHeld();
       for(const landing of landings){
         if(state.actor.maxLandingSpeed!==undefined&&landing.speed>state.actor.maxLandingSpeed){lose('hard-landing','落地太快了。');return;}
         if(state.entities[landing.support])trigger('actorlanded',landing.support);
       }
       for(const e of Object.values(state.entities)){
-        if(['inactive','disabled','stopped','open'].includes(e.state)||!spaceTouches(trace,e))continue;
+        if(e.id===state.actor.holding||['inactive','disabled','stopped','open'].includes(e.state)||!spaceTouches(trace,e))continue;
         touching.add(e.id);
         if(!contacts.has(e.id))trigger(e.kind==='zone'?'enter':'contact',e.id);
         if(e.kind==='plate'&&e.state==='idle'){e.state='pressed';signal('state',e.id,{state:e.state});trigger('enter',e.id);}
         if(state.status!=='running')return;
-        if(!['inactive','disabled','stopped','open'].includes(e.state)&&(e.contact?.effect==='lethal'||e.kind==='gate'&&e.state==='closed')){lose('hurt',e.contact?.message??'碰到了危险物。');return;}
+        if(e.id!==state.actor.holding&&!['inactive','disabled','stopped','open'].includes(e.state)&&(e.contact?.effect==='lethal'||e.kind==='gate'&&e.state==='closed')){lose('hurt',e.contact?.message??'碰到了危险物。');return;}
       }
       contacts=touching;
+      syncHeld();
       if(state.actor.mode==='walking'&&spaceGoalReached(trace,level.goal)){state.status='won';signal('won','actor');emit('到了！','won');}
       else if(state.actor.x<=20||state.actor.x>=1180||state.actor.space.depth<0||state.actor.space.depth>600||state.actor.space.height< -160){lose('boundary','走出了场景边界。');}
       else if(state.tick>=MAX_TICKS)lose('timeout','这段路走得太久了。');

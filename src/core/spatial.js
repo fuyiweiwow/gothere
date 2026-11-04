@@ -12,6 +12,7 @@ export function unprojectSpace(level,p,height=0) {
   return {x:p.x-depth*c.depthX,depth,height};
 }
 export function spaceBounds(level,kind,o) {
+  if(o.pose){const surface=spaceObjectSurface(o);return spaceBounds(level,'platform',{...surface,pose:undefined});}
   const p=projectSpace(level,position(o));
   if(kind==='actor'||kind==='goal')return {x:p.x-(kind==='actor'?12:16),y:p.y-(kind==='actor'?32:40),width:kind==='actor'?24:32,height:kind==='actor'?32:40};
   const w=o.width??28,h=kind==='platform'?8:o.height??36,d=o.space?.depthSize??24;
@@ -22,10 +23,15 @@ export function spaceBounds(level,kind,o) {
   return {x:Math.min(...xs),y:Math.min(...ys),width:Math.max(...xs)-Math.min(...xs),height:Math.max(8,Math.max(...ys)-Math.min(...ys))};
 }
 
-export function spaceSurfaces(level,entities) {
+export function spaceObjectSurface(o) {
+  const h=o.space?.height??0,pivot=(o.width??28)*(o.pose?.pivot??0),r=(o.pose?.angle??0)*Math.PI/180;
+  const x=o.x+pivot-pivot*Math.cos(r),height=h+pivot*Math.sin(r);
+  return {...o,x,width:(o.width??28)*Math.cos(r),space:{...o.space,height:height+(o.collider?o.height??36:0),
+    ...(o.pose?{heightEnd:height-(o.width??28)*Math.sin(r)}:{})}};
+}
+export function spaceSurfaces(level,entities,held=null) {
   return [...level.platforms.map((p,i)=>({...p,id:'platform:'+i})),...Object.values(entities).filter(e=>
-    e.state==='active'&&(e.surface?.enabled||e.collider?.enabled)).map(e=>({...e,space:{...e.space,
-      height:(e.space?.height??0)+(e.collider?e.height??36:0)}}))];
+    e.id!==held&&e.state==='active'&&(e.surface?.enabled||e.collider?.enabled)).map(spaceObjectSurface)];
 }
 function surfaceAt(s,x,depth) {
   const p=position(s);
@@ -34,7 +40,7 @@ function surfaceAt(s,x,depth) {
 }
 export function spaceSupport(level,entities,actor,tolerance=EPS) {
   const p=position(actor);
-  const matches=spaceSurfaces(level,entities).map(s=>({id:s.id,height:surfaceAt(s,p.x,p.depth)}))
+  const matches=spaceSurfaces(level,entities,actor.holding).map(s=>({id:s.id,height:surfaceAt(s,p.x,p.depth)}))
     .filter(s=>s.height!==null&&Math.abs(s.height-p.height)<=tolerance);
   return matches.sort((a,b)=>Math.abs(a.height-p.height)-Math.abs(b.height-p.height)||a.id.localeCompare(b.id))[0]??null;
 }
@@ -66,8 +72,8 @@ export function validateSpatial(level,{draft=false}={}) {
       (p.heightEnd===undefined||finite(p.heightEnd,0,360)),name+' 需要合法的纵深、离地高度及占地深度。');
   }
   for(const e of level.entities??[])check(e&&['object','zone','switch','gate','plate'].includes(e.kind)&&
-    !e.body&&!e.pose&&!e.transport&&!e.supportProbe&&!e.carriedPhysics,'当前支持普通物体、区域与水平巡逻；动态刚体、旋转和高度通道尚未接入。');
-  const actions=(list,depth=0)=>{if(!Array.isArray(list)||depth>4)return;for(const a of list){if(!a)continue;if(a.type==='after')actions(a.actions,depth+1);else check(['set','hurt','invoke','enable'].includes(a.type),'动作 '+a.type+' 尚未接入空间模型。');}};
+    !e.body&&!e.transport&&!e.supportProbe&&!e.carriedPhysics,'当前支持普通物体、旋转承托、受控位移与持有；动态刚体和旧高度通道尚未接入。');
+  const actions=(list,depth=0)=>{if(!Array.isArray(list)||depth>4)return;for(const a of list){if(!a)continue;if(a.type==='after')actions(a.actions,depth+1);else check(['set','hurt','invoke','enable','rotate','move','hold','drop'].includes(a.type),'动作 '+a.type+' 尚未接入空间模型。');}};
   for(const r of level.rules)actions(r?.actions);
   for(const e of level.entities)if(Array.isArray(e?.behaviors))for(const b of e.behaviors)actions(b?.actions);
   if(!draft&&errors.length===0){
@@ -98,14 +104,14 @@ export function advanceSpatialActor(level,entities,actor) {
     const dt=target?Math.min(remaining,distance/level.actor.speed):remaining,travel=dt*level.actor.speed;
     actor.x+=actor.heading.x*travel;actor.space.depth+=actor.heading.depth*travel;
     if(Math.abs(actor.heading.x)>EPS)actor.direction=actor.heading.x>0?1:-1;
-    const support=spaceSurfaces(level,entities).map(s=>({id:s.id,height:surfaceAt(s,actor.x,actor.space.depth),before:surfaceAt(s,from.x,from.depth)}))
+    const support=spaceSurfaces(level,entities,actor.holding).map(s=>({id:s.id,height:surfaceAt(s,actor.x,actor.space.depth),before:surfaceAt(s,from.x,from.depth)}))
       .filter(s=>s.height!==null&&s.before!==null&&Math.abs(s.before-from.height)<EPS).sort((a,b)=>b.height-a.height)[0];
     if(actor.mode==='walking'&&support){actor.space.height=support.height;actor.support=support.id;actor.vh=0;}
     else {
       if(actor.mode!=='falling'){actor.mode='falling';actor.vh=0;actor.support=null;}
       const g=level.world.physics.gravity,v=Math.max(-level.world.physics.maxFallSpeed,actor.vh-g*dt);
       const nextHeight=actor.space.height+(actor.vh+v)*dt/2;actor.vh=v;
-      const hits=spaceSurfaces(level,entities).map(s=>({id:s.id,height:surfaceAt(s,actor.x,actor.space.depth)}))
+      const hits=spaceSurfaces(level,entities,actor.holding).map(s=>({id:s.id,height:surfaceAt(s,actor.x,actor.space.depth)}))
         .filter(s=>s.height!==null&&s.height<=from.height+EPS&&s.height>=nextHeight-EPS).sort((a,b)=>b.height-a.height);
       if(hits.length){actor.space.height=hits[0].height;actor.support=hits[0].id;actor.mode='walking';landings.push({support:actor.support,speed:-actor.vh});actor.vh=0;}
       else actor.space.height=nextHeight;
@@ -122,8 +128,10 @@ export function advanceSpatialActor(level,entities,actor) {
 export function spaceTouches(trace,entity) {
   const e=position(entity),w=entity.width??28,d=entity.space?.depthSize??24,h=entity.height??36;
   return trace.some(segment=>{
-    const from={...segment.from,x:segment.from.x-(entity.previousX??entity.x)},to={...segment.to,x:segment.to.x-entity.x};
-    const mins={x:-10,depth:e.depth-6,height:e.height-32+EPS},maxs={x:w+10,depth:e.depth+d+6,height:e.height+h-EPS};
+    const previous=entity.previousSpace??entity.space;
+    const from={x:segment.from.x-(entity.previousX??entity.x),depth:segment.from.depth-(previous?.depth??e.depth),height:segment.from.height-(previous?.height??e.height)},
+      to={x:segment.to.x-entity.x,depth:segment.to.depth-e.depth,height:segment.to.height-e.height};
+    const mins={x:-10,depth:-6,height:-32+EPS},maxs={x:w+10,depth:d+6,height:h-EPS};
     let enter=0,leave=1;
     for(const key of ['x','depth','height']){
       const delta=to[key]-from[key];

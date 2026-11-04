@@ -16,12 +16,17 @@ export const eventTypes = (source) => {const kind=typeof source==='string'?sourc
   ...(kind==='plate'||kind==='zone'?['enter']:[]), ...(['zone','object'].includes(kind)?[]:['contact']),
   ...(kind==='lift'?['board','arrive']:[]), ...(kind==='ladder'||(kind==='object'&&verticalTransport(source))?['arrive']:[]),
   ...(typeof source==='object'&&source?.pose?['rotated']:[]),
+  ...(typeof source==='object'&&source?.kind==='object'?['moved']:[]),
   ...(source?.body||source?.supportProbe?['supportlost']:[]),...(source?.body?['landed']:[]),
   ...(source?.supportProbe?['supportfound']:[]),...(source?.collider||source?.surface?['impact','actorlanded']:[]), 'done'];};
 const object = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 const number = (value, min, max) => Number.isFinite(value) && value >= min && value <= max;
 const text = (value, max) => typeof value === 'string' && value.length > 0 && value.length <= max;
 const idPattern = /^[a-z][a-z0-9-]{0,47}$/;
+const spatialPoseInBounds=(e,angle=e.pose?.angle??0)=>{
+  const r=angle*Math.PI/180,p=(e.width??28)*(e.pose?.pivot??0);
+  return [0,e.width??28].every(local=>number(e.x+p+(local-p)*Math.cos(r),0,1200)&&number((e.space?.height??0)-(local-p)*Math.sin(r),0,360));
+};
 
 /** Validate the supported DSL, including every reference, before simulation. */
 export function validateLevel(input,{spatialDraft=false}={}) {
@@ -91,7 +96,7 @@ export function validateLevel(input,{spatialDraft=false}={}) {
       if(entity.pose!==undefined){
         check(entity.kind==='object'&&object(entity.pose)&&number(entity.pose.angle,-75,75)&&number(entity.pose.pivot,0,1),
           'pose 需要 angle（-75～75 度）和 pivot（0～1 的支点位置）：'+entity.id);
-        check(poseInBounds(entity),'物体姿态端点必须在地图范围内，Y 为 160～560：'+entity.id);
+        check(input.spatial?spatialPoseInBounds(entity):poseInBounds(entity),'物体姿态端点必须在地图范围内：'+entity.id);
         check(entity.transport===undefined,'姿态与高度通道暂不组合：'+entity.id);
       }
       if(entity.surface!==undefined){
@@ -186,7 +191,13 @@ export function validateLevel(input,{spatialDraft=false}={}) {
         check(Boolean(entity?.kind==='object'&&object(entity.pose)),'rotate 目标需要姿态能力。');
         check(number(action.angle,-75,75)&&Number.isInteger(action.ticks)&&number(action.ticks,1,3600),
           'rotate 需要 angle（-75～75 度）和 ticks（1～3600 整数）。');
-        check(!entity||poseInBounds(entity,action.angle),'rotate 的目标端点超出地图高度范围：'+String(action.target));
+        check(!entity||(input.spatial?spatialPoseInBounds(entity,action.angle):poseInBounds(entity,action.angle)),'rotate 的目标端点超出地图高度范围：'+String(action.target));
+      } else if(action.type==='move') {
+        const e=byId.get(action.target);
+        check(Boolean(input.spatial&&e?.kind==='object'&&!e.motion&&!e.body&&!e.transport),'move 需要空间普通物体，不能组合巡逻、动态刚体或旧运输能力。');
+        check(number(action.x,25,1200-(e?.width??28))&&number(action.depth,0,600-(e?.space?.depthSize??24))&&number(action.height,0,360)&&action.y===undefined&&
+          Number.isInteger(action.ticks)&&number(action.ticks,1,3600),'move 需要合法的 x、depth、height 与 ticks（1～3600）。');
+        if(e?.pose)check(spatialPoseInBounds({...e,x:action.x,space:{...e.space,height:action.height}}),'move 的姿态端点超出地图范围。');
       } else if (action.type === 'enable') {
         check(['collider','surface'].includes(action.capability)&&object(byId.get(action.target)?.[action.capability])&&typeof action.enabled==='boolean',
           'enable 需要已定义的 collider/surface 能力和 enabled 布尔值。');
