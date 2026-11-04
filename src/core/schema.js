@@ -179,7 +179,7 @@ export function validateLevel(input,{spatialDraft=false}={}) {
         check(Number.isInteger(action.ticks) && number(action.ticks, 1, 3600), 'after.ticks 必须是 1～3600 的整数。');
         actionsValid(action.actions, depth + 1);
       } else if (action.type === 'hold') {
-        check(byId.get(action.target)?.kind==='object', 'hold 目标必须是物件。');
+        check(byId.get(action.target)?.kind==='object'&&!byId.get(action.target)?.space?.passage, 'hold 目标必须是行走层中的物件。');
       } else if (action.type === 'drop') {
         // One hand slot. Dropping an empty slot is harmless.
       } else if(action.type==='place'){
@@ -199,8 +199,9 @@ export function validateLevel(input,{spatialDraft=false}={}) {
       } else if(action.type==='move') {
         const e=byId.get(action.target);
         check(Boolean(input.spatial&&e?.kind==='object'&&!e.motion&&!e.body&&!e.transport&&!e.passage),'move 需要空间普通物体，不能组合巡逻、动态刚体或连接能力。');
-        check(number(action.x,25,1200-(e?.width??28))&&number(action.depth,0,600-(e?.space?.depthSize??24))&&number(action.height,0,360)&&action.y===undefined&&
-          Number.isInteger(action.ticks)&&number(action.ticks,1,3600),'move 需要合法的 x、depth、height 与 ticks（1～3600）。');
+        check((e?.space?.passage?number(action.progress,0,1)&&action.x===undefined&&action.depth===undefined&&action.height===undefined:
+          number(action.x,25,1200-(e?.width??28))&&number(action.depth,0,600-(e?.space?.depthSize??24))&&number(action.height,0,360))&&action.y===undefined&&
+          Number.isInteger(action.ticks)&&number(action.ticks,1,3600),'move 需要合法的空间坐标或通路进度，以及 ticks（1～3600）。');
         if(e?.pose)check(spatialPoseInBounds({...e,x:action.x,space:{...e.space,height:action.height}}),'move 的姿态端点超出地图范围。');
       } else if (action.type === 'enable') {
         check(['collider','surface','passage'].includes(action.capability)&&object(byId.get(action.target)?.[action.capability])&&typeof action.enabled==='boolean',

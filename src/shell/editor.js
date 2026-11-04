@@ -26,7 +26,7 @@ const graybox=params.get('sample')==='graybox';
 const oldSpatial=params.has('spatial')||params.get('sample')==='spatial-commute',layeredDemo=params.get('sample')==='layered';
 const layeredEntry=spatialEntry&&!graybox&&!oldSpatial;
 const sample=spatialEntry?(graybox?createSpatialLevel:oldSpatial?createCommuteLevel:layeredDemo?createLayeredLevel:createStreetLevel):createFirstLevel;
-const sampleKey=spatialEntry?(graybox?'spatial:01':oldSpatial?'commute:spatial:01':layeredDemo?'layered:graybox:01':'commute:layered:01'):'milestone:02:v017';
+const sampleKey=spatialEntry?(graybox?'spatial:01':oldSpatial?'commute:spatial:01':layeredDemo?'layered:graybox:01':'commute:layered:02'):'milestone:02:v017';
 const standaloneHTML=document.getElementById('standalone-editor')?'<!doctype html>\n'+document.documentElement.outerHTML:null;
 let editor,resourceUI,bindingUI,lastDraft,loadSerial=0,preview=null,previewLevel=null,accumulator=0,last=0,debugLast=0,toastTimer,serial=0;
 let feedback=null,feedbackFrame=null,audition=null,endingTicks=0;
@@ -126,7 +126,7 @@ resourceUI=createResourceUI({editor,notify,preview:draw,requestBind:id=>{changeD
     const player=createFeedbackPlayer(level,{onSound:e=>sound.play(e)});player.preview({...f,delay:0},0);audition={player,tick:0,duration:f.duration,target:f.target};$('animation-toggle').checked=true;draw(level);
   }});
 bindingUI=createBindingUI({editor,resources:resourceUI,paint:draw,notify});
-if(spatialEntry)editor.open(sample(),sampleKey);
+if(spatialEntry)editor.open(sample(),sampleKey,{updateSample:layeredEntry&&!layeredDemo});
 else editor.open(createFirstLevel(),'milestone:02:v017',{workspaceRevision:'milestone-02-v017'});
 // An explicit sample link selects its saved slot, preserving authored edits.
 if(spatialEntry&&params.has('sample'))editor.openDocument(sample(),sampleKey);

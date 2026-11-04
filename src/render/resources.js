@@ -1,7 +1,7 @@
 import {ASSETS} from '../content/library.js';
 import {floorY} from '../core/schema.js';
 import {applyMotion} from './feedback.js';
-import {projectSpace} from '../core/spatial.js';
+import {projectSpace,passagePosition} from '../core/spatial.js';
 import {actorAnimationState} from '../core/locomotion.js';
 
 const images=new Map();
@@ -26,7 +26,7 @@ export function artTransform(node,level,snapshot,{tick=snapshot?.tick??0,animate
     const angle=object.pose?.angle??0,r=angle*Math.PI/180,pivot=(object.width??28)*(object.pose?.pivot??0);
     x=object.x+pivot+(n.x-pivot)*Math.cos(r)-n.y*Math.sin(r);
     y=floorY(object)+(n.x-pivot)*Math.sin(r)+n.y*Math.cos(r);rotation+=angle;
-    if(level.spatial){const p=projectSpace(level,{x:object.x,depth:object.space?.depth??0,height:object.space?.height??0});x+=p.x-object.x;y+=p.y-floorY(object);}
+    if(level.spatial){const p=projectSpace(level,object.space?.passage?{...passagePosition(level,object.space.passage,object.space.progress),height:object.space.height}:{x:object.x,depth:object.space?.depth??0,height:object.space?.height??0});x+=p.x-object.x;y+=p.y-floorY(object);}
     if(n.fitPassage&&object.passage){
       const nodes=level.spatial.nodes,a=projectSpace(level,nodes.find(p=>p.id===object.passage.from)),b=projectSpace(level,nodes.find(p=>p.id===object.passage.to));
       const r=Math.atan2(b.y-a.y,b.x-a.x);x=a.x+n.x*Math.cos(r)-n.y*Math.sin(r);y=a.y+n.x*Math.sin(r)+n.y*Math.cos(r);
@@ -42,6 +42,8 @@ export function artTransform(node,level,snapshot,{tick=snapshot?.tick??0,animate
 export function artCorners(node,level,snapshot,options) {
   if(node.ground){const g=node.ground;return Object.fromEntries([['nw',0,0],['ne',g.width,0],['se',g.width,g.depthSize],['sw',0,g.depthSize]].map(([key,x,depth])=>[key,projectSpace(level,{x:g.x+x,depth:g.depth+depth,height:g.height})]));}
   const n=artTransform(node,level,snapshot,options),r=n.rotation*Math.PI/180,C=Math.cos(r),S=Math.sin(r);
+  if(n.fitPassage&&n.passageView){const h=n.height/2,end=h*n.passageView.endScale;
+    return Object.fromEntries([['nw',0,-h],['ne',n.width,-end],['se',n.width,end],['sw',0,h]].map(([key,x,y])=>[key,{x:n.x+x*C-y*S,y:n.y+x*S+y*C}]));}
   return Object.fromEntries([['nw',0,0],['ne',n.width,0],['se',n.width,n.height],['sw',0,n.height]].map(([key,x,y])=>[key,{x:n.x+x*C-y*S,y:n.y+x*S+y*C}]));
 }
 
@@ -76,7 +78,12 @@ export function drawResources(ctx,level,snapshot,options={}) {
     const n=artTransform(node,level,snapshot,{...options,variant:options.previewVariant?.id===node.id?options.previewVariant.state:undefined});if(n.visible===false)continue;
     const image=assetImage(library.get(n.asset));ctx.save();ctx.translate(n.x,n.y);ctx.rotate(n.rotation*Math.PI/180);ctx.globalAlpha=(n.opacity??1)*(options.artOpacity??1);
     if(n.flipX){ctx.translate(n.width,0);ctx.scale(-1,1);}
-    if(image&&n.tile){ctx.beginPath();ctx.rect(0,0,n.width,n.height);ctx.clip();for(let y=0;y<n.height;y+=n.tile.height)for(let x=0;x<n.width;x+=n.tile.width)ctx.drawImage(image,x,y,n.tile.width,n.tile.height);}
+    if(image&&n.fitPassage&&n.passageView){
+      const end=n.height*n.passageView.endScale,steps=Math.ceil(n.width/4);
+      ctx.beginPath();ctx.moveTo(0,-n.height/2);ctx.lineTo(n.width,-end/2);ctx.lineTo(n.width,end/2);ctx.lineTo(0,n.height/2);ctx.closePath();ctx.clip();
+      for(let i=0;i<steps;i++){const t=i/steps,w=n.height+(end-n.height)*(i+.5)/steps;
+        ctx.drawImage(image,t*image.naturalWidth,0,image.naturalWidth/steps,image.naturalHeight,t*n.width,-w/2,n.width/steps+.5,w);}
+    }else if(image&&n.tile){ctx.beginPath();ctx.rect(0,0,n.width,n.height);ctx.clip();for(let y=0;y<n.height;y+=n.tile.height)for(let x=0;x<n.width;x+=n.tile.width)ctx.drawImage(image,x,y,n.tile.width,n.tile.height);}
     else if(image)ctx.drawImage(image,0,0,n.width,n.height);
     else{ctx.fillStyle='#59727d';ctx.fillRect(0,0,n.width,n.height);ctx.strokeStyle='#a1beb8';ctx.strokeRect(0,0,n.width,n.height);}
     ctx.restore();

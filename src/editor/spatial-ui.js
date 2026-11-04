@@ -1,4 +1,4 @@
-import {projectSpace,unprojectSpace,spaceBounds,isLayered} from '../core/spatial.js';
+import {projectSpace,unprojectSpace,spaceBounds,isLayered,syncPassageObject} from '../core/spatial.js';
 import {moveObject,resizeObject} from './model.js';
 import {snapSpacePoint} from './spatial-snapping.js';
 import {assignWalkPlane,connectLayeredNodes,setPlaneBaseline} from './layered-editing.js';
@@ -58,6 +58,22 @@ export function createSpatialUI({document:current,change,preview,choose,selectio
       const row=el('label','启用内外连接'),enabled=el('input');enabled.type='checkbox';enabled.id='object-passage';enabled.checked=target.passage.enabled;enabled.onchange=()=>change(doc=>doc.entities.find(e=>e.id===target.id).passage.enabled=enabled.checked);row.append(enabled);box.append(row);
       behaviorFields(d,target,box);return;
     }
+    if(layered&&ref.type==='entity'&&target.kind==='object'&&!target.surface&&!target.collider&&!target.pose&&!target.motion){
+      const label=el('label','位置归属'),select=el('select');select.id='object-location';
+      for(const [id,text] of [['plane','行走层'],...d.entities.filter(e=>e.passage).map(e=>[e.id,'通路 · '+e.label])]){const option=el('option',text);option.value=id;select.append(option);}select.value=target.space.passage??'plane';
+      select.onchange=()=>change(doc=>{const e=doc.entities.find(e=>e.id===target.id);
+        if(select.value==='plane')assignWalkPlane(doc,e,doc.spatial.planes[0].id);
+        else{delete e.space.plane;e.space.passage=select.value;e.space.progress=.5;e.space.length=28;syncPassageObject(doc,e);}
+        const strip=actions=>{for(const a of actions)if(a.type==='after')strip(a.actions);else if(a.type==='move'&&a.target===e.id){delete a.progress;delete a.x;delete a.depth;delete a.height;Object.assign(a,e.space.passage?{progress:e.space.progress}:{x:e.x,depth:e.space.depth,height:e.space.height});}};
+        for(const r of doc.rules)strip(r.actions);for(const o of doc.entities)for(const b of o.behaviors??[])strip(b.actions);
+      });label.append(select);box.append(label);box.append(el('p','切换位置归属会将移动目的地重置到当前位置。'));
+    }
+    if(target.space.passage){
+      number(box,'通路进度','object-passage-progress',target.space.progress,v=>change(doc=>{const e=doc.entities.find(e=>e.id===target.id);e.space.progress=v;syncPassageObject(doc,e);}),0,1);
+      number(box,'占用通路长度','object-passage-length',target.space.length,v=>change(doc=>doc.entities.find(e=>e.id===target.id).space.length=v),8,160);
+      number(box,'物体自身高度','object-height',target.height??36,v=>change(doc=>doc.entities.find(e=>e.id===target.id).height=v),8,240);
+      box.append(el('p','拖动沿通路调整位置；行为中的移动动作以 0～1 进度设置目的地。'));behaviorFields(d,target,box);return;
+    }
     const update=(key,v)=>change(doc=>{const t=ref.type==='entity'?doc.entities.find(e=>e.id===ref.id):ref.type==='platform'?doc.platforms[ref.index]:doc[ref.type];
       if(key==='x'||key==='width'||key==='height')t[key]=v;else t.space[key==='elevation'?'height':key]=v;
       if(ref.type==='actor'){const n=doc.spatial.nodes.find(n=>n.id===doc.spatial.start);n.x=t.x;n.depth=t.space.depth;n.height=t.space.height;}
@@ -83,7 +99,7 @@ export function createSpatialUI({document:current,change,preview,choose,selectio
     const options={threshold:g.threshold??12,disabled:g.disabled,nodes:document.getElementById('snap-enabled').checked,surfaces:document.getElementById('surface-snap').checked};
     if(g.node){const n=d.spatial.nodes.find(n=>n.id===g.node),delta=unprojectSpace(d,{x:g.dx,y:d.spatial.projection.originY+g.dy},0);n.x=round(Math.max(20,Math.min(1180,n.x+delta.x)));if(isLayered(d))n.height=round(Math.max(0,Math.min(360,n.height-g.dy)));else n.depth=round(Math.max(0,Math.min(600,n.depth+delta.depth)));const p=snapSpacePoint(d,n,{...options,exclude:n.id});n.x=p.x;n.depth=p.depth;n.height=p.height;syncStart(d,n);}
     else if(g.handle)resizeObject(d,g.ref,g.handle,g.dx,g.dy);
-    else{moveObject(d,g.ref,g.dx,g.dy);const t=g.ref.type==='entity'?d.entities.find(e=>e.id===g.ref.id):g.ref.type==='platform'?d.platforms[g.ref.index]:d[g.ref.type],p={x:t.x,...t.space};
+    else{moveObject(d,g.ref,g.dx,g.dy);const t=g.ref.type==='entity'?d.entities.find(e=>e.id===g.ref.id):g.ref.type==='platform'?d.platforms[g.ref.index]:d[g.ref.type];if(t.space.passage)return;const p={x:t.x,...t.space};
       const snapped=snapSpacePoint(d,p,{...options,exclude:g.ref.type==='actor'?d.spatial.start:undefined,surfaces:g.ref.type==='platform'?false:options.surfaces}),a=projectSpace(d,p),b=projectSpace(d,snapped);if(a.x!==b.x||a.y!==b.y)moveObject(d,g.ref,b.x-a.x,b.y-a.y);}
   }
   function renderOverlay(d){

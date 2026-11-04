@@ -1,8 +1,16 @@
 // World coordinates are independent of the screen. Increasing depth goes away from the viewer.
 const EPS=1e-7;
 const finite=(v,min,max)=>Number.isFinite(v)&&v>=min&&v<=max;
-const position=o=>({x:o.x,depth:o.space?.depth??0,height:o.space?.height??(440-(o.y??440)),...(o.space?.plane?{plane:o.space.plane}:{})});
+const position=o=>({x:o.x,depth:o.space?.depth??0,height:o.space?.height??(440-(o.y??440)),...(o.space?.plane?{plane:o.space.plane}:{}),...(o.space?.passage?{passage:o.space.passage,progress:o.space.progress}:{})});
 export const isLayered=level=>level.spatial?.mode==='layered';
+
+export function passagePosition(level,id,progress){
+  const p=level.entities.find(e=>e.id===id)?.passage,a=level.spatial.nodes.find(n=>n.id===p?.from),b=level.spatial.nodes.find(n=>n.id===p?.to);
+  return {x:a.x+(b.x-a.x)*progress,depth:a.depth+(b.depth-a.depth)*progress,height:a.height};
+}
+export function syncPassageObject(level,object){
+  const p=passagePosition(level,object.space.passage,object.space.progress);object.x=p.x;object.space.depth=p.depth;
+}
 
 export function projectSpace(level,p) {
   const c=level.spatial.projection;
@@ -13,6 +21,8 @@ export function unprojectSpace(level,p,height=0) {
   return {x:p.x-depth*c.depthX,depth,height};
 }
 export function spaceBounds(level,kind,o) {
+  if(o.space?.passage){const p=projectSpace(level,{...passagePosition(level,o.space.passage,o.space.progress),height:o.space.height}),w=o.width??28,h=o.height??36;
+    return {x:p.x-w/2,y:p.y-h,width:w,height:h};}
   if(o.pose){const surface=spaceObjectSurface(o);return spaceBounds(level,'platform',{...surface,pose:undefined});}
   const p=projectSpace(level,position(o));
   if(isLayered(level)&&o.passage){
@@ -89,7 +99,11 @@ export function validateSpatial(level,{draft=false}={}) {
     const p=o?.space;
     check(p&&finite(p.depth,0,600)&&finite(p.height,0,360)&&(p.depthSize===undefined||finite(p.depthSize,1,600))&&
       (p.heightEnd===undefined||finite(p.heightEnd,0,360)),name+' 需要合法的纵深、离地高度及占地深度。');
-    if(layered)check(planes.some(plane=>plane?.id===p?.plane&&plane?.depth===p?.depth),name+' 必须属于已定义行走层，并使用该层的画面位置。');
+    if(p?.passage)check(layered,'通路位置需要二维分层模式。');
+    if(layered&&p?.passage){
+      check(level.entities.includes(o)&&o.kind==='object'&&level.entities.some(e=>e?.id===p.passage&&e.passage)&&p.plane===undefined&&finite(p.progress,0,1)&&finite(p.length,8,160),name+' 的通路位置需要连接物体、进度与占用长度。');
+      check(!o.passage&&!o.motion&&!o.surface&&!o.collider&&!o.pose,name+' 的通路位置不与承托、旋转或巡逻组合。');
+    }else if(layered)check(planes.some(plane=>plane?.id===p?.plane&&plane?.depth===p?.depth),name+' 必须属于已定义行走层，并使用该层的画面位置。');
   }
   if(layered){
     for(const n of nodes)check(planes.some(p=>p?.id===n?.plane&&p?.depth===n?.depth),'路线节点必须属于已定义行走层。');
@@ -103,7 +117,10 @@ export function validateSpatial(level,{draft=false}={}) {
     !e.body&&!e.transport&&!e.supportProbe&&!e.carriedPhysics,'当前支持普通物体、旋转承托、受控位移与持有；动态刚体和旧高度通道尚未接入。');
   const actions=(list,depth=0)=>{if(!Array.isArray(list)||depth>4)return;for(const a of list){if(!a)continue;if(a.type==='after')actions(a.actions,depth+1);else{
     check(['set','hurt','invoke','enable','rotate','move','hold','drop','place'].includes(a.type),'动作 '+a.type+' 尚未接入空间模型。');
-    if(layered&&a.type==='move')check(a.depth===level.entities.find(e=>e?.id===a.target)?.space?.depth,'分层物体在所属层中移动；跨层使用显式连接。');
+    if(layered&&a.type==='move'){
+      const e=level.entities.find(e=>e?.id===a.target);
+      check(e?.space?.passage?finite(a.progress,0,1):a.depth===e?.space?.depth,'分层物体在所属层中移动；通路物体使用进度。');
+    }
   }}};
   for(const r of level.rules)actions(r?.actions);
   for(const e of level.entities)if(Array.isArray(e?.behaviors))for(const b of e.behaviors)actions(b?.actions);
@@ -135,7 +152,7 @@ export function advanceSpatialActor(level,entities,actor) {
       actor.x=a.x+(b.x-a.x)*t;actor.space.depth=a.depth+(b.depth-a.depth)*t;
       actor.space.height=a.height;remaining-=dt;
       // A passage owns its traversal. Unrelated streets cannot contact it mid-way.
-      trace.push({from:{...from,plane:null},to:{...position(actor),plane:null}});
+      trace.push({distance,from:{...from,plane:null,passage:p.id,progress:(p.travelled-dt*level.actor.speed)/distance},to:{...position(actor),plane:null,passage:p.id,progress:t}});
       if(p.travelled>=distance-EPS){
         actor.x=b.x;actor.space.depth=b.depth;actor.space.plane=b.plane;actor.routeNode=b.id;actor.targetNode=b.next??null;
         actor.mode='walking';actor.support=spaceSupport(level,entities,actor)?.id??null;
@@ -195,6 +212,12 @@ export function advanceSpatialActor(level,entities,actor) {
 export function spaceTouches(trace,entity) {
   const e=position(entity),w=entity.width??28,d=entity.space?.depthSize??24,h=entity.height??36;
   return trace.some(segment=>{
+    if(entity.space?.passage){
+      if(segment.from.passage!==entity.space.passage||segment.to.passage!==entity.space.passage)return false;
+      const distance=segment.distance,previous=entity.previousSpace??entity.space;
+      const a=(segment.from.progress-previous.progress)*distance,b=(segment.to.progress-entity.space.progress)*distance,r=entity.space.length/2+10;
+      return Math.min(a,b)<=r&&Math.max(a,b)>=-r&&Math.abs(segment.to.height-entity.space.height)<h;
+    }
     if(entity.space?.plane!==undefined&&(segment.from.plane!==entity.space.plane||segment.to.plane!==entity.space.plane))return false;
     const previous=entity.previousSpace??entity.space;
     const from={x:segment.from.x-(entity.previousX??entity.x),depth:segment.from.depth-(previous?.depth??e.depth),height:segment.from.height-(previous?.height??e.height)},

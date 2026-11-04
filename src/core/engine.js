@@ -4,7 +4,7 @@ import { collectSurfaces, advanceWalker, touchesFootPath, touchesSurfacePath, su
 import { posedSurface } from './pose.js';
 import { initializeBodies, advanceBodies } from './bodies.js';
 import { updateSupportProbes } from './support.js';
-import {initializeSpatialActor,advanceSpatialActor,spaceTouches,spaceGoalReached,spaceSupport,spaceSurfaces} from './spatial.js';
+import {initializeSpatialActor,advanceSpatialActor,spaceTouches,spaceGoalReached,spaceSupport,spaceSurfaces,syncPassageObject} from './spatial.js';
 import {normalizeLevel} from './level-version.js';
 export { validateLevel } from './schema.js';
 export const TICKS_PER_SECOND = 60;
@@ -36,6 +36,7 @@ export function createSimulation(input) {
       events: [], signals:[], clicks: 0, timers: [] };
     pending = []; inputs = []; serial = 0; signalSerial=0;contacts=new Set();connectorLock=null;invokeDepth=0;signal('start','scene');
     if(level.spatial)initializeSpatialActor(level,state.actor);
+    for(const e of Object.values(state.entities))if(e.space?.passage)syncPassageObject(level,e);
     initializeBodies(level,state.entities);
     updateSupportProbes(level,state.entities,null,true);
     return api;
@@ -95,10 +96,11 @@ export function createSimulation(input) {
         e.rotation={from:e.pose.angle,to:action.angle,ticks:action.ticks,elapsed:0};
       } else if(action.type==='move') {
         const e=state.entities[action.target];if(state.actor.holding===e.id)continue;
-        e.translation={from:{x:e.x,depth:e.space.depth,height:e.space.height},to:{x:action.x,depth:action.depth,height:action.height},ticks:action.ticks,elapsed:0};
+        e.translation=e.space.passage?{fromProgress:e.space.progress,toProgress:action.progress,ticks:action.ticks,elapsed:0}:
+          {from:{x:e.x,depth:e.space.depth,height:e.space.height},to:{x:action.x,depth:action.depth,height:action.height},ticks:action.ticks,elapsed:0};
       } else if (action.type==='enable') {
         const e=state.entities[action.target];e[action.capability].enabled=action.enabled;
-        emit(e.label+' · '+(action.capability==='collider'?'碰撞':'承托')+(action.enabled?'启用':'停用'));
+        emit(e.label+' · '+(action.capability==='collider'?'碰撞':action.capability==='passage'?'通路':'承托')+(action.enabled?'启用':'停用'));
       } else if (action.type==='after') {
         if(invocation)invocation.remaining++;
         state.timers.push({ due: state.tick + action.ticks, order: serial++, actions: clone(action.actions), ...(invocation?{invocation}:{}) });
@@ -175,8 +177,13 @@ export function createSimulation(input) {
       }
       if(e.translation){
         const t=e.translation;t.elapsed++;const phase=t.elapsed/t.ticks;
-        e.x=t.from.x+(t.to.x-t.from.x)*phase;e.space.depth=t.from.depth+(t.to.depth-t.from.depth)*phase;e.space.height=t.from.height+(t.to.height-t.from.height)*phase;
-        if(t.elapsed===t.ticks){e.x=t.to.x;e.space.depth=t.to.depth;e.space.height=t.to.height;delete e.translation;completed.push({id:e.id,type:'moved'});}
+        if(e.space.passage){e.space.progress=t.fromProgress+(t.toProgress-t.fromProgress)*phase;syncPassageObject(level,e);}
+        else {e.x=t.from.x+(t.to.x-t.from.x)*phase;e.space.depth=t.from.depth+(t.to.depth-t.from.depth)*phase;e.space.height=t.from.height+(t.to.height-t.from.height)*phase;}
+        if(t.elapsed===t.ticks){
+          if(e.space.passage){e.space.progress=t.toProgress;syncPassageObject(level,e);}
+          else{e.x=t.to.x;e.space.depth=t.to.depth;e.space.height=t.to.height;}
+          delete e.translation;completed.push({id:e.id,type:'moved'});
+        }
       }
     }
     const bodyEvents=level.world.physics?[...advanceBodies(level,state.entities,held,before),...updateSupportProbes(level,state.entities,held)]:[];

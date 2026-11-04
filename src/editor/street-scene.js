@@ -1,56 +1,66 @@
 import {feedbackDefault} from '../content/feedback-presets.js';
 
-/** A side-view street assembled from editable art layers with a single palette.
- * Local connector images span only their endpoints; no global isometric ground. */
+/** Three flat street elevations. Only the two local crossings use a perspective surface. */
 export function createStreetScene(level){
   const scene={background:'#e5e2d3',assets:[],nodes:[],feedback:[],sounds:[]};let serial=0;
   const add=(asset,label,x,y,width,height,layer=-10,extra={})=>{const n={id:'street-art-'+(++serial),asset,label,x,y,width,height,layer,...extra};scene.nodes.push(n);return n;};
   const bind=(id,asset,label,x,y,w,h,extra={})=>add(asset,label,x,y,w,h,15,{bind:{type:'entity',id},...extra});
   const anchor=(plane,x,asset,label,w,h,layer=0,extra={})=>add(asset,label,0,-h,w,h,layer,{anchor:{x,plane,depth:level.spatial.planes.find(p=>p.id===plane).depth,height:0},...extra});
   const cue=(n,trigger,extra)=>scene.feedback.push({...feedbackDefault(n.id,'street-cue-'+scene.feedback.length),trigger,...extra});
-  // Distant skyline and buildings are flat side elevations. The company occupies
-  // the upper-right corner, clearly separated from the lower-left start.
-  for(const [x,y,w,h] of [[0,35,160,140],[170,0,110,180],[320,20,170,145],[570,0,100,165],[710,30,180,130]])add('commuteOffice','远处楼影',x,y,w,h,-85,{opacity:.14});
-  for(const [x,y,w,h] of [[0,230,115,285],[118,275,160,240],[282,245,140,270],[450,208,175,135],[640,235,140,110],[790,185,150,160]]){
-    add('streetFacade','旧街楼面',x,y,w,h,-70);
-    for(let yy=y+18;yy<y+h-28;yy+=52)for(let xx=x+12;xx<x+w-20;xx+=48)add('streetWindow','居民窗户',xx,yy,28,37,-65);
-    add('commuteCables','墙面电线',x,y+4,w,28,-60,{opacity:.75});
+  // Each facade ends above its own sidewalk. The crossings keep clear sight lines.
+  for(const [plane,baseline,blocks] of [
+    ['front',575,[[28,140],[190,130],[345,120],[485,135],[650,160],[835,115]]],
+    ['lane',400,[[250,150],[425,140],[590,130],[745,160],[925,70]]],
+    ['court',225,[[235,135],[395,150],[570,145],[740,135],[900,110]]],
+  ])for(const [i,[x,w]] of blocks.entries()){
+    const height=plane==='court'?104:112;
+    add('streetFacade','沿街楼面',x,baseline-height-12,w,height,-75);
+    for(let xx=x+12;xx<x+w-20;xx+=40)for(const yy of [baseline-height,baseline-height+39])add('streetWindow','沿街窗户',xx,yy,25,31,-70);
+    add('commuteAircon','外墙空调',x+w-30,baseline-42,23,17,-68);
+    add('commuteCables','楼间电线',x,baseline-height-17,w,22,-66,{opacity:.7});
+    if(plane!=='court')add(i%2?'awningGreenRed':'awningGreen','小店遮篷',x+8,baseline-41,w-16,18,-60);
   }
-  add('commuteOffice','公司正面',1010,20,178,170,-60);add('commuteClock','公司时钟',1128,38,35,35,-55);
-  for(const x of [1023,1070,1117])for(const y of [42,96]){add('commuteDesk','工位',x,y,36,25,-54);add('commuteWorkerIdle','工位里的人',x+10,y-7,17,28,-53);}
-  add('streetCanopy','早餐摊棚',70,470,147,22,-45);add('commuteDesk','早餐案台',105,537,65,51,-40);
-  add('commuteShelter','公交候车亭',276,476,142,110,-44);add('commuteCables','街口缆线',215,435,220,35,-43);
-  for(const x of [290,322,355])add('commuteWorkerIdle','候车的人',x,538,25,45,-39);
-  // Ordinary sloped images visualize only the two local plane connections.
-  for(const id of ['alley','side-door'])add('streetPassage','局部巷道铺面',0,-24,200,48,-30,{bind:{type:'entity',id},fitPassage:true});
-  for(const p of level.platforms){const rise=(p.space.heightEnd??p.space.height)-p.space.height;
-    anchor(p.space.plane,p.x,'streetPavement','街面铺装',p.width,25,2,{y:-p.space.height-13,rotation:-Math.atan2(rise,p.width)*180/Math.PI,width:Math.hypot(p.width,rise)});
-    anchor(p.space.plane,p.x,'commuteSlab','路面边沿',p.width,12,3,{x:0,y:-p.space.height,rotation:-Math.atan2(rise,p.width)*180/Math.PI,width:Math.hypot(p.width,rise)});
+  // No company interior: a closed facade and its street-side entrance finish this chapter.
+  add('streetFacade','公司外墙',1092,95,96,118,-65);add('streetWindow','公司窗户',1104,109,26,36,-60);add('streetWindow','公司窗户',1146,109,26,36,-60);
+  add('commuteClock','门外时钟',1132,155,26,26,-55);
+  add('streetCanopy','早餐摊棚',75,493,130,22,-45);add('commuteDesk','早餐摊案台',105,530,65,42,-40);
+  add('commuteShelter','公交候车亭',516,493,100,78,-44);
+  for(const x of [525,550,575])anchor('front',x,'commuteWorkerIdle','挤在站台的人',22,39,10);
+  for(const p of level.platforms){
+    anchor(p.space.plane,p.x,'streetRoad','街面车道',p.width,36,1,{y:10,tile:{width:200,height:36}});
+    anchor(p.space.plane,p.x,'streetPavement','人行道',p.width,20,2,{y:-9});
+    anchor(p.space.plane,p.x,'commuteSlab','路沿',p.width,7,3,{y:3});
   }
-  for(let i=0;i<6;i++)anchor('court',1060+i*8.3,'commuteSlab','真正的台阶踏面',10,6,5,{y:-i*9.2-4});
-  for(const [plane,x] of [['front',45],['front',225],['lane',530],['lane',815],['court',987]])anchor(plane,x,'commuteTree','行道树',42,88,-4);
-  for(const [plane,x] of [['front',380],['lane',590],['court',1040]])anchor(plane,x,'commuteCone','路边锥桶',18,26,6);
-  for(const [plane,x] of [['front',92],['lane',665],['court',1080]])anchor(plane,x,'commuteCamera','路口摄像头',28,65,-1);
-  for(const x of [472,680,844])anchor('lane',x,'commuteAircon','沿街空调',30,22,-2,{y:-72});
-  for(const x of [1050,1095,1140])add('commuteRail','院墙栏杆',x,217,46,20,-31);
+  // Tapered surfaces use endpoint geometry; they never acquire slope or height physics.
+  for(const [id,asset,w,scale] of [['alley','streetCrossing',62,.65],['side-door','streetPassage',56,.62]])
+    add(asset,'内外直路铺面',0,0,175,w,-30,{bind:{type:'entity',id},fitPassage:true,passageView:{endScale:scale}});
+  for(const [plane,x] of [['front',35],['front',470],['lane',210],['lane',880],['court',200],['court',920]])anchor(plane,x,'commuteTree','路边行道树',32,63,-4);
+  for(const [plane,x] of [['front',855],['lane',360],['court',560]])anchor(plane,x,'commuteCamera','街角摄像头',23,52,-1);
+  for(const [plane,x] of [['front',905],['lane',835],['court',930]])anchor(plane,x,'commuteCone','路口锥桶',16,24,8);
+  for(const [plane,x] of [['front',220],['lane',730],['court',420]])anchor(plane,x,'commuteBin','路边杂物桶',25,31,5);
   const breakfast=bind('breakfast','streetBreakfast','早餐袋',-1,-25,24,25,{variants:{inactive:{visible:false}}});
   const bowl=bind('bowl','streetBowl','狗碗',0,-10,27,10);
-  const dog=bind('dog','streetDog','挡路的狗',-3,-40,55,40,{variants:{inactive:{rotation:-4}}});
-  const guard=bind('guard','commuteWorkerIdle','门口的人',-2,-49,30,49);
-  bind('side-door','streetDoor','院门',-9,-62,43,63,{variants:{'passage-enabled':{width:13,x:18,opacity:.6}}});
-  const bell=bind('bell','commuteReader','门铃',0,-35,20,35);
-  const sedan=bind('sedan','commuteSedan','挪不开的车',-14,-42,95,42);
-  const bus=bind('bus','commuteBus','关门的公交车',0,-82,205,82);bind('bus','commuteHand','拒绝开门的手',140,-68,20,20);
-  bind('scooter','commuteScooter','逆行的电瓶车',-3,-46,58,46,{flipWithDirection:true});
+  const dog=bind('dog','streetDog','守摊的狗',-3,-35,48,35,{variants:{inactive:{rotation:-4,y:9}}});
+  const signal=bind('ped-signal','commuteSignalRed','行人红绿灯',-4,-58,26,58,{variants:{inactive:{asset:'commuteSignalGreen'}}});
+  const runner=bind('red-runner','streetWalkOut1','不看灯的行人',-14,-45,28,45,{animation:{frames:['streetWalkOut1','streetWalkOut2'],fps:10},variants:{inactive:{x:-45,y:-47}}});
+  const scooter=bind('scooter','streetScooterFront','堵在人行通道的电瓶车',-20,-52,40,52,{variants:{inactive:{x:30,y:-34,rotation:-9}}});
+  const scooterBell=bind('scooter-bell','commuteReader','车铃',-4,-30,23,30);
+  const bell=bind('bell','commuteReader','被占道的行人呼叫器',0,-30,18,30);
+  const sedan=bind('sedan','commuteSedan','横霸人行道的车',-13,-40,96,40,{variants:{inactive:{y:19}}});
+  const guard=bind('guard','commuteWorkerIdle','公司门外的人',-2,-46,28,46);
+  const barrier=bind('barrier','commuteGate','门外横杆',-10,-35,60,35,{variants:{inactive:{rotation:-75,x:25}}});
+  const bus=bind('bus','commuteBus','不肯再开门的公交',0,-48,190,76);bind('bus','commuteHand','车窗伸出的手',127,-39,19,19);
   const walk={animation:{frames:['commuteWorkerWalk1','commuteWorkerWalk2','commuteWorkerWalk3','commuteWorkerWalk2'],fps:8},flipWithDirection:true};
-  bind('late-worker','commuteWorkerWalk1','追车的人',0,-48,29,48,walk);
-  bind('phone-walker','commutePhoneWalker','低头行人',0,-48,27,48);
-  const bin=bind('bin','commuteBin','垃圾桶',0,-37,30,37);
-  const actor=add('commuteWorkerWalk1','赶着上班的人',-14,-47,28,47,35,{bind:{type:'actor'},...walk,variants:{
+  bind('late-worker','commuteWorkerWalk1','追不上车的人',0,-40,25,42,walk);
+  bind('phone-walker','commutePhoneWalker','低头横穿的人',0,-45,25,45);
+  const bin=bind('bin','commuteBin','快满的垃圾桶',0,-35,28,35);
+  const actor=add('commuteWorkerWalk1','一定要去上班的人',-13,-44,26,44,35,{bind:{type:'actor'},...walk,variants:{
     inward:{asset:'streetWalkIn1',animation:{frames:['streetWalkIn1','streetWalkIn2'],fps:8},flipWithDirection:false},
     outward:{asset:'streetWalkOut1',animation:{frames:['streetWalkOut1','streetWalkOut2'],fps:8},flipWithDirection:false}}});
-  add('streetDoor','公司入口',-13,-51,36,52,10,{bind:{type:'goal'}});
-  for(const [n,source,behavior,motion] of [[dog,'dog','sniff','hop'],[guard,'guard','wave','hop'],[bell,'bell','ring','shake'],[sedan,'sedan','yield','recoil'],[bus,'bus','leave','recoil'],[bin,'bin','rattle','shake']])cue(n,{type:'behavior',source,behavior},{motion,sound:'clack',duration:45,strength:.2});
+  add('streetDoor','公司门外终点',-12,-51,36,52,10,{bind:{type:'goal'}});
+  for(const [n,source,behavior,motion] of [[dog,'dog','sniff','hop'],[signal,'ped-signal','cross','squash'],[runner,'red-runner','clear','hop'],[scooter,'scooter','clear','shake'],
+    [scooterBell,'scooter-bell','ring','shake'],[bell,'bell','ring','shake'],[sedan,'sedan','yield','recoil'],[guard,'guard','wave','hop'],[barrier,'guard','wave','recoil'],[bus,'bus','leave','recoil'],[bin,'bin','rattle','shake']])
+    cue(n,{type:'behavior',source,behavior},{motion,sound:'clack',duration:45,strength:.18});
   cue(breakfast,{type:'event',source:'breakfast',event:'placed'},{motion:'squash',sound:'pop',duration:24,strength:.2});
   cue(bowl,{type:'behavior',source:'bowl',behavior:'offer'},{motion:'squash',sound:'clack',duration:24,strength:.15});
   cue(actor,{type:'lost'},{motion:'fall',particles:'dust',sound:'thud',duration:72,hold:true,strength:.5});

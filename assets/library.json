@@ -1690,6 +1690,15 @@
     "license": "CC0-1.0"
   },
   {
+    "id": "streetRoad", "label": "街道路面车道", "category": "街区", "file": "original/commute/streetRoad.svg", "width": 200, "height": 36, "source": "gothere-original", "license": "CC0-1.0"
+  },
+  {
+    "id": "streetCrossing", "label": "斑马线铺面", "category": "街区", "file": "original/commute/streetCrossing.svg", "width": 200, "height": 48, "source": "gothere-original", "license": "CC0-1.0"
+  },
+  {
+    "id": "streetScooterFront", "label": "迎面电瓶车", "category": "街区", "file": "original/commute/streetScooterFront.svg", "width": 40, "height": 52, "source": "gothere-original", "license": "CC0-1.0"
+  },
+  {
     "id": "streetFacade",
     "label": "街区楼面",
     "category": "街区",

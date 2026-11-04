@@ -10,11 +10,11 @@ import {createEditorStore,deleteObject} from '../src/editor/model.js';
 import {layeredArtOrder} from '../src/render/layered.js';
 import {snapSpacePoint} from '../src/editor/spatial-snapping.js';
 
-const run=(level,plan=STREET_PLAN)=>{const game=createSimulation(level).start();for(let tick=1;tick<=2400&&game.snapshot().status==='running';tick++){for(const a of plan.filter(a=>a.tick===tick))game.click(a.source);game.step();}return game;};
+const run=(level,plan=STREET_PLAN)=>{const game=createSimulation(level).start();for(let tick=1;tick<=3600&&game.snapshot().status==='running';tick++){for(const a of plan.filter(a=>a.tick===tick))game.click(a.source);game.step();}return game;};
 
 test('street item has two causal uses, continuous local passages and deterministic replay',()=>{
   const level=createStreetLevel(),game=run(level);assert.equal(game.snapshot().status,'won');
-  assert.equal(game.snapshot().entities['side-door'].passage.enabled,true);assert.equal(game.snapshot().entities.breakfast.state,'inactive');
+  assert.equal(game.snapshot().entities.barrier.state,'inactive');assert.equal(game.snapshot().entities.breakfast.state,'inactive');
   assert.deepEqual(replayRecording(level,game.recording()).snapshot(),game.snapshot());
   for(let i=0;i<STREET_PLAN.length;i++)assert.equal(run(level,STREET_PLAN.filter((_,j)=>i!==j)).snapshot().status,'lost','omitting action '+i+' must fail');
   const copy=structuredClone(level);delete copy.scene;assert.equal(run(copy).snapshot().status,'won');
@@ -27,11 +27,12 @@ test('putting an item is local, requires holding and filters the actual receiver
   game.click('guard');game.step();assert.equal(game.snapshot().actor.holding,'breakfast','far or cross-plane receivers cannot take an item');
   game.click('bowl');game.step();assert.equal(game.snapshot().entities.dog.state,'active','out-of-range placement cannot trigger placed');
   game.step(172);game.click('bowl');game.step();assert.equal(game.snapshot().actor.holding,null);assert.equal(game.snapshot().entities.dog.state,'inactive');
-  assert.equal(game.snapshot().entities['side-door'].passage.enabled,false,'bowl placement cannot trigger guard reception');
+  assert.equal(game.snapshot().entities.barrier.state,'active','bowl placement cannot trigger guard reception');
 });
 
 test('inward/outward clips are selected from traversal, can be previewed and never affect physics',()=>{
-  const level=createStreetLevel(),node=level.scene.nodes.find(n=>n.bind?.type==='actor'),game=createSimulation(level).start().step(330),s=game.snapshot();
+  const level=createStreetLevel(),node=level.scene.nodes.find(n=>n.bind?.type==='actor'),game=createSimulation(level).start();
+  for(let tick=1;tick<=850;tick++){for(const a of STREET_PLAN.filter(a=>a.tick===tick))game.click(a.source);game.step();}const s=game.snapshot();
   assert.equal(actorAnimationState(level,s),'inward');assert.ok(artTransform(node,level,s).asset.startsWith('streetWalkIn'));
   assert.ok(artTransform(node,level,s,{variant:'outward'}).asset.startsWith('streetWalkOut'));
   const fallback={...node};delete fallback.variants;
@@ -54,7 +55,7 @@ test('layer baselines, assignment and explicit connector edits survive history w
 });
 
 test('plane order controls occlusion, art layer only orders art within its plane',()=>{
-  const level=createStreetLevel(),back=level.scene.nodes.find(n=>n.bind?.id==='dog'),front=level.scene.nodes.find(n=>n.bind?.id==='bowl');
+  const level=createStreetLevel(),back=level.scene.nodes.find(n=>n.bind?.id==='guard'),front=level.scene.nodes.find(n=>n.bind?.id==='bowl');
   back.layer=100;front.layer=-100;
   const order=layeredArtOrder(level);assert.ok(order.indexOf(back)<order.indexOf(front));
 });
@@ -90,7 +91,7 @@ test('falling and real elevation never select inward animation, and open doors s
   for(const mode of ['falling','climbing','riding'])assert.equal(actorAnimationState(level,{status:'running',actor:{mode,direction:1,space:{height:100}}}),mode);
   assert.equal(actorAnimationState(level,{status:'running',actor:{mode:'walking',direction:-1,space:{height:100}}}),'walk-left');
   assert.equal(actorAnimationState(level,{status:'lost',actor:{mode:'walking'}}),'lost');
-  const door=level.scene.nodes.find(n=>n.bind?.id==='side-door'&&!n.fitPassage),before=artTransform(door,level);
-  level.entities.find(e=>e.id==='side-door').passage.enabled=true;
-  assert.ok(artTransform(door,level).width<before.width,'enabled path gets a visible open-door variant');
+  const door=level.scene.nodes.find(n=>n.bind?.id==='barrier'),before=artTransform(door,level);
+  level.entities.find(e=>e.id==='barrier').state='inactive';
+  assert.notEqual(artTransform(door,level).rotation,before.rotation,'raised barrier reads the real state');
 });

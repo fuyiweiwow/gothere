@@ -1,6 +1,6 @@
 # 关卡编辑器
 
-本地开发版 v0.21.0 默认展示二维分层「上班路」，提供前街/后街连接样例，同时保留旧屋顶关和空间实验作兼容检查。分层、内外连接与方向动画的操作和数据见 [分层 DSL 规范](layered-dsl.md)。公开 Pages 仍是 main 稳定版；以下以旧屋顶关为例说明共用的编辑功能。使用者无需安装 Node.js/npm。
+本地开发版 v0.21.1 默认展示二维分层「上班路 · 三个街口」，提供局部连接样例，同时保留旧屋顶关和空间实验作兼容检查。分层、通路内物体、透视铺面与方向动画的操作和数据见 [分层 DSL 规范](layered-dsl.md)。公开 Pages 仍是 main 稳定版；以下以旧屋顶关为例说明共用的编辑功能。使用者无需安装 Node.js/npm。
 
 [在线编辑器](https://fuyiweiwow.github.io/gothere/editor.html) · [离线 HTML](https://fuyiweiwow.github.io/gothere/gothere-editor.html)
 

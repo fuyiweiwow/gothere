@@ -5,7 +5,7 @@ import { surfaceEndY } from '../core/surfaces.js';
 import { posePoint, poseInBounds } from '../core/pose.js';
 import {validateScene} from '../core/scene-schema.js';
 import {pruneFeedback} from '../core/feedback-schema.js';
-import {validateSpatial,unprojectSpace,isLayered} from '../core/spatial.js';
+import {validateSpatial,unprojectSpace,isLayered,projectSpace,syncPassageObject} from '../core/spatial.js';
 import {normalizeLevel,levelVersionValid} from '../core/level-version.js';
 
 const clone = (value) => structuredClone(value);
@@ -132,6 +132,7 @@ export function addObject(level, kind, x, y=440) {
 export function deleteObject(level, ref) {
   if (ref?.type==='platform') { level.platforms.splice(ref.index,1);if(level.scene){level.scene.nodes=level.scene.nodes.filter(n=>n.bind?.type!=='platform'||n.bind.index!==ref.index);for(const n of level.scene.nodes)if(n.bind?.type==='platform'&&n.bind.index>ref.index)n.bind.index--;} pruneFeedback(level);return; }
   if (ref?.type!=='entity') return;
+  if(isLayered(level)&&level.entities.some(e=>e.space.passage===ref.id))throw new Error('请先移走或删除通路上的物体。');
   level.entities = level.entities.filter(e=>e.id!==ref.id);
   if(isLayered(level))for(const n of level.spatial.nodes)if(n.via===ref.id){delete n.via;delete n.next;}
   if(level.scene)level.scene.nodes=level.scene.nodes.filter(n=>n.bind?.type!=='entity'||n.bind.id!==ref.id);
@@ -279,6 +280,8 @@ export function moveObject(level, ref, dx, dy=0) {
     ref.type==='platform'?level.platforms[ref.index]:ref.type==='actor'?level.actor:ref.type==='goal'?level.goal:null;
   if(!target)return;
   if(level.spatial){
+    if(target.space.passage){const path=level.entities.find(e=>e.id===target.space.passage).passage,a=projectSpace(level,level.spatial.nodes.find(n=>n.id===path.from)),b=projectSpace(level,level.spatial.nodes.find(n=>n.id===path.to)),x=b.x-a.x,y=b.y-a.y;
+      target.space.progress=clamp(target.space.progress+(dx*x+dy*y)/(x*x+y*y),0,1);syncPassageObject(level,target);return;}
     const originalX=target.x;
     const delta=unprojectSpace(level,{x:dx,y:level.spatial.projection.originY+dy},0);
     target.x=clamp(target.x+delta.x,25,1200-(target.width??28));

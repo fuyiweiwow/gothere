@@ -86,7 +86,11 @@ export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspe
     const pick=button('在画布中点选绑定',()=>requestBind(selected));pick.id='pick-art-binding';bindActions.append(pick);
     if(n.bind){const inspect=button('查看逻辑实体',()=>inspectLogic(n.bind));inspect.id='inspect-art-logic';bindActions.append(inspect);}
     box.append(bindActions);
-    if(n.bind?.type==='entity'&&d.entities.find(e=>e.id===n.bind.id)?.passage)box.append(checkbox('沿入口出口铺设图片',Boolean(n.fitPassage),v=>update('fitPassage',v),'art-fit-passage'));
+    if(n.bind?.type==='entity'&&d.entities.find(e=>e.id===n.bind.id)?.passage){
+      box.append(checkbox('沿入口出口铺设图片',Boolean(n.fitPassage),v=>change(doc=>{const node=doc.scene.nodes.find(n=>n.id===selected);node.fitPassage=v;if(!v)delete node.passageView;}),'art-fit-passage'));
+      if(n.fitPassage){box.append(checkbox('近宽远窄透视',Boolean(n.passageView),v=>change(doc=>{const node=doc.scene.nodes.find(n=>n.id===selected);if(v)node.passageView={endScale:.6};else delete node.passageView;}),'art-passage-perspective'));
+        if(n.passageView)box.append(field('出口 / 入口宽度',n.passageView.endScale,v=>change(doc=>doc.scene.nodes.find(n=>n.id===selected).passageView.endScale=v),{id:'art-passage-scale',min:.2,max:2,step:.05}));}
+    }
     if(n.bind?.type==='entity'){const e=d.entities.find(e=>e.id===n.bind.id);box.append(select('编辑状态变体',[['','基础资源'],...[...new Set([...STATES[e.kind],...(e.passage?['passage-enabled','passage-disabled']:[]),...Object.keys(n.variants??{})])].map(s=>[s,s==='passage-enabled'?'连接可通行':s==='passage-disabled'?'连接关闭':s])],variant,v=>{variant=v;render(current);preview(current);},'art-state'));
       if(variant)box.append(button('移除此状态覆盖',()=>{const state=variant;variant='';change(doc=>{const node=doc.scene.nodes.find(n=>n.id===selected);if(node.variants)delete node.variants[state];});},'text-button'));
     }
@@ -131,10 +135,12 @@ export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspe
       const b=button('',()=>{},'art-object');b.dataset.art=n.id;b.title=n.label;b.setAttribute('aria-label','选择资源：'+n.label);b.setAttribute('aria-pressed',String(n.id===selected));
       Object.assign(b.style,{left:t.x/12+'%',top:t.y/6.4+'%',width:t.width/12+'%',height:t.height/6.4+'%',transform:'rotate('+t.rotation+'deg)',zIndex:String(isLayered(d)?index+101:n.layer+101)});
       if(n.ground)b.style.clipPath='polygon('+Object.values(artCorners(n,d)).map(p=>(p.x-t.x)/t.width*100+'% '+(p.y-t.y)/t.height*100+'%').join(',')+')';
+      if(n.fitPassage&&n.passageView){const bounds=artBounds(n,d);Object.assign(b.style,{left:bounds.x/12+'%',top:bounds.y/6.4+'%',width:bounds.width/12+'%',height:bounds.height/6.4+'%',transform:'none'});
+        b.style.clipPath='polygon('+Object.values(artCorners(n,d)).map(p=>(p.x-bounds.x)/bounds.width*100+'% '+(p.y-bounds.y)/bounds.height*100+'%').join(',')+')';}
       b.onpointerdown=e=>{if(tool||e.button!==0)return;e.preventDefault();e.stopPropagation();begin(e,n.id);};
       b.onclick=e=>{if(tool)return;if(suppress){suppress=false;return;}e.stopPropagation();choose(n.id);};overlay.append(b);
     }
-    const n=d.scene?.nodes.find(n=>n.id===selected);if(n&&!tool&&!hiddenLayers.has(n.id)&&!lockedLayers.has(n.id)){const corners=artCorners(n,d,undefined,{variant});for(const h of ['nw','ne','se','sw']){const handle=button('',()=>{},'resize-handle art-resize');handle.dataset.artResize=h;handle.setAttribute('aria-label','缩放资源 '+h);handle.style.left=corners[h].x/12+'%';handle.style.top=corners[h].y/6.4+'%';handle.style.zIndex='1000';handle.onpointerdown=e=>{e.preventDefault();e.stopPropagation();begin(e,n.id,h);};overlay.append(handle);}}
+    const n=d.scene?.nodes.find(n=>n.id===selected);if(n&&!n.fitPassage&&!tool&&!hiddenLayers.has(n.id)&&!lockedLayers.has(n.id)){const corners=artCorners(n,d,undefined,{variant});for(const h of ['nw','ne','se','sw']){const handle=button('',()=>{},'resize-handle art-resize');handle.dataset.artResize=h;handle.setAttribute('aria-label','缩放资源 '+h);handle.style.left=corners[h].x/12+'%';handle.style.top=corners[h].y/6.4+'%';handle.style.zIndex='1000';handle.onpointerdown=e=>{e.preventDefault();e.stopPropagation();begin(e,n.id,h);};overlay.append(handle);}}
     overlay.dataset.placing=String(Boolean(tool));
   }
   function begin(event,id,handle){document.activeElement?.blur();if(selected!==id)variant='';selected=id;tool=null;tab='inspect';const before=editor.document();gesture={id,handle,variant,startX:event.clientX,startY:event.clientY,dx:0,dy:0,before,pointerId:event.pointerId,

@@ -50,6 +50,7 @@ export function validateScene(level) {
         (b.type==='platform'&&Number.isInteger(b.index)&&b.index>=0&&b.index<(level.platforms??[]).length)),'资源绑定的实体不存在：'+n.id);
     }
     if(n.fitPassage!==undefined)check(typeof n.fitPassage==='boolean'&&Boolean(level.entities?.find(e=>n.bind?.type==='entity'&&e.id===n.bind.id)?.passage),'沿连接铺设资源需要绑定连接物体：'+n.id);
+    if(n.passageView!==undefined)check(n.fitPassage===true&&obj(n.passageView)&&num(n.passageView.endScale,.2,2),'通路透视需要沿连接铺设图片及出口宽度比例（0.2～2）。');
     if(n.variants!==undefined)check(obj(n.variants)&&Object.keys(n.variants).length<=16&&Object.entries(n.variants).every(([key,v])=>id(key)&&transform(v,true)),'资源状态变体无效：'+n.id);
   }
   return [...errors,...validateFeedback(level)];

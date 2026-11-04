@@ -44,6 +44,7 @@ export function bindArt(level,id,bind) {
   if(n.ground){n.width=before.width;n.height=before.height;}
   delete n.anchor;delete n.ground;
   delete n.fitPassage;
+  delete n.passageView;
   if(bind)n.bind=bind;else delete n.bind;
   const origin=artTransform({...n,x:0,y:0,rotation:0},level,undefined,{variant:''}),r=origin.rotation*Math.PI/180,dx=before.x-origin.x,dy=before.y-origin.y;
   n.x=dx*Math.cos(r)+dy*Math.sin(r);n.y=-dx*Math.sin(r)+dy*Math.cos(r);n.rotation=before.rotation-origin.rotation;

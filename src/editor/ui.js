@@ -110,13 +110,13 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
       box.append(field('显示名称',input(target.label,'显示名称',value=>edit(doc=>{resolveObject(doc,selection).label=value;}),{id:'object-label',maxLength:30})));
       const state=select(STATES[target.kind].map(s=>[s,stateLabel(s)]),target.state,'初始状态',value=>edit(doc=>{resolveObject(doc,selection).state=value;}));state.id='object-state';box.append(field('初始状态',state));
       if(target.kind==='object'){
-        const pose=element('input');pose.type='checkbox';pose.id='object-pose';pose.checked=Boolean(target.pose);pose.disabled=Boolean(target.collider||target.passage);
+        const pose=element('input');pose.type='checkbox';pose.id='object-pose';pose.checked=Boolean(target.pose);pose.disabled=Boolean(target.collider||target.passage||target.space?.passage);
         pose.onchange=()=>edit(doc=>{const e=resolveObject(doc,selection);if(pose.checked)e.pose={angle:0,pivot:0};else{delete e.pose;}});box.append(field('姿态与旋转',pose));
         if(target.pose)for(const [key,label,min,max] of [['angle','初始角度',-75,75],['pivot','支点',0,1]])box.append(field(label,input(target.pose[key],label,value=>edit(doc=>{resolveObject(doc,selection).pose[key]=value;}),{id:'object-'+key,type:'number',min,max,step:'any'})));
-        const patrol=element('input');patrol.type='checkbox';patrol.checked=Boolean(target.motion);patrol.disabled=Boolean(target.passage);patrol.id='object-motion';patrol.onchange=()=>edit(doc=>{const e=resolveObject(doc,selection);if(patrol.checked)e.motion={type:'patrol',minX:Math.max(25,e.x-50),maxX:Math.min(1200-(e.width??28),e.x+50),speed:45};else delete e.motion;});box.append(field('左右巡逻',patrol));
+        const patrol=element('input');patrol.type='checkbox';patrol.checked=Boolean(target.motion);patrol.disabled=Boolean(target.passage||target.space?.passage);patrol.id='object-motion';patrol.onchange=()=>edit(doc=>{const e=resolveObject(doc,selection);if(patrol.checked)e.motion={type:'patrol',minX:Math.max(25,e.x-50),maxX:Math.min(1200-(e.width??28),e.x+50),speed:45};else delete e.motion;});box.append(field('左右巡逻',patrol));
         if(target.motion)for(const [key,label,min,max] of [['minX','巡逻左界',25,1175],['maxX','巡逻右界',35,1190],['speed','巡逻速度',15,180]])box.append(field(label,input(target.motion[key],label,value=>edit(doc=>{resolveObject(doc,selection).motion[key]=value;}),{id:'object-motion-'+(key==='speed'?'speed':key),type:'number',min,max,step:1})));
         for(const [key,label] of [['surface','承托面'],['collider','矩形碰撞体']]){
-          const enabled=element('input');enabled.type='checkbox';enabled.id='object-'+key;enabled.disabled=Boolean(target.passage)||key==='collider'&&Boolean(target.pose);enabled.checked=Boolean(target[key]?.enabled);enabled.onchange=()=>edit(doc=>{const e=resolveObject(doc,selection);if(e[key])e[key].enabled=enabled.checked;else if(enabled.checked)e[key]={enabled:true};});box.append(field(label,enabled));
+          const enabled=element('input');enabled.type='checkbox';enabled.id='object-'+key;enabled.disabled=Boolean(target.passage||target.space?.passage)||key==='collider'&&Boolean(target.pose);enabled.checked=Boolean(target[key]?.enabled);enabled.onchange=()=>edit(doc=>{const e=resolveObject(doc,selection);if(e[key])e[key].enabled=enabled.checked;else if(enabled.checked)e[key]={enabled:true};});box.append(field(label,enabled));
         }
       }
       box.append(field('接触效果',select([['','无特殊效果'],['lethal','接触致命']],target.contact?.effect??'','接触效果',value=>edit(doc=>{const e=resolveObject(doc,selection);if(value)e.contact={effect:value};else delete e.contact;}))));
@@ -511,6 +511,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
   function renderActions(d,actions,parent,changeRule,path=[]) {
     const entities=d.entities.map(e=>[e.id,e.label]);
     const capable=d.entities.filter(e=>e.collider||e.surface||e.passage),capabilities=e=>['collider','surface','passage'].filter(key=>e?.[key]);
+    const destination=e=>e.space.passage?{progress:e.space.progress}:{x:e.x,depth:e.space.depth,height:e.space.height};
     actions.forEach((action,ai)=>{
       const changeAction=fn=>changeRule(r=>{const items=actionList(r.actions,path);fn(items[ai],items);});
       const row=element('div',undefined,'rule-row action-row');
@@ -524,7 +525,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
             value==='hurt'?{type:'hurt',message:'这次不太友好。'}:
             value==='invoke'?{type:'invoke',target:d.entities.find(e=>e.behaviors?.length)?.id,behavior:d.entities.find(e=>e.behaviors?.length)?.behaviors[0]?.id}:
             value==='rotate'?{type:'rotate',target:d.entities.find(e=>e.pose).id,angle:d.entities.find(e=>e.pose).pose.angle,ticks:60}:
-            value==='move'?{type:'move',target:movable[0].id,x:movable[0].x,depth:movable[0].space.depth,height:movable[0].space.height,ticks:60}:
+            value==='move'?{type:'move',target:movable[0].id,...destination(movable[0]),ticks:60}:
             value==='enable'?{type:'enable',target:capable[0].id,capability:capabilities(capable[0])[0],enabled:false}:
             value==='turn'?{type:'turn',direction:1}:{type:'drop'};
         }),'data-action-type'));
@@ -558,8 +559,9 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
         }
         if(action.type==='move'){
           const movable=d.entities.filter(e=>e.kind==='object'&&!e.motion&&!e.body&&!e.transport&&!e.passage);
-          row.append(select(movable.map(e=>[e.id,e.label]),action.target,'移动哪个物体',value=>changeAction(a=>{const e=d.entities.find(e=>e.id===value);a.target=value;a.x=e.x;a.depth=e.space.depth;a.height=e.space.height;}),'data-action-target'));
-          for(const [key,label,min,max] of [['x','目标 X',25,1175],['depth','目标纵深',0,600],['height','目标离地高度',0,360],['ticks','持续秒数',1/60,60]]){
+          row.append(select(movable.map(e=>[e.id,e.label]),action.target,'移动哪个物体',value=>changeAction(a=>{const e=d.entities.find(e=>e.id===value);a.target=value;delete a.progress;delete a.x;delete a.depth;delete a.height;Object.assign(a,destination(e));}),'data-action-target'));
+          const onPassage=d.entities.find(e=>e.id===action.target)?.space.passage;
+          for(const [key,label,min,max] of [...(onPassage?[['progress','目标通路进度',0,1]]:[['x','目标 X',25,1175],['depth','目标纵深',0,600],['height','目标离地高度',0,360]]),['ticks','持续秒数',1/60,60]]){
             if(isLayered(d)&&key==='depth')continue;
             const control=input(key==='ticks'?action.ticks/60:action[key],label,value=>changeAction(a=>{a[key]=key==='ticks'?Math.max(1,Math.round(value*60)):value;}),{type:'number',min,max,step:'any'});
             control.setAttribute('data-move-'+(key==='ticks'?'duration':key),'');row.append(field(label,control));
