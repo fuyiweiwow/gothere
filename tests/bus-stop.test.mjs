@@ -15,10 +15,11 @@ test('bus slice has a causal solution, visible queue hazards and deterministic r
   const l=createBusStopLevel();assert.equal(validateLevel(l).valid,true);
   const game=run(l),s=game.snapshot();assert.equal(s.status,'won');assert.equal(s.tick,1045);
   for(const suffix of ['a','b','c'])assert.equal(s.entities['passenger-'+suffix].state,'inactive');
-  assert.equal(s.entities.bus.x,1150);assert.equal(s.entities.approach.state,'disabled');
+  assert.ok(entityArtBounds(l,s,'bus').x>l.world.width,'the entire vehicle must leave the visible canvas');assert.equal(s.entities.approach.state,'disabled');
+  assert.ok(!l.entities.some(e=>e.id==='driver'));assert.ok(!l.scene.nodes.some(n=>n.asset==='stopRefusal'));
   assert.deepEqual(replayRecording(l,game.recording()).snapshot(),s);
   for(const plan of [[],[{source:'bus',tick:480}]]){const failed=run(l,plan).snapshot();assert.equal(failed.status,'lost');assert.equal(failed.reason,'hurt');assert.ok(failed.actor.x<550);}
-  for(const tick of [1,120,240]){const s=run(l,[{source:'bus',tick}]).snapshot();assert.equal(s.status,'won','early input need not reset a coherent one-off event');assert.equal(s.entities.bus.x,1150);}
+  for(const tick of [1,120,240]){const s=run(l,[{source:'bus',tick}]).snapshot();assert.equal(s.status,'won','early input need not reset a coherent one-off event');assert.ok(entityArtBounds(l,s,'bus').x>1200);}
 });
 
 test('passengers walk to the entrance in order; moved events, not guesses, advance boarding',()=>{
@@ -35,12 +36,12 @@ test('passengers walk to the entrance in order; moved events, not guesses, advan
   assert.equal(quick.snapshot().entities['passenger-c'].state,'inactive');assert.ok(quick.snapshot().entities['passenger-b'].translation);
 });
 
-test('the closed bus refuses only when the walker approaches, and moves continuously toward the scene edge',()=>{
+test('the closed bus starts as the walker approaches and moves continuously out of the scene',()=>{
   const game=createSimulation(createBusStopLevel()).start();game.click('bus');game.step(500);
-  assert.equal(game.snapshot().entities.bus.x,680);assert.equal(game.snapshot().entities.driver.state,'inactive');
-  game.step(60);assert.equal(game.snapshot().entities.driver.state,'active');assert.equal(game.snapshot().entities.bus.x,680);
+  assert.equal(game.snapshot().entities.bus.x,680);assert.equal(game.snapshot().entities['depart-ready'].state,'active');
+  game.step(60);assert.equal(game.snapshot().entities['depart-ready'].state,'inactive');assert.equal(game.snapshot().entities.bus.x,680);
   game.step(18);const a=game.snapshot().entities.bus.x;game.step();const b=game.snapshot().entities.bus.x;
-  assert.ok(a>680&&b>a);assert.ok(b-a<3);assert.equal(game.snapshot().entities.driver.x,b);
+  assert.ok(a>680&&b>a);assert.ok(b-a<3);
   const before=game.snapshot();game.click('bus');game.step();assert.equal(game.snapshot().entities.boarding.state,'inactive');assert.equal(game.snapshot().entities.bus.state,before.entities.bus.state);
 });
 

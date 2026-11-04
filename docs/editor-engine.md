@@ -1,6 +1,6 @@
 # 关卡编辑器
 
-本地开发版 v0.22.0 首先展示「上班路 · 末班乘客」公交站片段，检验连续街景与排队上车的因果。此前三个街口、局部连接样例、旧屋顶关和空间实验继续保留。分层、通路内物体、透视铺面与方向动画的操作和数据见 [分层 DSL 规范](layered-dsl.md)，本次资源分组与构图见 [公交站方向记录](bus-stop-direction.md)。公开 Pages 仍是 main 稳定版；以下以旧屋顶关为例说明共用的编辑功能。使用者无需安装 Node.js/npm。
+本地开发版 v0.22.1 首先展示「上班路 · 末班乘客」公交站片段，检验连续街景与排队上车的因果，已移除司机摆手并支持车辆完全驶出画面。此前三个街口、局部连接样例、旧屋顶关和空间实验继续保留。分层、通路内物体、透视铺面与方向动画的操作和数据见 [分层 DSL 规范](layered-dsl.md)，本次资源分组与构图见 [公交站方向记录](bus-stop-direction.md)。公开 Pages 仍是 main 稳定版；以下以旧屋顶关为例说明共用的编辑功能。使用者无需安装 Node.js/npm。
 
 [在线编辑器](https://fuyiweiwow.github.io/gothere/editor.html) · [离线 HTML](https://fuyiweiwow.github.io/gothere/gothere-editor.html)
 

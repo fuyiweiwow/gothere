@@ -27,7 +27,7 @@ const graybox=params.get('sample')==='graybox',busStop=!params.has('sample')||pa
 const oldSpatial=params.has('spatial')||params.get('sample')==='spatial-commute',layeredDemo=params.get('sample')==='layered';
 const layeredEntry=spatialEntry&&!graybox&&!oldSpatial;
 const sample=spatialEntry?(graybox?createSpatialLevel:oldSpatial?createCommuteLevel:layeredDemo?createLayeredLevel:busStop?createBusStopLevel:createStreetLevel):createFirstLevel;
-const sampleKey=spatialEntry?(graybox?'spatial:01':oldSpatial?'commute:spatial:01':layeredDemo?'layered:graybox:01':busStop?'commute:bus-stop:01':'commute:layered:02'):'milestone:02:v017';
+const sampleKey=spatialEntry?(graybox?'spatial:01':oldSpatial?'commute:spatial:01':layeredDemo?'layered:graybox:01':busStop?'commute:bus-stop:02':'commute:layered:02'):'milestone:02:v017';
 const standaloneHTML=document.getElementById('standalone-editor')?'<!doctype html>\n'+document.documentElement.outerHTML:null;
 let editor,resourceUI,bindingUI,lastDraft,loadSerial=0,preview=null,previewLevel=null,accumulator=0,last=0,debugLast=0,toastTimer,serial=0;
 let feedback=null,feedbackFrame=null,audition=null,endingTicks=0;

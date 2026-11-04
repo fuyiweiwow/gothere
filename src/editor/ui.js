@@ -13,7 +13,7 @@ import {snapToSurface} from './surface-snapping.js';
 import {createWireUI} from './wire-ui.js';
 import {connectWire} from './wire-creation.js';
 import {createSpatialUI} from './spatial-ui.js';
-import {spaceBounds,unprojectSpace,isLayered} from '../core/spatial.js';
+import {spaceBounds,unprojectSpace,isLayered,SPATIAL_MOVE_X} from '../core/spatial.js';
 
 const $ = id => document.getElementById(id);
 const STORAGE = 'gothere.editor.v1';
@@ -560,8 +560,8 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
         if(action.type==='move'){
           const movable=d.entities.filter(e=>e.kind==='object'&&!e.motion&&!e.body&&!e.transport&&!e.passage);
           row.append(select(movable.map(e=>[e.id,e.label]),action.target,'移动哪个物体',value=>changeAction(a=>{const e=d.entities.find(e=>e.id===value);a.target=value;delete a.progress;delete a.x;delete a.depth;delete a.height;Object.assign(a,destination(e));}),'data-action-target'));
-          const onPassage=d.entities.find(e=>e.id===action.target)?.space.passage;
-          for(const [key,label,min,max] of [...(onPassage?[['progress','目标通路进度',0,1]]:[['x','目标 X',25,1175],['depth','目标纵深',0,600],['height','目标离地高度',0,360]]),['ticks','持续秒数',1/60,60]]){
+          const target=d.entities.find(e=>e.id===action.target),onPassage=target?.space.passage;
+          for(const [key,label,min,max] of [...(onPassage?[['progress','目标通路进度',0,1]]:[['x','目标 X（允许画外）',SPATIAL_MOVE_X.min,SPATIAL_MOVE_X.max-(target?.width??28)],['depth','目标纵深',0,600],['height','目标离地高度',0,360]]),['ticks','持续秒数',1/60,60]]){
             if(isLayered(d)&&key==='depth')continue;
             const control=input(key==='ticks'?action.ticks/60:action[key],label,value=>changeAction(a=>{a[key]=key==='ticks'?Math.max(1,Math.round(value*60)):value;}),{type:'number',min,max,step:'any'});
             control.setAttribute('data-move-'+(key==='ticks'?'duration':key),'');row.append(field(label,control));

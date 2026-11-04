@@ -39,6 +39,21 @@ test('spatial rotation creates real sloped support rather than a picture-only ra
 test('move validates the spatial endpoint, duration, capability combinations and survives edit history',()=>{
   const l=base();l.entities=[object('thing',300)];l.rules=[{on:{type:'click',source:'thing'},actions:[action('thing',400,120,100,90)]}];
   assert.equal(validateLevel(l).valid,true);const store=createEditorStore();store.open('s',l);store.change(d=>d.rules[0].actions[0].depth=180);store.undo();assert.deepEqual(store.document(),l);
-  for(const change of [a=>a.depth=-1,a=>a.height=400,a=>a.x=1199,a=>a.ticks=0,a=>a.y=400]){const bad=structuredClone(l);change(bad.rules[0].actions[0]);assert.equal(validateLevel(bad).valid,false);}
+  for(const change of [a=>a.depth=-1,a=>a.height=400,a=>a.x=2400,a=>a.x=-1201,a=>a.ticks=0,a=>a.y=400]){const bad=structuredClone(l);change(bad.rules[0].actions[0]);assert.equal(validateLevel(bad).valid,false);}
   l.entities[0].motion={type:'patrol',minX:300,maxX:600,speed:40};assert.equal(validateLevel(l).valid,false);
+});
+
+test('ordinary objects can leave either camera edge and return through moved events without moving the actor boundary',()=>{
+  for(const x of [-200,1300]){
+    const l=base();l.entities=[{...object('courier',300),width:20}];
+    l.rules=[{on:{type:'click',source:'courier'},actions:[action('courier',x,40,0,30)]},
+      {on:{type:'moved',source:'courier'},if:[{entity:'courier',state:'active'}],actions:[{type:'set',target:'courier',state:'inactive'},action('courier',300,40,0,30)]}];
+    assert.equal(validateLevel(l).valid,true);const game=createSimulation(l).start();game.click('courier');game.step(30);
+    assert.equal(game.snapshot().entities.courier.x,x);assert.equal(game.snapshot().status,'running');
+    game.step(30);assert.equal(game.snapshot().entities.courier.x,300);assert.equal(game.snapshot().status,'running');
+    assert.deepEqual(replayRecording(l,game.recording()).snapshot(),game.snapshot());
+    const store=createEditorStore();store.open('outside',l);assert.deepEqual(createEditorStore(store.serialize()).document(),l);
+  }
+  const l=base();l.goal.space.height=80;l.platforms.push({x:900,width:200,space:{depth:0,depthSize:400,height:80}});l.spatial.nodes[0].next=undefined;
+  assert.equal(createSimulation(l).start().step(1200).snapshot().reason,'boundary');
 });

@@ -3,6 +3,8 @@ const EPS=1e-7;
 const finite=(v,min,max)=>Number.isFinite(v)&&v>=min&&v<=max;
 const position=o=>({x:o.x,depth:o.space?.depth??0,height:o.space?.height??(440-(o.y??440)),...(o.space?.plane?{plane:o.space.plane}:{}),...(o.space?.passage?{passage:o.space.passage,progress:o.space.progress}:{})});
 export const isLayered=level=>level.spatial?.mode==='layered';
+// Ordinary object motion may leave the camera; the actor still has map bounds.
+export const SPATIAL_MOVE_X=Object.freeze({min:-1200,max:2400});
 
 export function passagePosition(level,id,progress){
   const p=level.entities.find(e=>e.id===id)?.passage,a=level.spatial.nodes.find(n=>n.id===p?.from),b=level.spatial.nodes.find(n=>n.id===p?.to);

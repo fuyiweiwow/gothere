@@ -21,6 +21,9 @@ try{
     const time=new Date('2026-11-04T00:00:00Z');await p.clock.install({time});await p.clock.pauseAt(new Date(+time+1000));
     await p.goto(url);await p.locator('#scene[data-assets=ready]').waitFor();await p.locator('#display-mode').selectOption('scene');const before=await draft(p);
     assert.equal(before.id,'commute-bus-stop');await p.locator('#scene').screenshot({path:'artifacts/bus-stop-scene-'+index+'.png'});
+    await p.locator('#display-mode').selectOption('logic');await p.locator('[data-ref="entity:bus"]').click({force:true});
+    await value(p,'[data-behavior=leave] [data-move-x]',1300);assert.equal((await draft(p)).entities.find(e=>e.id==='bus').behaviors.find(b=>b.id==='leave').actions[1].actions[0].x,1300);
+    await p.locator('#editor-undo').click();assert.deepEqual(await draft(p),before);await p.locator('#display-mode').selectOption('scene');
     await p.locator('#layer-group').selectOption('建筑');assert.equal(await p.locator('#resource-layers [data-art-id]').count(),4);
     await p.locator('#group-lock').click();assert.equal(await p.locator('[data-art=stop-left]').count(),0);await p.locator('#group-lock').click();assert.equal(await p.locator('[data-art=stop-left]').count(),1);
     const picture=await p.locator('#scene').evaluate(c=>c.toDataURL());await p.locator('#group-visibility').click();assert.notEqual(await p.locator('#scene').evaluate(c=>c.toDataURL()),picture);
@@ -47,8 +50,10 @@ try{
       await p.clock.runFor(4800);
       assert.match(await p.locator('#runtime-entities').textContent(),/队尾的公文包乘客inactive/);
       await p.clock.runFor(600);
-      if(mode==='scene')await p.locator('#scene').screenshot({path:'artifacts/bus-stop-refusal-'+index+'.png'});
+      if(mode==='scene')await p.locator('#scene').screenshot({path:'artifacts/bus-stop-departure-'+index+'.png'});
       await p.clock.runFor(9400);assert.equal(await p.locator('#runtime-status').getAttribute('data-status'),'won');
+      assert.match(await p.locator('#runtime-entities').textContent(),/公交车active/);
+      if(mode==='scene')await p.locator('#scene').screenshot({path:'artifacts/bus-stop-cleared-'+index+'.png'});
       await p.locator('#editor-return').click();assert.deepEqual(await draft(p),before);
     }
     await p.locator('#preview-toggle').click();await p.clock.runFor(9000);assert.equal(await p.locator('#runtime-status').getAttribute('data-status'),'lost');await p.locator('#editor-return').click();

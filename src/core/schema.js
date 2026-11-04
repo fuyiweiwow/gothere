@@ -2,7 +2,7 @@ import { verticalTransport, landingX } from './transport.js';
 import { surfaceHeight, collectSurfaces } from './surfaces.js';
 import { poseInBounds } from './pose.js';
 import {validateScene} from './scene-schema.js';
-import {validateSpatial} from './spatial.js';
+import {validateSpatial,SPATIAL_MOVE_X} from './spatial.js';
 import {normalizeLevel,levelVersionValid} from './level-version.js';
 
 export const STATES = Object.freeze({
@@ -200,7 +200,7 @@ export function validateLevel(input,{spatialDraft=false}={}) {
         const e=byId.get(action.target);
         check(Boolean(input.spatial&&e?.kind==='object'&&!e.motion&&!e.body&&!e.transport&&!e.passage),'move 需要空间普通物体，不能组合巡逻、动态刚体或连接能力。');
         check((e?.space?.passage?number(action.progress,0,1)&&action.x===undefined&&action.depth===undefined&&action.height===undefined:
-          number(action.x,25,1200-(e?.width??28))&&number(action.depth,0,600-(e?.space?.depthSize??24))&&number(action.height,0,360))&&action.y===undefined&&
+          number(action.x,SPATIAL_MOVE_X.min,SPATIAL_MOVE_X.max-(e?.width??28))&&number(action.depth,0,600-(e?.space?.depthSize??24))&&number(action.height,0,360))&&action.y===undefined&&
           Number.isInteger(action.ticks)&&number(action.ticks,1,3600),'move 需要合法的空间坐标或通路进度，以及 ticks（1～3600）。');
         if(e?.pose)check(spatialPoseInBounds({...e,x:action.x,space:{...e.space,height:action.height}}),'move 的姿态端点超出地图范围。');
       } else if (action.type === 'enable') {

@@ -21,7 +21,6 @@ export function createBusStopScene(){
     actor('stop-person-'+suffix,asset+'Idle','乘客 / '+suffix,'passenger-'+suffix,-9,-65,43,70,20,{variants:{inactive:{visible:false},moving:{animation:{frames:[asset+'Idle',asset+'Walk'],fps:8}}}});
   }
   actor('stop-door','stopBusDoor','公交 / 门扇','bus',75,-95,43,94,25,{variants:{inactive:{width:8,opacity:.85}}});
-  actor('stop-driver','stopRefusal','公交 / 司机拒载','driver',302,-69,40,32,27,{variants:{inactive:{visible:false}}});
   actor('stop-player','stopWorkerWalk','角色 / 赶路职员','actor',-19,-68,43,70,35,{animation:{frames:['stopWorkerIdle','stopWorkerWalk'],fps:7},variants:{
     lost:{asset:'stopWorkerIdle',animation:null},won:{asset:'stopWorkerIdle',animation:null}}});
   add('stop-foreground','stopPole','前景 / 裁切路灯',-11,453,110,180,90);
@@ -29,7 +28,6 @@ export function createBusStopScene(){
   cue('stop-door',{type:'behavior',source:'bus',behavior:'open'},{motion:'squash',sound:'clack',duration:24,strength:.15});
   cue('stop-door',{type:'state',source:'bus',state:'active'},{motion:'recoil',sound:'clack',duration:18,strength:.2});
   cue('stop-bus',{type:'behavior',source:'bus',behavior:'leave'},{motion:'recoil',sound:'puff',duration:40,strength:.12});
-  cue('stop-driver',{type:'behavior',source:'bus',behavior:'leave'},{motion:'shake',duration:70,strength:.7});
   cue('stop-player',{type:'lost'},{motion:'fall',particles:'dust',sound:'thud',duration:70,hold:true,strength:.6});
   cue('stop-player',{type:'won'},{motion:'hop',sound:'success',duration:40,strength:.15});
   return scene;
