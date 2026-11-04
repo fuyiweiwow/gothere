@@ -25,6 +25,7 @@ try{
           const sample=[...ctx.getImageData(Math.round(p.x),Math.round(p.y-offset),1,1).data];pixels.push({tick,logic,offset,sample});
         }
       }
+      drawSpatial(ctx,level,state,{animate:false});
       const x=index%4*250,y=Math.floor(index/4)*240;out.fillStyle='#10141a';out.fillRect(x,y,250,240);out.drawImage(canvas,p.x-110,p.y-130,220,200,x,y+25,250,210);
       out.fillStyle='white';out.font='12px sans-serif';out.fillText(`tick ${tick} x ${a.x.toFixed(0)} d ${a.space.depth.toFixed(0)} h ${a.space.height.toFixed(0)}`,x+4,y+17);
     }

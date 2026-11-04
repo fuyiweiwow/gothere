@@ -736,7 +736,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
       restored=false;
       // Open the updated sample once, preserving every existing slot and subsequent edits.
       if(updateSample&&store.document().id===level.id&&!store.entries().some(e=>e.key===key)&&store.entries().length<32){openDocument(level,key);return;}
-      pause();setMode('editing');
+      pause();save();setMode('editing');
     }else openDocument(level,key);},
     openDocument,
     importDocument(level){if(!openDocument(level,'import:'+Date.now().toString(36)+'-'+serial++))throw new Error('无法创建导入草稿，请检查草稿数量。');},

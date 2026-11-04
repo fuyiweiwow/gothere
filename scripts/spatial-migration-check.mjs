@@ -14,8 +14,9 @@ try{
     for(const spatial of [true,false]){
       const context=await browser.newContext(),page=await context.newPage(),errors=[];
       const level=spatial?createSpatialLevel():createFirstLevel();level.schemaVersion=1;level.name='My edited draft';
+      if(!spatial)level.scene={background:'#161e2b',assets:[],nodes:[]};
       const key=spatial?'gothere.studio.spatial.v1':'gothere.studio.v1';
-      const workspace={version:1,activeKey:'my-draft',documents:[{key:'my-draft',level}]};
+      const workspace={version:1,activeKey:'my-draft',...(!spatial?{workspaceRevision:'milestone-02-v017'}:{}),documents:[{key:'my-draft',level}]};
       await page.addInitScript(({key,workspace})=>{if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify(workspace));},{key,workspace});
       page.on('pageerror',e=>errors.push(e.message));const url=new URL(base);if(!spatial)url.searchParams.set('legacy','1');
       await page.goto(url.href);await page.locator('#scene[data-assets=ready]').waitFor();
