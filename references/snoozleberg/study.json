@@ -5,7 +5,14 @@
   "purpose": "保存参考录像证据，供试玩反馈后的复盘与机制讨论；不作为可运行关卡或完整原作攻略。",
   "workflow": {
     "status": "archived-on-main",
-    "next": "参考研究保存在主线；停止旧生成与主题试作，从稳定主线另开空间实验，区分地面纵深与离地高度。",
+    "next": "参考研究保存在主线。统一三轴空间实验经上班路试玩后修正方向：以二维箱庭、分层行走面和局部内外连接表达，先验证物品互动与路线可读性。",
+    "designFollowup": {
+      "date": "2026-11-04",
+      "document": "../../docs/layered-street-direction.md",
+      "runtimeRevision": "5c8f6dd",
+      "implemented": false,
+      "scope": "本项目下一轮的设计选择，不修改录像观察，也不宣称原作采用同一种内部模型。"
+    },
     "historicalExperiments": {
       "branch": "codex/procedural-generation",
       "revision": "c15ca2061a54e1a1b2661fc8cd3dd4aa00bae63b",

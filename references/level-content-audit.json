@@ -1,0 +1,79 @@
+{
+  "format": "gothere.level-content-audit",
+  "version": 1,
+  "date": "2026-11-04",
+  "revision": "5c8f6dd",
+  "scope": "Two project-authored runnable levels, not an original Snoozleberg level census.",
+  "definitions": {
+    "entities": "entities.length, excluding actor and goal",
+    "visibleLogicalObjects": "entities whose kind is not zone; includes initially hidden or inactive objects",
+    "zones": "entities whose kind is zone",
+    "clickSources": "unique rule.on.source where rule.on.type equals click, regardless of state conditions",
+    "behaviors": "total named entity behaviors",
+    "rules": "rules.length; a rule can have multiple actions",
+    "platforms": "platforms.length, excluding entity surfaces/colliders",
+    "artLayers": "scene.nodes.length, including actor/goal images and repeated scenery",
+    "baseAssetReferences": "unique scene.nodes[].asset, excluding animation frames and variant assets"
+  },
+  "samples": [
+    {
+      "id": "editor-first-level",
+      "source": "src/editor/first-level.js",
+      "kind": "project-reference-reconstruction",
+      "entities": 12,
+      "visibleLogicalObjects": 11,
+      "zones": 1,
+      "clickSources": 7,
+      "behaviors": 19,
+      "rules": 15,
+      "platforms": 7,
+      "artLayers": 160,
+      "baseAssetReferences": 35
+    },
+    {
+      "id": "commute-spatial",
+      "source": "src/editor/commute-level.js",
+      "kind": "project-original-prototype",
+      "entities": 16,
+      "visibleLogicalObjects": 13,
+      "zones": 3,
+      "clickSources": 4,
+      "behaviors": 12,
+      "rules": 11,
+      "platforms": 14,
+      "artLayers": 90,
+      "baseAssetReferences": 36
+    }
+  ],
+  "sampleMean": {
+    "sampleCount": 2,
+    "entities": 14,
+    "visibleLogicalObjects": 12,
+    "zones": 2,
+    "clickSources": 5.5,
+    "behaviors": 15.5,
+    "rules": 13,
+    "platforms": 10.5,
+    "artLayers": 125,
+    "baseAssetReferences": 35.5
+  },
+  "commutePlanAblation": {
+    "basis": "COMMUTE_PLAN from src/editor/commute-level.js; fixed 60 Hz simulation, up to 6000 ticks",
+    "baseline": {"status": "won", "tick": 3042},
+    "mutation": "For one entity at a time, remove contact and motion; replace each named behavior's actions with set(self, initial state). Leave rules, other objects and plan unchanged.",
+    "results": [
+      {"entity": "sedan", "status": "won", "tick": 3042},
+      {"entity": "late-commuter", "status": "won", "tick": 3042},
+      {"entity": "phone-walker", "status": "won", "tick": 3042},
+      {"entity": "sidewalk-scooter", "status": "won", "tick": 3042},
+      {"entity": "foreground-scooter", "status": "won", "tick": 3042}
+    ],
+    "limit": "Only outcome and completion tick for the fixed plan; not proof of irrelevance in every playthrough or of absent narrative value."
+  },
+  "originalReferenceCoverage": {
+    "source": "references/snoozleberg/study.json",
+    "completeLevelInventory": false,
+    "originalLevelAverage": null,
+    "reason": "Three partial mechanism studies do not enumerate all level objects or inputs. Observation counts cannot be treated as object counts."
+  }
+}
