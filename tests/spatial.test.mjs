@@ -110,3 +110,30 @@ test('depth order puts far objects behind near objects and bridge tops above tra
   const l=spatialFixture(),far={id:'far',x:200,space:{depth:200,height:0}},near={id:'near',x:200,space:{depth:10,height:0}},bridge={id:'bridge',x:200,space:{depth:10,height:80}};
   assert.deepEqual(spatialDrawOrder(l,[near,bridge,far]).map(e=>e.id),['far','near','bridge']);
 });
+
+test('a wide ground surface is painted before every object it supports, with bridge tops over traffic',()=>{
+  const l=spatialFixture(),ground={id:'ground',x:20,width:1100,space:{depth:0,depthSize:400,height:0}},
+    far={id:'far',x:300,width:30,height:40,space:{depth:260,depthSize:30,height:0}},
+    near={id:'near',x:300,width:30,height:40,space:{depth:80,depthSize:30,height:0}},
+    bridge={id:'bridge',x:300,width:40,space:{depth:40,depthSize:300,height:80}};
+  assert.deepEqual(spatialDrawOrder(l,[near,bridge,ground,far]).map(o=>o.id),['ground','far','near','bridge']);
+});
+
+test('spatial pressure plates use normal enter rules and change their state',()=>{
+  const l=spatialFixture();l.entities=[{id:'plate',kind:'plate',state:'idle',label:'压力板',x:150,width:40,space:{depth:30,depthSize:30,height:0}},
+    {id:'target',kind:'object',state:'active',label:'目标',x:500,width:40,space:{depth:30,depthSize:30,height:0}}];
+  l.rules=[{on:{type:'enter',source:'plate'},actions:[{type:'set',target:'target',state:'inactive'}]}];
+  const s=createSimulation(l).start().step(50).snapshot();assert.equal(s.entities.plate.state,'pressed');assert.equal(s.entities.target.state,'inactive');
+});
+
+test('spatial drafts support a generic enable-able support surface and can be unfinished at the start',()=>{
+  const l=spatialFixture();l.entities=[{id:'support',kind:'object',state:'active',label:'承托面',x:500,width:100,surface:{enabled:true},space:{depth:30,depthSize:50,height:80}}];
+  const store=createEditorStore();store.open('s',l);store.change(d=>d.actor.space.height=70);
+  assert.equal(validateLevel(store.document()).valid,false);store.undo();assert.equal(validateLevel(store.document()).valid,true);
+});
+
+test('malformed spatial records produce validation errors instead of crashing import',()=>{
+  for(const mutate of [l=>l.spatial.nodes=[null],l=>l.spatial.nodes=[{}],l=>l.platforms={},l=>l.entities={},l=>l.rules={},l=>l.spatial.projection=null]){
+    const l=spatialFixture();mutate(l);assert.doesNotThrow(()=>assert.equal(validateLevel(l).valid,false));
+  }
+});
