@@ -30,7 +30,7 @@ test('automatic walking turns into depth without climbing and replays determinis
   const l=spatialFixture(),s=createSimulation(l).start().step(90),a=s.snapshot().actor;
   assert.equal(a.x,220);assert.equal(a.space.depth,100);assert.equal(a.space.height,0);assert.equal(a.mode,'walking');
   assert.equal(s.snapshot().status,'running');s.step(240);assert.equal(s.snapshot().status,'won');
-  assert.deepEqual(replayRecording(l,s.recording()),s.snapshot());
+  assert.deepEqual(replayRecording(l,s.recording()).snapshot(),s.snapshot());
   assert.deepEqual(l.actor.space,{depth:40,height:0},'simulation never edits the authored document');
 });
 
@@ -53,7 +53,7 @@ test('contact uses depth and vertical extents, and normal event behaviors remain
   l.rules=[{on:{type:'click',source:'danger'},actions:[{type:'invoke',target:'danger',behavior:'stop'}]}];
   assert.equal(createSimulation(l).start().step(70).snapshot().status,'running','same screen vicinity at another depth is safe');
   l.entities[0].space.depth=25;assert.equal(createSimulation(l).start().step(70).snapshot().reason,'hurt');
-  const s=createSimulation(l).start();s.click('danger');s.step(330);assert.equal(s.snapshot().status,'won');assert.deepEqual(replayRecording(l,s.recording()),s.snapshot());
+  const s=createSimulation(l).start();s.click('danger');s.step(330);assert.equal(s.snapshot().status,'won');assert.deepEqual(replayRecording(l,s.recording()).snapshot(),s.snapshot());
   l.entities[0].space.height=70;assert.equal(createSimulation(l).start().step(70).snapshot().status,'running');
 });
 

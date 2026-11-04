@@ -4,6 +4,7 @@ import { collectSurfaces, advanceWalker, touchesFootPath, touchesSurfacePath, su
 import { posedSurface } from './pose.js';
 import { initializeBodies, advanceBodies } from './bodies.js';
 import { updateSupportProbes } from './support.js';
+import {initializeSpatialActor,advanceSpatialActor,spaceTouches,spaceGoalReached} from './spatial.js';
 export { validateLevel } from './schema.js';
 export const TICKS_PER_SECOND = 60;
 const clone = (value) => structuredClone(value);
@@ -33,6 +34,7 @@ export function createSimulation(input) {
         ...(e.kind==='lift'?{carY:e.state==='upper'?e.toY:floorY(e)}:{}), ...(e.motion?{motionDirection:1}:{}) }])),
       events: [], signals:[], clicks: 0, timers: [] };
     pending = []; inputs = []; serial = 0; signalSerial=0;contacts=new Set();connectorLock=null;invokeDepth=0;signal('start','scene');
+    if(level.spatial)initializeSpatialActor(level,state.actor);
     initializeBodies(level,state.entities);
     updateSupportProbes(level,state.entities,null,true);
     return api;
@@ -129,7 +131,7 @@ export function createSimulation(input) {
   const syncHeld=()=>{const a=state.actor,e=a.holding===null?null:state.entities[a.holding];if(e){e.x=a.x+a.direction*18-e.width/2;const t=verticalTransport(e);if(t)t.toY+=a.y-e.y;e.y=a.y;}};
   function updateMotion() {
     const a=state.actor,held=a.holding;
-    const before=collectSurfaces(level,state.entities,held);
+    const before=level.spatial?[]:collectSurfaces(level,state.entities,held);
     const support=a.mode==='walking'?supportAt(before,a.x,a.y,a.support):null;
     const carrier=support?state.entities[support.id]:null;
     const local=carrier&&(carrier.surface||carrier.collider)?(a.x-support.x)/support.width:null;
@@ -265,6 +267,25 @@ export function createSimulation(input) {
     if (state.status !== 'running') return;
     updateMotion();
     if(state.status!=='running')return;
+    if(level.spatial){
+      const {trace,landings}=advanceSpatialActor(level,state.entities,state.actor),touching=new Set();
+      for(const landing of landings){
+        if(state.actor.maxLandingSpeed!==undefined&&landing.speed>state.actor.maxLandingSpeed){lose('hard-landing','落地太快了。');return;}
+        if(state.entities[landing.support])trigger('actorlanded',landing.support);
+      }
+      for(const e of Object.values(state.entities)){
+        if(['inactive','disabled','stopped','open'].includes(e.state)||!spaceTouches(trace,e))continue;
+        touching.add(e.id);
+        if(!contacts.has(e.id))trigger(e.kind==='zone'?'enter':'contact',e.id);
+        if(state.status!=='running')return;
+        if(!['inactive','disabled','stopped','open'].includes(e.state)&&(e.contact?.effect==='lethal'||e.kind==='gate'&&e.state==='closed')){lose('hurt',e.contact?.message??'碰到了危险物。');return;}
+      }
+      contacts=touching;
+      if(state.actor.mode==='walking'&&spaceGoalReached(trace,level.goal)){state.status='won';signal('won','actor');emit('到了！','won');}
+      else if(state.actor.x<=20||state.actor.x>=1180||state.actor.space.depth<0||state.actor.space.depth>600||state.actor.space.height< -160){lose('boundary','走出了场景边界。');}
+      else if(state.tick>=MAX_TICKS)lose('timeout','这段路走得太久了。');
+      return;
+    }
     movementTrace=null;reachedPhysicsGoal=false;
     const [from,to,walked]=moveActor(), a=state.actor;
     if(state.status!=='running')return;

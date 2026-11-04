@@ -5,6 +5,7 @@ import { surfaceEndY } from '../core/surfaces.js';
 import { posePoint, poseInBounds } from '../core/pose.js';
 import {validateScene} from '../core/scene-schema.js';
 import {pruneFeedback} from '../core/feedback-schema.js';
+import {validateSpatial} from '../core/spatial.js';
 
 const clone = (value) => structuredClone(value);
 const finiteY = value => value?.y === undefined || Number.isFinite(value.y);
@@ -22,7 +23,7 @@ const shape = (level) => Boolean(level && level.schemaVersion === 1 && level.wor
     (e.motion === undefined || (Number.isFinite(e.motion?.minX) && Number.isFinite(e.motion?.maxX)))) &&
   Array.isArray(level.rules) && level.rules.length <= 128 &&
   // Geometry can be unfinished; references, states and action trees must remain safe to edit.
-  validateScene(level).length===0 && validateLevel({...level, scene:undefined, world:{...level.world,...(level.world.physics===undefined&&(level.actor.maxLandingSpeed!==undefined||level.entities.some(e=>e.surface||e.collider||e.body||e.supportProbe||e.carriedPhysics))?{physics:{gravity:900,maxFallSpeed:480}}:{})},
+  validateScene(level).length===0 && validateSpatial(level,{draft:true}).length===0 && validateLevel({...level, spatial:undefined,scene:undefined, world:{...level.world,...(level.world.physics===undefined&&(level.actor.maxLandingSpeed!==undefined||level.entities.some(e=>e.surface||e.collider||e.body||e.supportProbe||e.carriedPhysics))?{physics:{gravity:900,maxFallSpeed:480}}:{})},
     actor:{...level.actor,x:95,y:440,speed:68}, goal:{x:1100},
     platforms:[{x:0,width:1200},{x:0,width:1200,y:260}],
     entities:level.entities.map(e=>({...e,x:25,width:8,y:440,

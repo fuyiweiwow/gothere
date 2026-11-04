@@ -1,6 +1,7 @@
 import {ASSETS} from '../content/library.js';
 import {floorY} from '../core/schema.js';
 import {applyMotion} from './feedback.js';
+import {projectSpace} from '../core/spatial.js';
 
 const images=new Map();
 export function assetLibrary(level) {return [...ASSETS,...(level.scene?.assets??[])];}
@@ -21,6 +22,7 @@ export function artTransform(node,level,snapshot,{tick=snapshot?.tick??0,animate
     const angle=object.pose?.angle??0,r=angle*Math.PI/180,pivot=(object.width??28)*(object.pose?.pivot??0);
     x=object.x+pivot+(n.x-pivot)*Math.cos(r)-n.y*Math.sin(r);
     y=floorY(object)+(n.x-pivot)*Math.sin(r)+n.y*Math.cos(r);rotation+=angle;
+    if(level.spatial){const p=projectSpace(level,{x:object.x,depth:object.space?.depth??0,height:object.space?.height??0});x+=p.x-object.x;y+=p.y-floorY(object);}
   }
   const animation=variantData&&Object.hasOwn(variantData,'animation')?variantData.animation:variantData?.asset?null:node.animation;
   const frames=animation?.frames,frame=animate&&!['lost','won'].includes(snapshot?.status)?Math.floor(tick*(animation?.fps??1)/60):0;

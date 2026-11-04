@@ -2,6 +2,7 @@ import { verticalTransport, landingX } from './transport.js';
 import { surfaceHeight, collectSurfaces } from './surfaces.js';
 import { poseInBounds } from './pose.js';
 import {validateScene} from './scene-schema.js';
+import {validateSpatial} from './spatial.js';
 
 export const STATES = Object.freeze({
   switch: ['off', 'on'], bridge: ['folded', 'extended'], gate: ['closed', 'open'],
@@ -27,6 +28,7 @@ export function validateLevel(input) {
   const check = (ok, message) => { if (!ok) errors.push(message); };
   if (!object(input)) return { valid: false, errors: ['关卡必须是一个 JSON 对象。'] };
   errors.push(...validateScene(input));
+  errors.push(...validateSpatial(input));
   check(input.schemaVersion === 1, 'schemaVersion 必须为 1。');
   check(text(input.id, 48) && idPattern.test(input.id), 'id 必须是小写英文、数字或短横线，以字母开头。');
   check(text(input.name, 60), 'name 必须是 1～60 字的关卡名称。');
@@ -91,7 +93,7 @@ export function validateLevel(input) {
         check(entity.transport===undefined,'姿态与高度通道暂不组合：'+entity.id);
       }
       if(entity.surface!==undefined){
-        check(entity.kind==='object'&&object(entity.surface)&&typeof entity.surface.enabled==='boolean'&&object(entity.pose),
+        check(entity.kind==='object'&&object(entity.surface)&&typeof entity.surface.enabled==='boolean'&&(object(entity.pose)||Boolean(input.spatial)),
           '承托面需要通用物体的 pose 和 surface.enabled 布尔值：'+entity.id);
         check(Boolean(world?.physics),'承托面需要启用重力模式。');
       }
@@ -202,7 +204,7 @@ export function validateLevel(input) {
     });
   }
   for(const e of byId.values())if(Array.isArray(e.behaviors))for(const b of e.behaviors.slice(0,17))if(object(b))actionsValid(b.actions);
-  if (errors.length === 0) {
+  if (errors.length === 0 && !input.spatial) {
     const surfaces=collectSurfaces(input,Object.fromEntries(entities.map(e=>[e.id,{...e,...(e.kind==='lift'?{carY:e.state==='upper'?e.toY:floorY(e)}:{})}])));
     const supported = (x,y) => surfaces.some(p => {const height=surfaceHeight(p,x);return height!==null&&Math.abs(height-y)<1e-7;});
     check(supported(input.actor.x,floorY(input.actor)), '角色起点需要位于对应高度的地面上。');
