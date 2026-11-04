@@ -4,14 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#11161e">
-  <meta name="description" content="一定要到达那里 · 空间编辑实验。地面纵深与离地高度分离，编辑路线、物体及其美术绑定。">
+  <meta name="description" content="一定要到达那里 · 二维分层关卡编辑器。局部内外通路、物品互动与可编辑动画。">
   <title>关卡编辑器 · 一定要到达那里</title>
   <link rel="stylesheet" href="/src/editor/editor.css">
 </head>
 <body class="editor-app">
   <header class="app-header">
-    <div class="app-brand"><span class="brand-symbol" aria-hidden="true">▦</span><div><h1>一定要到达那里</h1><span>空间编辑实验 <b>0.20.0-spatial.3</b></span></div></div>
-    <div class="document-actions"><select id="editor-example" aria-label="选择示例"><option value="commute">上班路 · 空间关卡</option><option value="rooftop">屋顶到亮窗 · 横版兼容</option><option value="graybox">近路与远路 · 空间灰盒</option></select><button id="reset-level" class="button secondary">新建示例副本</button><button id="open-data" class="button secondary">JSON 导入 / 导出</button><button id="download-editor" class="button secondary">下载离线编辑器</button></div>
+    <div class="app-brand"><span class="brand-symbol" aria-hidden="true">▦</span><div><h1>一定要到达那里</h1><span>二维分层编辑器 <b>0.21.0</b></span></div></div>
+    <div class="document-actions"><select id="editor-example" aria-label="选择示例"><option value="commute">上班路 · 二维分层</option><option value="layered">前街与后街 · 连接样例</option><option value="rooftop">屋顶到亮窗 · 横版兼容</option><option value="spatial-commute">上班路 · 旧空间实验</option><option value="graybox">近路与远路 · 空间灰盒</option></select><button id="reset-level" class="button secondary">新建示例副本</button><button id="open-data" class="button secondary">JSON 导入 / 导出</button><button id="download-editor" class="button secondary">下载离线编辑器</button></div>
   </header>
   <main id="editor-workspace">
     <section id="editor-toolbar" class="editor-toolbar" aria-label="创作工具" hidden></section>
@@ -45,7 +45,7 @@
     </aside>
   </main>
   <footer class="app-footer"><span id="document-summary">关卡 DSL</span><span>逻辑 · 资源 · 绑定校准 · 草稿在本机保存</span></footer>
-  <dialog id="data-dialog" aria-labelledby="data-title"><div class="dialog-heading"><h2 id="data-title">关卡 JSON</h2><button id="close-data" class="button secondary" aria-label="关闭关卡数据">关闭</button></div><p class="panel-note">编辑与模拟共用同一数据格式。横版为 v1，空间为 v2；旧空间预览稿导入时自动升级。导入会新增草稿；含图片的 JSON 最多 1 MiB。</p><label id="level-json-label" for="level-json">当前草稿</label><textarea id="level-json" spellcheck="false" maxlength="1048576"></textarea><p id="data-error" class="data-error" role="alert" hidden></p><div class="dialog-actions"><button id="import-level" class="button secondary">选择 JSON 文件</button><button id="export-level" class="button secondary">导出当前草稿</button><button id="apply-level" class="button primary">导入为新草稿</button></div><input id="level-file" type="file" accept=".json,application/json" hidden></dialog>
+  <dialog id="data-dialog" aria-labelledby="data-title"><div class="dialog-heading"><h2 id="data-title">关卡 JSON</h2><button id="close-data" class="button secondary" aria-label="关闭关卡数据">关闭</button></div><p class="panel-note">编辑与模拟共用同一数据格式。横版为 v1，空间实验为 v2，二维分层为 v3；旧稿保留原有坐标含义。导入会新增草稿；含图片的 JSON 最多 1 MiB。</p><label id="level-json-label" for="level-json">当前草稿</label><textarea id="level-json" spellcheck="false" maxlength="1048576"></textarea><p id="data-error" class="data-error" role="alert" hidden></p><div class="dialog-actions"><button id="import-level" class="button secondary">选择 JSON 文件</button><button id="export-level" class="button secondary">导出当前草稿</button><button id="apply-level" class="button primary">导入为新草稿</button></div><input id="level-file" type="file" accept=".json,application/json" hidden></dialog>
   <div id="toast" class="toast" role="status" hidden></div>
   <script type="module" src="/src/shell/editor.js"></script>
 </body>

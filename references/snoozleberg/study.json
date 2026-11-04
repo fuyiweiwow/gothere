@@ -10,8 +10,10 @@
       "date": "2026-11-04",
       "document": "../../docs/layered-street-direction.md",
       "runtimeRevision": "5c8f6dd",
-      "implemented": false,
-      "scope": "本项目下一轮的设计选择，不修改录像观察，也不宣称原作采用同一种内部模型。"
+      "implemented": true,
+      "scope": "本项目的设计选择及实现记录，不修改录像观察，也不宣称原作采用同一种内部模型。",
+      "implementationVersion": "0.21.0",
+      "specification": "../../docs/layered-dsl.md"
     },
     "historicalExperiments": {
       "branch": "codex/procedural-generation",

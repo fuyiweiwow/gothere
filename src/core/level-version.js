@@ -7,5 +7,6 @@ export function normalizeLevel(input) {
 }
 
 export function levelVersionValid(level) {
-  return level?.spatial===undefined?level?.schemaVersion===1:level?.schemaVersion===2;
+  return level?.spatial===undefined?level?.schemaVersion===1:
+    level.spatial?.mode==='layered'?level.schemaVersion===3:level.schemaVersion===2;
 }

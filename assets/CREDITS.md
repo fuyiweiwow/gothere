@@ -18,3 +18,5 @@ library.json records the source, license, size and relative file of every librar
 The v0.16.0 smoke, dust and sparks are drawn procedurally; the six built-in audio cues are synthesized by project code. They add no third-party image/audio files. User-imported audio remains part of the user's level document.
 
 The spatial commute study adds modular street props in original/commute/ (bus, cars, scooters, rails, signals, road textures and office equipment), authored for this project and released under the same LICENSE-original.txt CC0 dedication. Its four worker PNGs are palette adaptations of the bundled Kenney Toon Characters, retaining that pack's CC0 license. These assets are editable library entries; they contain no original Snoozleberg artwork or in-scene text.
+
+The layered street v0.21.0 adds project-authored SVG facades, windows, canopy, breakfast bag, bowl, dog, door, paving and two-frame inward/outward walking clips (`street*.svg`). They use the same LICENSE-original.txt CC0 dedication. These are simple editable demonstration assets, not finished production character animation.

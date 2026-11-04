@@ -41,12 +41,15 @@ export function validateScene(level) {
     check(typeof n.label==='string'&&n.label.length>0&&n.label.length<=60,'图层名称最多60字。');
     check(transform(n),'资源图层的图片或变换范围无效：'+n.id);
     if(n.anchor!==undefined)check(Boolean(level.spatial)&&obj(n.anchor)&&!n.bind&&!n.ground&&num(n.anchor.x,0,1200)&&num(n.anchor.depth,0,600)&&num(n.anchor.height,0,360),'资源空间锚点无效：'+n.id);
+    if(level.spatial?.mode==='layered'&&n.anchor)check(Array.isArray(level.spatial.planes)&&level.spatial.planes.some(p=>p?.id===n.anchor.plane&&p.depth===n.anchor.depth),'分层布景需要已定义的行走层：'+n.id);
+    if(level.spatial?.mode==='layered')check(n.ground===undefined,'分层布景使用二维图片或行走层锚点。');
     if(n.ground!==undefined)check(Boolean(level.spatial)&&obj(n.ground)&&!n.bind&&!n.anchor&&num(n.ground.x,0,1200)&&num(n.ground.width,1,1200-n.ground.x)&&num(n.ground.depth,0,600)&&num(n.ground.depthSize,1,600-n.ground.depth)&&num(n.ground.height,0,360),'地面资源需要合法的空间平面：'+n.id);
     if(n.tile!==undefined)check(obj(n.tile)&&num(n.tile.width,8,512)&&num(n.tile.height,8,512),'资源平铺尺寸需要8～512：'+n.id);
     if(n.bind!==undefined){const b=n.bind;
       check(obj(b)&&(['actor','goal'].includes(b.type)||(b.type==='entity'&&(level.entities??[]).some(e=>e.id===b.id))||
         (b.type==='platform'&&Number.isInteger(b.index)&&b.index>=0&&b.index<(level.platforms??[]).length)),'资源绑定的实体不存在：'+n.id);
     }
+    if(n.fitPassage!==undefined)check(typeof n.fitPassage==='boolean'&&Boolean(level.entities?.find(e=>n.bind?.type==='entity'&&e.id===n.bind.id)?.passage),'沿连接铺设资源需要绑定连接物体：'+n.id);
     if(n.variants!==undefined)check(obj(n.variants)&&Object.keys(n.variants).length<=16&&Object.entries(n.variants).every(([key,v])=>id(key)&&transform(v,true)),'资源状态变体无效：'+n.id);
   }
   return [...errors,...validateFeedback(level)];

@@ -1688,5 +1688,135 @@
     "height": 93,
     "source": "kenney-toon-characters-adapted",
     "license": "CC0-1.0"
+  },
+  {
+    "id": "streetFacade",
+    "label": "街区楼面",
+    "category": "街区",
+    "file": "original/commute/streetFacade.svg",
+    "width": 120,
+    "height": 180,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "streetWindow",
+    "label": "街区窗户",
+    "category": "街区",
+    "file": "original/commute/streetWindow.svg",
+    "width": 28,
+    "height": 37,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "streetCanopy",
+    "label": "早餐摊棚",
+    "category": "街区",
+    "file": "original/commute/streetCanopy.svg",
+    "width": 147,
+    "height": 22,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "streetBreakfast",
+    "label": "早餐袋",
+    "category": "街区",
+    "file": "original/commute/streetBreakfast.svg",
+    "width": 24,
+    "height": 25,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "streetBowl",
+    "label": "狗碗",
+    "category": "街区",
+    "file": "original/commute/streetBowl.svg",
+    "width": 27,
+    "height": 10,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "streetDog",
+    "label": "街边的狗",
+    "category": "街区",
+    "file": "original/commute/streetDog.svg",
+    "width": 55,
+    "height": 40,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "streetDoor",
+    "label": "街区小门",
+    "category": "街区",
+    "file": "original/commute/streetDoor.svg",
+    "width": 43,
+    "height": 63,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "streetWalkIn1",
+    "label": "向里行走 1",
+    "category": "街区",
+    "file": "original/commute/streetWalkIn1.svg",
+    "width": 32,
+    "height": 48,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "streetWalkIn2",
+    "label": "向里行走 2",
+    "category": "街区",
+    "file": "original/commute/streetWalkIn2.svg",
+    "width": 32,
+    "height": 48,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "streetWalkOut1",
+    "label": "向外行走 1",
+    "category": "街区",
+    "file": "original/commute/streetWalkOut1.svg",
+    "width": 32,
+    "height": 48,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "streetWalkOut2",
+    "label": "向外行走 2",
+    "category": "街区",
+    "file": "original/commute/streetWalkOut2.svg",
+    "width": 32,
+    "height": 48,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "streetPassage",
+    "label": "局部通路铺面",
+    "category": "街区",
+    "file": "original/commute/streetPassage.svg",
+    "width": 200,
+    "height": 48,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "streetPavement",
+    "label": "街道路面",
+    "category": "街区",
+    "file": "original/commute/streetPavement.svg",
+    "width": 200,
+    "height": 25,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
   }
 ]

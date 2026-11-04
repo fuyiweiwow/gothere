@@ -18,7 +18,7 @@ try{
     const context=await browser.newContext({viewport:{width:1600,height:1050}}),p=await context.newPage(),requests=[];
     p.setDefaultTimeout(10000);p.on('pageerror',e=>errors.push(e.message));p.on('request',r=>{if(url.startsWith('file:')&&/^https?:/.test(r.url()))requests.push(r.url());});
     const start=new Date('2026-11-04T00:00:00Z');await p.clock.install({time:start});await p.clock.pauseAt(new Date(+start+1000));
-    await p.goto(url);await p.locator('#scene[data-assets=ready]').waitFor();assert.equal((await draft(p)).id,'commute-spatial');
+    const target=new URL(url);target.searchParams.set('sample','spatial-commute');await p.goto(target.href);await p.locator('#scene[data-assets=ready]').waitFor();assert.equal((await draft(p)).id,'commute-spatial');
     await p.locator('#display-mode').selectOption('logic');
     await p.locator('[data-ref="entity:bus"]').click({force:true});
     await value(p,'[data-behavior="brake"] [data-move-depth]',210);
@@ -45,7 +45,7 @@ try{
     await p.reload();await p.locator('#scene[data-assets=ready]').waitFor();assert.deepEqual(await draft(p),before);
     await p.locator('#editor-example').selectOption('rooftop');await p.locator('#scene[data-assets=ready]').waitFor();
     await p.locator('#open-data').click();const legacy=JSON.parse(await p.locator('#level-json').inputValue());assert.equal(legacy.id,'editor-first-level');assert.equal(legacy.schemaVersion,1);await p.locator('#close-data').click();
-    await p.locator('#editor-example').selectOption('commute');await p.locator('#scene[data-assets=ready]').waitFor();assert.deepEqual(await draft(p),before);
+    await p.locator('#editor-example').selectOption('spatial-commute');await p.locator('#scene[data-assets=ready]').waitFor();assert.deepEqual(await draft(p),before);
     assert.deepEqual(requests,[]);await context.close();console.log('PASS commute '+(index?'offline':'online')+': editable movement/rotation, depth nodes, world art, resize/undo, binding, full route, sample switching and saved drafts.');
   }
   assert.deepEqual(errors,[]);

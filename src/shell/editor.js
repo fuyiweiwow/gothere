@@ -15,14 +15,18 @@ import {createFeedbackPlayer} from '../render/feedback.js';
 import {createSoundPlayer} from '../render/audio.js';
 import {createSpatialLevel} from '../editor/spatial-level.js';
 import {createCommuteLevel} from '../editor/commute-level.js';
+import {createStreetLevel} from '../editor/street-level.js';
+import {createLayeredLevel} from '../editor/layered-level.js';
 import {drawSpatial} from '../render/spatial.js';
 import {spaceBounds} from '../core/spatial.js';
 
 const $=id=>document.getElementById(id),canvas=$('scene'),ctx=canvas.getContext('2d');
 const params=new URLSearchParams(location.search),spatialEntry=!params.has('legacy');
 const graybox=params.get('sample')==='graybox';
-const sample=spatialEntry?(graybox?createSpatialLevel:createCommuteLevel):createFirstLevel;
-const sampleKey=spatialEntry?(graybox?'spatial:01':'commute:spatial:01'):'milestone:02:v017';
+const oldSpatial=params.has('spatial')||params.get('sample')==='spatial-commute',layeredDemo=params.get('sample')==='layered';
+const layeredEntry=spatialEntry&&!graybox&&!oldSpatial;
+const sample=spatialEntry?(graybox?createSpatialLevel:oldSpatial?createCommuteLevel:layeredDemo?createLayeredLevel:createStreetLevel):createFirstLevel;
+const sampleKey=spatialEntry?(graybox?'spatial:01':oldSpatial?'commute:spatial:01':layeredDemo?'layered:graybox:01':'commute:layered:01'):'milestone:02:v017';
 const standaloneHTML=document.getElementById('standalone-editor')?'<!doctype html>\n'+document.documentElement.outerHTML:null;
 let editor,resourceUI,bindingUI,lastDraft,loadSerial=0,preview=null,previewLevel=null,accumulator=0,last=0,debugLast=0,toastTimer,serial=0;
 let feedback=null,feedbackFrame=null,audition=null,endingTicks=0;
@@ -68,6 +72,9 @@ function updateInteractions(state){
     if(button.parentElement.id==='scene-interactions'){
       const b=previewLevel.spatial?spaceBounds(previewLevel,e.kind,e):displayMode!=='logic'?(entityArtBounds(previewLevel,state,e.id,{feedback:feedbackFrame})??presentationBounds(e)):diagramBounds(e.kind,e);
       button.style.left=(b.x-4)/12+'%';button.style.top=(b.y-4)/6.4+'%';button.style.width=(b.width+8)/12+'%';button.style.height=Math.max(24,b.height+8)/6.4+'%';
+      // Small items remain reachable when receivers share the same screen area.
+      // Disabled rules never cover a usable target underneath them.
+      button.style.pointerEvents=disabled?'none':'auto';button.style.zIndex=String(Math.max(1,1000-Math.round(b.width*b.height/100)));
       button.setAttribute('aria-label','触发 '+e.label+' · '+status);
     }else button.querySelector('small').textContent=status;
   }
@@ -105,7 +112,7 @@ function runPreview(level,{run=true}={}){
   draw(level,preview.snapshot());updateDebug();
 }
 editor=createEditorUI({play:runPreview,leave:()=>{},pause:()=>preview?.pause(),notify,diagram:true,
-  storageKey:spatialEntry?'gothere.studio.spatial.v1':'gothere.studio.v1',onChange:drawDocument,onPreview:draw,
+  storageKey:layeredEntry?'gothere.studio.layered.v1':spatialEntry?'gothere.studio.spatial.v1':'gothere.studio.v1',onChange:drawDocument,onPreview:draw,
   editResources:(ref,id)=>{changeDisplay('binding','art');resourceUI.select(id??editor.document().scene?.nodes.find(n=>n.bind?.type===ref.type&&(ref.type==='entity'?n.bind.id===ref.id:ref.type==='platform'?n.bind.index===ref.index:true))?.id??null);},
   onMode:mode=>{const testing=mode==='testing';resourceUI?.cancel();bindingUI?.cancel();$('simulation-panel').hidden=!testing;$('preview-reset').disabled=!testing;$('scene-tag-text').textContent=testing?'模拟中':'正在创作';
     workspace();
@@ -130,8 +137,8 @@ createViewport({isEditing:()=>editor.isEditing(),onChange:()=>{
   const width=Math.round(1200*scale),height=Math.round(640*scale);if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;ctx.setTransform(width/1200,0,0,height/640,0,0);}
   if(preview)draw(previewLevel,preview.snapshot());else draw(lastDraft??editor.document());
 }});
-$('editor-example').value=spatialEntry?(editor.document().id==='spatial-graybox'?'graybox':'commute'):'rooftop';
-$('editor-example').addEventListener('change',()=>{const url=new URL(location.href);url.searchParams.delete('legacy');url.searchParams.delete('sample');
+$('editor-example').value=spatialEntry?(editor.document().id==='spatial-graybox'?'graybox':editor.document().id==='commute-spatial'?'spatial-commute':editor.document().id==='layered-graybox'?'layered':'commute'):'rooftop';
+$('editor-example').addEventListener('change',()=>{const url=new URL(location.href);url.searchParams.delete('legacy');url.searchParams.delete('sample');url.searchParams.delete('spatial');
   if($('editor-example').value==='rooftop')url.searchParams.set('legacy','1');else url.searchParams.set('sample',$('editor-example').value);location.href=url.href;});
 $('reset-level').textContent='新建示例副本';
 $('reset-level').addEventListener('click',()=>editor.openDocument(sample(),'sample:'+Date.now().toString(36)+'-'+serial++));

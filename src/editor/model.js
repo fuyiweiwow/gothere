@@ -5,7 +5,7 @@ import { surfaceEndY } from '../core/surfaces.js';
 import { posePoint, poseInBounds } from '../core/pose.js';
 import {validateScene} from '../core/scene-schema.js';
 import {pruneFeedback} from '../core/feedback-schema.js';
-import {validateSpatial,unprojectSpace} from '../core/spatial.js';
+import {validateSpatial,unprojectSpace,isLayered} from '../core/spatial.js';
 import {normalizeLevel,levelVersionValid} from '../core/level-version.js';
 
 const clone = (value) => structuredClone(value);
@@ -95,7 +95,14 @@ export function createEditorStore(serialized) {
   };
 }
 
-export function createBlankLevel(id) {
+export function createBlankLevel(id,{layered=false}={}) {
+  if(layered){
+    const space={plane:'main',depth:60,height:0};
+    return {schemaVersion:3,id,name:'新的分层场景',description:'从一条路开始，添加行走层和局部连接。',
+      world:{width:1200,height:640,groundY:440,physics:{gravity:900,maxFallSpeed:480}},
+      spatial:{mode:'layered',projection:{originY:620,depthX:0,depthY:-1},planes:[{id:'main',label:'主路',depth:60,order:0}],start:'start',nodes:[{id:'start',x:80,plane:'main',depth:60,height:0,next:'finish'},{id:'finish',x:1100,plane:'main',depth:60,height:0}]},
+      actor:{x:80,speed:70,space:{...space}},goal:{x:1100,space:{...space}},platforms:[{x:30,width:1140,space:{...space,depthSize:20}}],entities:[],rules:[]};
+  }
   return { schemaVersion:1, id, name:'下一个那里', description:'路已经铺好，接下来给旅途添一点小麻烦。',
     hint:'看看机关之间会发生什么。', world:{width:1200,height:640,groundY:440},
     actor:{x:95,speed:68}, goal:{x:1100}, platforms:[{x:0,width:1200}], entities:[], rules:[] };
@@ -105,7 +112,8 @@ export const KIND_NAMES = {platform:'路面 / 平台',bridge:'木桥',switch:'�
   object:'物件 / 生物',zone:'区域触发器',ladder:'高度通道（旧版）',lift:'电梯'};
 
 export function addObject(level, kind, x, y=440) {
-  const space=level.spatial?{depth:60,depthSize:kind==='platform'?60:24,height:0}:null;
+  const plane=isLayered(level)?level.spatial.planes[0]:null;
+  const space=level.spatial?{depth:plane?.depth??60,depthSize:kind==='platform'?20:24,height:0,...(plane?{plane:plane.id}:{})}:null;
   if (kind === 'platform') {
     if (level.platforms.length >= 64) throw new Error('最多放置 64 段路面。');
     level.platforms.push({x:Math.max(0,Math.min(1000,x)),width:200,...(space?{space}:y!==440?{y}:{})});
@@ -125,6 +133,7 @@ export function deleteObject(level, ref) {
   if (ref?.type==='platform') { level.platforms.splice(ref.index,1);if(level.scene){level.scene.nodes=level.scene.nodes.filter(n=>n.bind?.type!=='platform'||n.bind.index!==ref.index);for(const n of level.scene.nodes)if(n.bind?.type==='platform'&&n.bind.index>ref.index)n.bind.index--;} pruneFeedback(level);return; }
   if (ref?.type!=='entity') return;
   level.entities = level.entities.filter(e=>e.id!==ref.id);
+  if(isLayered(level))for(const n of level.spatial.nodes)if(n.via===ref.id){delete n.via;delete n.next;}
   if(level.scene)level.scene.nodes=level.scene.nodes.filter(n=>n.bind?.type!=='entity'||n.bind.id!==ref.id);
   pruneReferences(level);
   pruneFeedback(level);
@@ -143,7 +152,7 @@ export function pasteObject(level,clipboard,offset=20) {
   if(clipboard.type==='platform')level.platforms[ref.index]=source;
   else{
     const oldId=source.id;source.id=ref.id;source.label=source.label.slice(0,27)+' 副本';
-    const rewrite=actions=>{for(const a of actions){if(a.type==='after')rewrite(a.actions);else if(a.target===oldId)a.target=ref.id;}};
+    const rewrite=actions=>{for(const a of actions){if(a.type==='after')rewrite(a.actions);else{if(a.target===oldId)a.target=ref.id;if(a.at===oldId)a.at=ref.id;}}};
     for(const b of source.behaviors??[])rewrite(b.actions);
     level.entities[level.entities.length-1]=source;
   }
@@ -221,9 +230,14 @@ export function resizeObject(level,ref,handle,dx,dy,{snap=true,threshold=24}={})
   const e=ref.type==='entity'?level.entities.find(e=>e.id===ref.id):ref.type==='platform'?level.platforms[ref.index]:null;
   if(!e)return;
   if(level.spatial){
-    if(handle.includes('e'))e.width=clamp(e.width+dx,8,Math.min(600,1200-e.x));
+    if(handle.includes('e'))e.width=clamp(e.width+dx,8,Math.min(ref.type==='platform'?1200:600,1200-e.x));
     if(handle.includes('w')){const shift=clamp(dx,25-e.x,e.width-8);e.x+=shift;e.width-=shift;}
-    if(handle.includes('n'))e.height=clamp((e.height??36)-dy,8,240);
+    if(handle.includes('n')){
+      if(isLayered(level)&&ref.type==='platform'){
+        const shift=clamp(-dy,-Math.min(e.space.height,e.space.heightEnd??e.space.height),360-Math.max(e.space.height,e.space.heightEnd??e.space.height));
+        e.space.height+=shift;if(e.space.heightEnd!==undefined)e.space.heightEnd+=shift;
+      }else e.height=clamp((e.height??36)-dy,8,240);
+    }
     if(handle.includes('s'))e.space.depthSize=clamp((e.space.depthSize??24)+dy/level.spatial.projection.depthY,1,600-e.space.depth);
     return;
   }
@@ -267,7 +281,11 @@ export function moveObject(level, ref, dx, dy=0) {
   if(level.spatial){
     const originalX=target.x;
     const delta=unprojectSpace(level,{x:dx,y:level.spatial.projection.originY+dy},0);
-    target.x=clamp(target.x+delta.x,25,1200-(target.width??28));target.space.depth=clamp(target.space.depth+delta.depth,0,600-(target.space.depthSize??0));
+    target.x=clamp(target.x+delta.x,25,1200-(target.width??28));
+    if(isLayered(level)){
+      const shift=clamp(-dy,-Math.min(target.space.height,target.space.heightEnd??target.space.height),360-Math.max(target.space.height,target.space.heightEnd??0));
+      target.space.height+=shift;if(target.space.heightEnd!==undefined)target.space.heightEnd+=shift;
+    }else target.space.depth=clamp(target.space.depth+delta.depth,0,600-(target.space.depthSize??0));
     if(target.motion){const shift=target.x-originalX;target.motion.minX+=shift;target.motion.maxX+=shift;}
     if(ref.type==='actor'){const n=level.spatial.nodes.find(n=>n.id===level.spatial.start);n.x=target.x;n.depth=target.space.depth;n.height=target.space.height;}
     return;
@@ -296,7 +314,7 @@ function pruneReferences(level) {
     changed=false;
     const clean=actions=>actions.flatMap(a=>{
       if(a.type==='after') {const nested=clean(a.actions);if(nested.length)return [{...a,actions:nested}];}
-      else if(!a.target || (byId.has(a.target) && (a.type!=='invoke' || byId.get(a.target).behaviors?.some(b=>b.id===a.behavior))))return [a];
+      else if((a.type!=='place'||byId.has(a.at))&&(!a.target || (byId.has(a.target) && (a.type!=='invoke' || byId.get(a.target).behaviors?.some(b=>b.id===a.behavior)))))return [a];
       changed=true;return [];
     });
     for(const e of level.entities)if(e.behaviors)e.behaviors=e.behaviors.flatMap(b=>{

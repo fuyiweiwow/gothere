@@ -69,8 +69,15 @@ export function createSimulation(input) {
         }
       } else if (action.type==='drop') {
         const a=state.actor,e=a.holding===null?null:state.entities[a.holding];
-        if(e){e.x=Math.max(25,Math.min(1200-e.width,a.x-a.direction*(e.width+24)));e.y=a.y;if(level.spatial)e.space={...e.space,depth:a.space.depth,height:a.space.height};
+        if(e){e.x=Math.max(25,Math.min(1200-e.width,a.x-a.direction*(e.width+24)));e.y=a.y;if(level.spatial)e.space={...e.space,depth:a.space.depth,height:a.space.height,...(a.space.plane?{plane:a.space.plane}:{})};
           a.holding=null;emit('放下了'+e.label);}
+      } else if(action.type==='place'){
+        const a=state.actor,e=state.entities[action.target],receiver=state.entities[action.at];
+        if(a.holding!==e.id||a.passage||receiver.state==='disabled'||
+          (a.space.plane!==undefined?a.space.plane!==receiver.space.plane:Math.abs(a.space.depth-receiver.space.depth)>24)||
+          Math.hypot(a.x-receiver.x,a.space.height-receiver.space.height)>action.range)continue;
+        e.x=receiver.x;e.space={...e.space,depth:receiver.space.depth,height:receiver.space.height,...(receiver.space.plane?{plane:receiver.space.plane}:{})};
+        delete e.translation;delete e.rotation;a.holding=null;emit('把'+e.label+'放到'+receiver.label+'处。');trigger('placed',e.id,undefined,receiver.id);
       } else if (action.type==='hurt') {
         lose('hurt', action.message??'碰上了一个不太友好的东西。下次换个办法打招呼。');
       } else if (action.type==='turn') {
@@ -138,7 +145,7 @@ export function createSimulation(input) {
   };
   const lose = (reason, message) => { state.status = 'lost'; state.reason = reason; signal('lost','actor',{reason});emit(message, 'lost'); };
   const approach=(from,to,amount)=>from<to?Math.min(to,from+amount):Math.max(to,from-amount);
-  const syncHeld=()=>{const a=state.actor,e=a.holding===null?null:state.entities[a.holding];if(e){e.x=a.x+a.direction*18-e.width/2;const t=verticalTransport(e);if(t)t.toY+=a.y-e.y;e.y=a.y;if(level.spatial)e.space={...e.space,depth:a.space.depth,height:a.space.height};}};
+  const syncHeld=()=>{const a=state.actor,e=a.holding===null?null:state.entities[a.holding];if(e){e.x=a.x+a.direction*18-e.width/2;const t=verticalTransport(e);if(t)t.toY+=a.y-e.y;e.y=a.y;if(level.spatial)e.space={...e.space,depth:a.space.depth,height:a.space.height,...(a.space.plane?{plane:a.space.plane}:{})};}};
   function updateMotion() {
     const a=state.actor,held=a.holding;
     const before=level.spatial?[]:collectSurfaces(level,state.entities,held);
@@ -149,7 +156,7 @@ export function createSimulation(input) {
     const spaceCarrier=spatialSupport?state.entities[spatialSupport.id]:null;
     const oldSurface=spaceCarrier?spaceSurfaces(level,state.entities,held).find(s=>s.id===spaceCarrier.id):null;
     const relative=oldSurface?{x:(a.x-oldSurface.x)/oldSurface.width,depth:a.space.depth-oldSurface.space.depth}:null;
-    const carriedFrom=level.spatial?{x:a.x,depth:a.space.depth,height:a.space.height}:null;
+    const carriedFrom=level.spatial?{x:a.x,...a.space}:null;
     const completed=[];
     for(const e of Object.values(state.entities)) {
       e.previousX=e.x;
@@ -186,7 +193,7 @@ export function createSimulation(input) {
       trigger(event.type,event.source,undefined,event.other);
     }
     return carriedFrom&&Math.hypot(a.x-carriedFrom.x,a.space.depth-carriedFrom.depth,a.space.height-carriedFrom.height)>1e-7?
-      {from:carriedFrom,to:{x:a.x,depth:a.space.depth,height:a.space.height}}:null;
+      {from:carriedFrom,to:{x:a.x,...a.space}}:null;
   }
   function finishConnection(e) {
     const a=state.actor,t=verticalTransport(e)??e;
@@ -295,7 +302,9 @@ export function createSimulation(input) {
     const carriedTrace=updateMotion();
     if(state.status!=='running')return;
     if(level.spatial){
-      const {trace,landings}=advanceSpatialActor(level,state.entities,state.actor),touching=new Set();
+      const {trace,landings,crossings}=advanceSpatialActor(level,state.entities,state.actor),touching=new Set();
+      for(const event of crossings)trigger(event.type,event.id);
+      if(state.status!=='running')return;
       if(carriedTrace)trace.unshift(carriedTrace);syncHeld();
       for(const landing of landings){
         if(state.actor.maxLandingSpeed!==undefined&&landing.speed>state.actor.maxLandingSpeed){lose('hard-landing','落地太快了。');return;}

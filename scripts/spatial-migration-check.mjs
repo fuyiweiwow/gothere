@@ -18,7 +18,7 @@ try{
       const key=spatial?'gothere.studio.spatial.v1':'gothere.studio.v1';
       const workspace={version:1,activeKey:'my-draft',...(!spatial?{workspaceRevision:'milestone-02-v017'}:{}),documents:[{key:'my-draft',level}]};
       await page.addInitScript(({key,workspace})=>{if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify(workspace));},{key,workspace});
-      page.on('pageerror',e=>errors.push(e.message));const url=new URL(base);if(!spatial)url.searchParams.set('legacy','1');
+      page.on('pageerror',e=>errors.push(e.message));const url=new URL(base);if(!spatial)url.searchParams.set('legacy','1');else url.searchParams.set('spatial','1');
       await page.goto(url.href);await page.locator('#scene[data-assets=ready]').waitFor();
       const expected={...level,schemaVersion:spatial?2:1};
       const saved=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),key);

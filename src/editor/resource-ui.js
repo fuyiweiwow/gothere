@@ -3,6 +3,9 @@ import {ensureScene,addArt,moveArt,resizeArt,deleteArt,duplicateArt,bindArt} fro
 import {STATES} from '../core/schema.js';
 import {alignMove,drawGuides} from './alignment.js';
 import {createFeedbackUI} from './feedback-ui.js';
+import {ACTOR_ANIMATIONS} from '../core/locomotion.js';
+import {isLayered} from '../core/spatial.js';
+import {layeredArtOrder} from '../render/layered.js';
 
 const $=id=>document.getElementById(id);
 const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
@@ -32,7 +35,8 @@ export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspe
     const search=el('input');search.type='search';search.id='asset-search';search.placeholder='搜索图片、窗、屋顶…';search.value=query;search.setAttribute('aria-label','搜索美术资源');box.append(search);
     search.oninput=()=>{query=search.value;renderItems(d,items);};
     const filters=el('div',undefined,'library-categories');box.append(filters);
-    for(const name of ['全部','墙面','屋顶','窗门','细节','机关','城市','角色','天空远景','自定义']){const b=button(name,()=>{category=name;renderLibraryRefresh();},'library-filter');b.setAttribute('aria-pressed',String(name===category));filters.append(b);}
+    const categories=new Set(['全部','墙面','屋顶','窗门','细节','机关','城市','角色','天空远景',...assetLibrary(d).map(a=>a.category??'自定义'),'自定义']);
+    for(const name of categories){const b=button(name,()=>{category=name;renderLibraryRefresh();},'library-filter');b.setAttribute('aria-pressed',String(name===category));filters.append(b);}
     const hint=el('p',tool?'点击地图连续放置 · Esc 切回选择':'选择图片后连续放置；点击图层编辑资源。','panel-note');box.append(hint);
     box.append(field('场景底色',d.scene?.background??'#182044',v=>change(doc=>{ensureScene(doc).background=v;}),{id:'scene-background',type:'color'}));
     const upload=el('input');upload.type='file';upload.accept='image/png,image/jpeg,image/webp';upload.id='asset-upload';upload.hidden=true;upload.onchange=()=>importImage(upload.files[0]);
@@ -64,15 +68,16 @@ export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspe
     const update=(key,v)=>change(doc=>{const node=doc.scene.nodes.find(n=>n.id===selected);if(variant){node.variants??={};node.variants[variant]??={};node.variants[variant][key]=v;}else node[key]=v;});
     box.append(field('图层名称',n.label,v=>change(doc=>{doc.scene.nodes.find(n=>n.id===selected).label=v;}),{id:'art-label',type:'text'}));
     if(d.spatial&&!n.bind){
-      box.append(select('空间形式',[['backdrop','背景图片'],['anchor','空间中的直立图片'],['ground','贴在地面上的图片']],n.ground?'ground':n.anchor?'anchor':'backdrop',value=>change(doc=>{
+      box.append(select('空间形式',[['backdrop','背景图片'],['anchor',isLayered(d)?'跟随行走层的布景':'空间中的直立图片'],...(!isLayered(d)?[['ground','贴在地面上的图片']]:[])],n.ground?'ground':n.anchor?'anchor':'backdrop',value=>change(doc=>{
         const node=doc.scene.nodes.find(n=>n.id===selected),t=artTransform(node,doc);delete node.anchor;delete node.ground;
-        if(value==='anchor'){node.anchor={x:Math.max(0,Math.min(1200,t.x)),depth:0,height:0};node.x=0;node.y=t.y-doc.spatial.projection.originY;}
+        if(value==='anchor'){const p=isLayered(doc)?doc.spatial.planes[0]:null;node.anchor={x:Math.max(0,Math.min(1200,t.x)),depth:p?.depth??0,height:0,...(p?{plane:p.id}:{})};node.x=0;node.y=t.y-doc.spatial.projection.originY+(p?.depth??0);}
         else if(value==='ground'){node.ground={x:Math.max(0,Math.min(1100,t.x)),depth:80,height:140,width:Math.min(200,node.width),depthSize:80};}
         else{node.x=t.x;node.y=t.y;node.width=t.width;node.height=t.height;}
       }),'art-space-mode'));
       const space=n.ground??n.anchor;
+      if(space&&isLayered(d))box.append(select('布景所属行走层',d.spatial.planes.map(p=>[p.id,p.label]),space.plane,value=>change(doc=>{const p=doc.spatial.planes.find(p=>p.id===value),a=doc.scene.nodes.find(n=>n.id===selected).anchor;a.plane=p.id;a.depth=p.depth;}),'art-plane'));
       if(space)for(const [key,label,max] of [['x','空间 X',1200],['depth','地面纵深',600],['height','离地高度',360],...(n.ground?[['width','平面宽度',1200],['depthSize','平面深度',600]]:[])])
-        box.append(field(label,space[key],value=>change(doc=>{const node=doc.scene.nodes.find(n=>n.id===selected);(node.ground??node.anchor)[key]=value;}),{id:'art-space-'+key,min:['width','depthSize'].includes(key)?1:0,max,step:'any'}));
+        if(!isLayered(d)||key!=='depth')box.append(field(label,space[key],value=>change(doc=>{const node=doc.scene.nodes.find(n=>n.id===selected);(node.ground??node.anchor)[key]=value;}),{id:'art-space-'+key,min:['width','depthSize'].includes(key)?1:0,max,step:'any'}));
     }
     const bindings=[['','独立布景（无逻辑）'],['actor','主角'],['goal','终点'],...d.entities.map(e=>['entity:'+e.id,e.label]),...d.platforms.map((_,i)=>['platform:'+i,'路面 '+(i+1)])];
     const b=n.bind,value=b?.type==='entity'?'entity:'+b.id:b?.type==='platform'?'platform:'+b.index:b?.type??'';
@@ -81,14 +86,20 @@ export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspe
     const pick=button('在画布中点选绑定',()=>requestBind(selected));pick.id='pick-art-binding';bindActions.append(pick);
     if(n.bind){const inspect=button('查看逻辑实体',()=>inspectLogic(n.bind));inspect.id='inspect-art-logic';bindActions.append(inspect);}
     box.append(bindActions);
-    if(n.bind?.type==='entity'){const e=d.entities.find(e=>e.id===n.bind.id);box.append(select('编辑状态变体',[['','基础资源'],...[...new Set([...STATES[e.kind],...Object.keys(n.variants??{})])].map(s=>[s,s])],variant,v=>{variant=v;render(current);preview(current);},'art-state'));
+    if(n.bind?.type==='entity'&&d.entities.find(e=>e.id===n.bind.id)?.passage)box.append(checkbox('沿入口出口铺设图片',Boolean(n.fitPassage),v=>update('fitPassage',v),'art-fit-passage'));
+    if(n.bind?.type==='entity'){const e=d.entities.find(e=>e.id===n.bind.id);box.append(select('编辑状态变体',[['','基础资源'],...[...new Set([...STATES[e.kind],...(e.passage?['passage-enabled','passage-disabled']:[]),...Object.keys(n.variants??{})])].map(s=>[s,s==='passage-enabled'?'连接可通行':s==='passage-disabled'?'连接关闭':s])],variant,v=>{variant=v;render(current);preview(current);},'art-state'));
       if(variant)box.append(button('移除此状态覆盖',()=>{const state=variant;variant='';change(doc=>{const node=doc.scene.nodes.find(n=>n.id===selected);if(node.variants)delete node.variants[state];});},'text-button'));
+    }
+    if(n.bind?.type==='actor'){
+      box.append(select('人物动作动画',[['','基础行走资源'],...ACTOR_ANIMATIONS],variant,v=>{variant=v;render(current);preview(current);},'art-state'));
+      box.append(el('p','动画由实际移动状态选择；未绑定的方向沿用普通行走。时长由路线决定，逐帧动画循环播放。','panel-note'));
+      if(variant)box.append(button('移除此动作覆盖',()=>{const state=variant;variant='';change(doc=>{const node=doc.scene.nodes.find(n=>n.id===selected);if(node.variants)delete node.variants[state];});},'text-button'));
     }
     box.append(select('图片',library.map(a=>[a.id,a.label]),effective.asset,v=>update('asset',v),'art-asset'));
     const image=el('img',undefined,'asset-inspector-image');image.src=library.find(a=>a.id===effective.asset)?.src??'';image.alt=effective.label;box.append(image);
     const grid=el('div',undefined,'asset-field-grid');box.append(grid);
     for(const [k,label,min,max]of (n.ground?[['layer','显示层级',-100,100]]:[['x',n.bind||n.anchor?'偏移 X':'位置 X',-2400,3600],['y',n.bind||n.anchor?'偏移 Y':'位置 Y',-1280,1920],['width','图片宽度',1,2400],['height','图片高度',1,1920],['rotation','附加角度',-180,180],['layer','显示层级',-100,100]]))
-      grid.append(field(label,effective[k]??0,v=>update(k,v),{id:'art-'+k,min,max,step:k==='rotation'?.1:1}));
+      if(k!=='width'||!n.fitPassage)grid.append(field(label,effective[k]??0,v=>update(k,v),{id:'art-'+k,min,max,step:k==='rotation'?.1:1}));
     box.append(field('不透明度',effective.opacity??1,v=>update('opacity',v),{id:'art-opacity',min:0,max:1,step:.05}));
     box.append(checkbox('水平翻转',effective.flipX??false,v=>update('flipX',v),'art-flip'));
     box.append(checkbox('显示此图片',effective.visible!==false,v=>update('visible',v),'art-visible'));
@@ -114,15 +125,16 @@ export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspe
     row.append(b,eye,lock);list.append(row);
   }}
   function renderOverlay(d){overlay.replaceChildren();
-    for(const n of [...(d.scene?.nodes??[])].sort((a,b)=>a.layer-b.layer)){
+    const ordered=isLayered(d)?layeredArtOrder(d):[...(d.scene?.nodes??[])].sort((a,b)=>a.layer-b.layer);
+    for(const [index,n] of ordered.entries()){
       const t=artTransform(n,d,undefined,{variant:selected===n.id?variant:undefined});if((t.visible===false&&selected!==n.id)||hiddenLayers.has(n.id)||lockedLayers.has(n.id))continue;
       const b=button('',()=>{},'art-object');b.dataset.art=n.id;b.title=n.label;b.setAttribute('aria-label','选择资源：'+n.label);b.setAttribute('aria-pressed',String(n.id===selected));
-      Object.assign(b.style,{left:t.x/12+'%',top:t.y/6.4+'%',width:t.width/12+'%',height:t.height/6.4+'%',transform:'rotate('+t.rotation+'deg)',zIndex:String(n.layer+101)});
+      Object.assign(b.style,{left:t.x/12+'%',top:t.y/6.4+'%',width:t.width/12+'%',height:t.height/6.4+'%',transform:'rotate('+t.rotation+'deg)',zIndex:String(isLayered(d)?index+101:n.layer+101)});
       if(n.ground)b.style.clipPath='polygon('+Object.values(artCorners(n,d)).map(p=>(p.x-t.x)/t.width*100+'% '+(p.y-t.y)/t.height*100+'%').join(',')+')';
       b.onpointerdown=e=>{if(tool||e.button!==0)return;e.preventDefault();e.stopPropagation();begin(e,n.id);};
       b.onclick=e=>{if(tool)return;if(suppress){suppress=false;return;}e.stopPropagation();choose(n.id);};overlay.append(b);
     }
-    const n=d.scene?.nodes.find(n=>n.id===selected);if(n&&!tool&&!hiddenLayers.has(n.id)&&!lockedLayers.has(n.id)){const corners=artCorners(n,d,undefined,{variant});for(const h of ['nw','ne','se','sw']){const handle=button('',()=>{},'resize-handle art-resize');handle.dataset.artResize=h;handle.setAttribute('aria-label','缩放资源 '+h);handle.style.left=corners[h].x/12+'%';handle.style.top=corners[h].y/6.4+'%';handle.style.zIndex='205';handle.onpointerdown=e=>{e.preventDefault();e.stopPropagation();begin(e,n.id,h);};overlay.append(handle);}}
+    const n=d.scene?.nodes.find(n=>n.id===selected);if(n&&!tool&&!hiddenLayers.has(n.id)&&!lockedLayers.has(n.id)){const corners=artCorners(n,d,undefined,{variant});for(const h of ['nw','ne','se','sw']){const handle=button('',()=>{},'resize-handle art-resize');handle.dataset.artResize=h;handle.setAttribute('aria-label','缩放资源 '+h);handle.style.left=corners[h].x/12+'%';handle.style.top=corners[h].y/6.4+'%';handle.style.zIndex='1000';handle.onpointerdown=e=>{e.preventDefault();e.stopPropagation();begin(e,n.id,h);};overlay.append(handle);}}
     overlay.dataset.placing=String(Boolean(tool));
   }
   function begin(event,id,handle){document.activeElement?.blur();if(selected!==id)variant='';selected=id;tool=null;tab='inspect';const before=editor.document();gesture={id,handle,variant,startX:event.clientX,startY:event.clientY,dx:0,dy:0,before,pointerId:event.pointerId,

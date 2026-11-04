@@ -2,6 +2,7 @@ import {ASSETS} from '../content/library.js';
 import {floorY} from '../core/schema.js';
 import {applyMotion} from './feedback.js';
 import {projectSpace} from '../core/spatial.js';
+import {actorAnimationState} from '../core/locomotion.js';
 
 const images=new Map();
 export function assetLibrary(level) {return [...ASSETS,...(level.scene?.assets??[])];}
@@ -14,8 +15,8 @@ export function boundObject(node,level,snapshot) {
 
 /** A pure visual transform sampled from actual logical geometry, never the other way around. */
 export function artTransform(node,level,snapshot,{tick=snapshot?.tick??0,animate=true,variant,feedback,previewTarget}={}) {
-  const object=boundObject(node,level,snapshot),state=variant??object?.state;
-  const variantData=node.variants?.[state],n={...node,...variantData};
+  const object=boundObject(node,level,snapshot),state=variant??(node.bind?.type==='actor'?actorAnimationState(level,snapshot):object?.passage?(object.state==='active'&&object.passage.enabled?'passage-enabled':'passage-disabled'):object?.state);
+  const variantData=node.variants?.[state]??(node.bind?.type==='actor'&&['walk-left','walk-right','inward','outward'].includes(state)?node.variants?.walking:object?.passage?node.variants?.[object.state]:undefined),n={...node,...variantData};
   if(n.ground){const g=n.ground,p=projectSpace(level,{x:g.x,depth:g.depth+g.depthSize,height:g.height}),q=projectSpace(level,{x:g.x+g.width,depth:g.depth,height:g.height});
     return {...n,x:Math.min(p.x,q.x,g.x+g.depth*level.spatial.projection.depthX),y:p.y,width:g.width+Math.abs(g.depthSize*level.spatial.projection.depthX),height:q.y-p.y,rotation:0};}
   if(!snapshot&&previewTarget===node.id)n.visible=true;
@@ -26,6 +27,11 @@ export function artTransform(node,level,snapshot,{tick=snapshot?.tick??0,animate
     x=object.x+pivot+(n.x-pivot)*Math.cos(r)-n.y*Math.sin(r);
     y=floorY(object)+(n.x-pivot)*Math.sin(r)+n.y*Math.cos(r);rotation+=angle;
     if(level.spatial){const p=projectSpace(level,{x:object.x,depth:object.space?.depth??0,height:object.space?.height??0});x+=p.x-object.x;y+=p.y-floorY(object);}
+    if(n.fitPassage&&object.passage){
+      const nodes=level.spatial.nodes,a=projectSpace(level,nodes.find(p=>p.id===object.passage.from)),b=projectSpace(level,nodes.find(p=>p.id===object.passage.to));
+      const r=Math.atan2(b.y-a.y,b.x-a.x);x=a.x+n.x*Math.cos(r)-n.y*Math.sin(r);y=a.y+n.x*Math.sin(r)+n.y*Math.cos(r);
+      rotation=(n.rotation??0)+r*180/Math.PI;n.width=Math.hypot(b.x-a.x,b.y-a.y);
+    }
   }
   const animation=variantData&&Object.hasOwn(variantData,'animation')?variantData.animation:variantData?.asset?null:node.animation;
   const frames=animation?.frames,frame=animate&&!['lost','won'].includes(snapshot?.status)?Math.floor(tick*(animation?.fps??1)/60):0;

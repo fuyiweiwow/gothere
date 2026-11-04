@@ -1,4 +1,5 @@
-import {projectSpace,spaceObjectSurface} from '../core/spatial.js';
+import {projectSpace,spaceObjectSurface,isLayered} from '../core/spatial.js';
+import {drawLayered} from './layered.js';
 import {artTransform,artBounds,artCorners,boundObject,assetImage,assetLibrary} from './resources.js';
 import {createDepthBuffer} from './depth-buffer.js';
 
@@ -16,6 +17,7 @@ const rgba=(hex,opacity=1)=>{const n=hex.slice(1);return [parseInt(n.slice(0,2),
 /** World faces and upright sprites share a per-pixel depth buffer. Route overlays
  * remain editor annotations; drawing never changes support or collision. */
 export function drawSpatial(ctx,level,snapshot,{logic=false,...options}={}) {
+  if(isLayered(level)){drawLayered(ctx,level,snapshot,{logic,...options});return;}
   ctx.fillStyle=level.scene?.background??'#161e2b';ctx.fillRect(0,0,1200,640);
   const project=(x,depth,height)=>({...projectSpace(level,{x,depth,height}),depth});
   ctx.strokeStyle='#ffffff0a';ctx.lineWidth=1;

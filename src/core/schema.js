@@ -12,9 +12,10 @@ export const STATES = Object.freeze({
 });
 export const SKINS = Object.freeze({axe:'斧子',crate:'箱子',crocodile:'鳄鱼',orb:'小圆球'});
 export const floorY = (value) => value?.y ?? 440;
-export const eventTypes = (source) => {const kind=typeof source==='string'?source:source?.kind;return [...(kind==='object'?['contact','click']:['switch','hazard'].includes(kind)?['click']:[]),
+export const eventTypes = (source) => {const kind=typeof source==='string'?source:source?.kind;return [...(kind==='object'?['contact','click',...(source?.space?['placed']:[])]:['switch','hazard'].includes(kind)?['click']:[]),
   ...(kind==='plate'||kind==='zone'?['enter']:[]), ...(['zone','object'].includes(kind)?[]:['contact']),
-  ...(kind==='lift'?['board','arrive']:[]), ...(kind==='ladder'||(kind==='object'&&verticalTransport(source))?['arrive']:[]),
+  ...(kind==='lift'?['board','arrive']:[]), ...(kind==='ladder'||(kind==='object'&&(verticalTransport(source)||source?.passage))?['arrive']:[]),
+  ...(source?.passage?['board']:[]),
   ...(typeof source==='object'&&source?.pose?['rotated']:[]),
   ...(typeof source==='object'&&source?.kind==='object'&&source.space?['moved']:[]),
   ...(source?.body||source?.supportProbe?['supportlost']:[]),...(source?.body?['landed']:[]),
@@ -36,7 +37,7 @@ export function validateLevel(input,{spatialDraft=false}={}) {
   input=normalizeLevel(input);
   errors.push(...validateScene(input));
   errors.push(...validateSpatial(input,{draft:spatialDraft}));
-  check(levelVersionValid(input), 'schemaVersion：横版关卡必须为 1，空间关卡必须为 2。');
+  check(levelVersionValid(input), 'schemaVersion：横版关卡为 1，空间实验为 2，二维分层为 3。');
   check(text(input.id, 48) && idPattern.test(input.id), 'id 必须是小写英文、数字或短横线，以字母开头。');
   check(text(input.name, 60), 'name 必须是 1～60 字的关卡名称。');
   check(text(input.description, 300), 'description 必须是 1～300 字的玩法说明。');
@@ -84,6 +85,7 @@ export function validateLevel(input,{spatialDraft=false}={}) {
         entity.body===undefined&&Boolean(world?.physics),'支撑检测需要 at（0～1），不与动态重力组合，并需要重力模式：'+entity.id);
       if(entity.carriedPhysics!==undefined)check(entity.kind==='object'&&object(entity.carriedPhysics)&&number(entity.carriedPhysics.gravityScale,0.05,1)&&
         number(entity.carriedPhysics.maxFallSpeed,60,1800)&&Boolean(world?.physics),'持有时下落需要 gravityScale（0.05～1）、maxFallSpeed（60～1800）及重力模式：'+entity.id);
+      if(entity.passage!==undefined)check(input.spatial?.mode==='layered','内外连接需要二维分层 DSL v3。');
       if(entity.collider!==undefined){
         check(entity.kind==='object'&&object(entity.collider)&&typeof entity.collider.enabled==='boolean','矩形碰撞体需要 collider.enabled 布尔值：'+entity.id);
         check(entity.pose===undefined&&entity.transport===undefined,'矩形碰撞体暂不与姿态或高度通道组合：'+entity.id);
@@ -180,6 +182,8 @@ export function validateLevel(input,{spatialDraft=false}={}) {
         check(byId.get(action.target)?.kind==='object', 'hold 目标必须是物件。');
       } else if (action.type === 'drop') {
         // One hand slot. Dropping an empty slot is harmless.
+      } else if(action.type==='place'){
+        check(Boolean(input.spatial)&&byId.get(action.target)?.kind==='object'&&byId.has(action.at)&&action.target!==action.at&&number(action.range,20,160),'place 需要持有物体、不同的接收对象与范围（20～160）。');
       } else if (action.type === 'hurt') {
         check(action.message===undefined || text(action.message,120), 'hurt.message 最多 120 字。');
       } else if (action.type === 'turn') {
@@ -194,13 +198,13 @@ export function validateLevel(input,{spatialDraft=false}={}) {
         check(!entity||(input.spatial?spatialPoseInBounds(entity,action.angle):poseInBounds(entity,action.angle)),'rotate 的目标端点超出地图高度范围：'+String(action.target));
       } else if(action.type==='move') {
         const e=byId.get(action.target);
-        check(Boolean(input.spatial&&e?.kind==='object'&&!e.motion&&!e.body&&!e.transport),'move 需要空间普通物体，不能组合巡逻、动态刚体或旧运输能力。');
+        check(Boolean(input.spatial&&e?.kind==='object'&&!e.motion&&!e.body&&!e.transport&&!e.passage),'move 需要空间普通物体，不能组合巡逻、动态刚体或连接能力。');
         check(number(action.x,25,1200-(e?.width??28))&&number(action.depth,0,600-(e?.space?.depthSize??24))&&number(action.height,0,360)&&action.y===undefined&&
           Number.isInteger(action.ticks)&&number(action.ticks,1,3600),'move 需要合法的 x、depth、height 与 ticks（1～3600）。');
         if(e?.pose)check(spatialPoseInBounds({...e,x:action.x,space:{...e.space,height:action.height}}),'move 的姿态端点超出地图范围。');
       } else if (action.type === 'enable') {
-        check(['collider','surface'].includes(action.capability)&&object(byId.get(action.target)?.[action.capability])&&typeof action.enabled==='boolean',
-          'enable 需要已定义的 collider/surface 能力和 enabled 布尔值。');
+        check(['collider','surface','passage'].includes(action.capability)&&object(byId.get(action.target)?.[action.capability])&&typeof action.enabled==='boolean',
+          'enable 需要已定义的 collider/surface/passage 能力和 enabled 布尔值。');
       } else errors.push('未知动作类型：' + String(action.type));
     }
   };
@@ -211,7 +215,7 @@ export function validateLevel(input,{spatialDraft=false}={}) {
       const source = object(rule.on) ? byId.get(rule.on.source) : null;
       check(Boolean(source && eventTypes(source).includes(rule.on.type)), 'rules[' + index + '] 的事件源或事件类型无效。');
       if(rule.on?.type==='done')check(Array.isArray(source?.behaviors) && source.behaviors.some(b=>b?.id===rule.on.behavior),'done 需要指定已定义的行为。');
-      if(rule.on?.other!==undefined)check(rule.on.type==='impact'&&Boolean(byId.get(rule.on.other)?.body),'impact.other 需要引用动态物体。');
+      if(rule.on?.other!==undefined)check(rule.on.type==='impact'?Boolean(byId.get(rule.on.other)?.body):rule.on.type==='placed'&&byId.has(rule.on.other),'事件关联对象无效：impact 需要动态物体，placed 需要接收对象。');
       if (rule.if !== undefined) conditionsValid(rule.if, 'rules[' + index + ']');
       actionsValid(rule.actions);
     });
