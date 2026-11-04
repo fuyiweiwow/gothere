@@ -1,5 +1,6 @@
 import {projectSpace,unprojectSpace,spaceBounds} from '../core/spatial.js';
 import {moveObject,resizeObject} from './model.js';
+import {snapSpacePoint} from './spatial-snapping.js';
 
 const el=(tag,text)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;return e;};
 const button=(text,fn)=>{const b=el('button',text);b.type='button';b.className='button secondary';b.onclick=fn;return b;};
@@ -7,13 +8,14 @@ export function createSpatialUI({document:current,change,preview,choose,selectio
   const overlay=document.getElementById('editor-overlay');let selectedNode=null,gesture=null,suppress=false;
   const round=v=>Math.round(v*10)/10;
   function number(parent,label,id,value,update,min=0,max=1200){
-    const row=el('label',label);row.className='editor-field';const input=el('input');Object.assign(input,{id,type:'number',min,max,step:'any',value});
-    input.onchange=()=>{const v=Number(input.value);if(Number.isFinite(v)&&v>=min&&v<=max)update(v);};row.append(input);parent.append(row);
+    const row=el('label');row.className='edit-field';row.append(el('span',label));const input=el('input');Object.assign(input,{id,type:'number',min,max,step:'any',value});input.setAttribute('aria-label',label);
+    input.onchange=()=>{const v=Number(input.value);if(input.value&&Number.isFinite(v)&&v>=min&&v<=max)update(v);else input.value=value;};
+    input.onkeydown=e=>{if(!['Enter','Escape'].includes(e.key)||e.isComposing)return;e.preventDefault();e.stopPropagation();if(e.key==='Escape')input.value=value;input.blur();};row.append(input);parent.append(row);
   }
   function syncStart(d,n){if(n.id===d.spatial.start){d.actor.x=n.x;d.actor.space.depth=n.depth;d.actor.space.height=n.height;}}
   function fields(d,box,map){
     const header=el('h3','空间与路线');map.append(header,el('p','拖动路线圆点改变地面走向；高度单独设置。线路交叉不会自动连通。'));
-    number(map,'放置纵深','space-placement-depth',placement.depth,v=>placement.depth=v,0,600);
+    number(map,'新节点纵深','space-placement-depth',placement.depth,v=>placement.depth=v,0,600);
     number(map,'放置离地高度','space-placement-height',placement.height,v=>placement.height=v,0,360);
     for(const key of ['originY','depthX','depthY'])number(map,'投影 '+key,'space-projection-'+key,d.spatial.projection[key],v=>change(doc=>doc.spatial.projection[key]=v),key==='originY'?200:key==='depthX'?-.5:-1,key==='originY'?620:key==='depthX'?.5:-.2);
     map.append(button('添加路线节点',()=>change(doc=>{let i=1;while(doc.spatial.nodes.some(n=>n.id==='node-'+i))i++;const n={id:'node-'+i,x:600,depth:placement.depth,height:placement.height};doc.spatial.nodes.push(n);selectedNode=n.id;})));
@@ -50,8 +52,11 @@ export function createSpatialUI({document:current,change,preview,choose,selectio
     gesture={...spec,before:current(),x:e.clientX,y:e.clientY,dx:0,dy:0,pointer:e.pointerId};overlay.setPointerCapture(e.pointerId);overlay.dataset.dragging='true';
   }
   function apply(d,g){
-    if(g.node){const n=d.spatial.nodes.find(n=>n.id===g.node),delta=unprojectSpace(d,{x:g.dx,y:d.spatial.projection.originY+g.dy},0);n.x=round(Math.max(20,Math.min(1180,n.x+delta.x)));n.depth=round(Math.max(0,Math.min(600,n.depth+delta.depth)));syncStart(d,n);}
-    else if(g.handle)resizeObject(d,g.ref,g.handle,g.dx,g.dy);else moveObject(d,g.ref,g.dx,g.dy);
+    const options={threshold:g.threshold??12,disabled:g.disabled,nodes:document.getElementById('snap-enabled').checked,surfaces:document.getElementById('surface-snap').checked};
+    if(g.node){const n=d.spatial.nodes.find(n=>n.id===g.node),delta=unprojectSpace(d,{x:g.dx,y:d.spatial.projection.originY+g.dy},0);n.x=round(Math.max(20,Math.min(1180,n.x+delta.x)));n.depth=round(Math.max(0,Math.min(600,n.depth+delta.depth)));const p=snapSpacePoint(d,n,{...options,exclude:n.id});n.x=p.x;n.depth=p.depth;syncStart(d,n);}
+    else if(g.handle)resizeObject(d,g.ref,g.handle,g.dx,g.dy);
+    else{moveObject(d,g.ref,g.dx,g.dy);const t=g.ref.type==='entity'?d.entities.find(e=>e.id===g.ref.id):g.ref.type==='platform'?d.platforms[g.ref.index]:d[g.ref.type],p={x:t.x,depth:t.space.depth,height:t.space.height};
+      const snapped=snapSpacePoint(d,p,{...options,exclude:g.ref.type==='actor'?d.spatial.start:undefined,surfaces:g.ref.type==='platform'?false:options.surfaces}),a=projectSpace(d,p),b=projectSpace(d,snapped);if(a.x!==b.x||a.y!==b.y)moveObject(d,g.ref,b.x-a.x,b.y-a.y);}
   }
   function renderOverlay(d){
     overlay.replaceChildren();renderWires(d);
@@ -65,7 +70,7 @@ export function createSpatialUI({document:current,change,preview,choose,selectio
       Object.assign(v.style,{left:p.x/12+'%',top:p.y/6.4+'%'});v.onpointerdown=e=>begin(e,{node:n.id});v.onclick=e=>{e.stopPropagation();if(suppress){suppress=false;return;}selectedNode=n.id;choose(null);};overlay.append(v);}
     wireRender(d);
   }
-  window.addEventListener('pointermove',e=>{if(!gesture||e.pointerId!==gesture.pointer)return;const r=overlay.getBoundingClientRect();gesture.dx=(e.clientX-gesture.x)/r.width*1200;gesture.dy=(e.clientY-gesture.y)/r.height*640;const d=structuredClone(gesture.before);apply(d,gesture);renderOverlay(d);preview(d);});
+  window.addEventListener('pointermove',e=>{if(!gesture||e.pointerId!==gesture.pointer)return;const r=overlay.getBoundingClientRect();gesture.dx=(e.clientX-gesture.x)/r.width*1200;gesture.dy=(e.clientY-gesture.y)/r.height*640;gesture.threshold=12*1200/r.width;gesture.disabled=e.altKey;const d=structuredClone(gesture.before);apply(d,gesture);renderOverlay(d);preview(d);});
   function cancel(){if(!gesture)return;const id=gesture.pointer;gesture=null;delete overlay.dataset.dragging;if(overlay.hasPointerCapture(id))overlay.releasePointerCapture(id);renderOverlay(current());preview(current());}
   window.addEventListener('pointerup',e=>{if(!gesture||e.pointerId!==gesture.pointer)return;const g=gesture;gesture=null;delete overlay.dataset.dragging;overlay.releasePointerCapture(e.pointerId);suppress=true;if(g.dx||g.dy)change(d=>apply(d,g));});
   overlay.addEventListener('lostpointercapture',cancel);overlay.addEventListener('pointercancel',cancel);window.addEventListener('blur',cancel);

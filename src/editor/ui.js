@@ -176,9 +176,10 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
       const el=button(name,()=>{tool=kind;if(kind==='wire')showTab('logic');render();},'tool-button');el.dataset.tool=kind;el.title=kind==='select'?'选择工具 (V)':'连线工具 (W)';el.setAttribute('aria-pressed',String(kind===tool));$('editor-tools').append(el);
     }
     const help=button('快捷键',()=>shortcutDialog.showModal(),'tool-button');help.id='editor-shortcuts';help.title='快捷键速查 (F1)';$('editor-tools').append(help);
-    if(diagram){const modeSelect=select([['cursor','按点击高度'],['fixed','固定高度']],placementMode,'高度放置方式',value=>{placementMode=value;renderTools();});modeSelect.id='placement-mode';$('editor-tools').append(modeSelect);}
-    const placement=input(placementY,'放置高度 Y',value=>{placementY=value;placementMode='fixed';renderTools();},{id:'placement-y',type:'number',min:160,max:560,step:10});
-    $('editor-tools').append(field('放置在 Y',placement));
+    const spatial=Boolean(store.document().spatial);
+    if(diagram&&!spatial){const modeSelect=select([['cursor','按点击高度'],['fixed','固定高度']],placementMode,'高度放置方式',value=>{placementMode=value;renderTools();});modeSelect.id='placement-mode';$('editor-tools').append(modeSelect);}
+    const placement=input(spatial?spatialUI.placement.height:placementY,spatial?'放置离地高度':'放置高度 Y',value=>{if(spatial)spatialUI.placement.height=value;else{placementY=value;placementMode='fixed';}renderTools();},{id:'placement-y',type:'number',min:spatial?0:160,max:spatial?360:560,step:10});
+    $('editor-tools').append(field(spatial?'离地高度':'放置在 Y',placement));
     const view=select([['all','全部连线'],['related','选中物体的连线'],['none','隐藏连线']],wireView,'连线显示',value=>{wireView=value;renderOverlay(store.document());});view.id='wire-view';$('editor-tools').append(view);
     $('editor-help').textContent=tool==='select'?(diagram?'拖动物体移动 · 拖动节点缩放 · 从物体右侧圆点或事件槽拖出连线':'拖动物体 · 双击连线添加转接点'):tool==='wire'?'右侧圆点输出事件 → 拖到目标物体选择行为 · 也可点起点再点目标 · Esc 取消':(CATALOG.find(i=>i.kind===tool)?.name??'物体')+(diagram?'：连续点击放置':'：点击地图放置')+(diagram?(placementMode==='cursor'?' · 高度跟随点击':' · 固定 Y='+placementY):'')+' · Esc 取消';
   }
