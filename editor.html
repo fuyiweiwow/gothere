@@ -44,8 +44,8 @@
       <h3>事件记录</h3><ol id="runtime-log"></ol>
     </aside>
   </main>
-  <footer class="app-footer"><span id="document-summary">schemaVersion 1</span><span>逻辑 · 资源 · 绑定校准 · 草稿在本机保存</span></footer>
-  <dialog id="data-dialog" aria-labelledby="data-title"><div class="dialog-heading"><h2 id="data-title">关卡 JSON</h2><button id="close-data" class="button secondary" aria-label="关闭关卡数据">关闭</button></div><p class="panel-note">编辑与模拟共用同一数据格式。导入会新增草稿；模拟不会改变编辑内容。含图片的 JSON 最多 1 MiB。</p><label for="level-json">当前草稿 · schemaVersion 1</label><textarea id="level-json" spellcheck="false" maxlength="1048576"></textarea><p id="data-error" class="data-error" role="alert" hidden></p><div class="dialog-actions"><button id="import-level" class="button secondary">选择 JSON 文件</button><button id="export-level" class="button secondary">导出当前草稿</button><button id="apply-level" class="button primary">导入为新草稿</button></div><input id="level-file" type="file" accept=".json,application/json" hidden></dialog>
+  <footer class="app-footer"><span id="document-summary">关卡 DSL</span><span>逻辑 · 资源 · 绑定校准 · 草稿在本机保存</span></footer>
+  <dialog id="data-dialog" aria-labelledby="data-title"><div class="dialog-heading"><h2 id="data-title">关卡 JSON</h2><button id="close-data" class="button secondary" aria-label="关闭关卡数据">关闭</button></div><p class="panel-note">编辑与模拟共用同一数据格式。横版为 v1，空间为 v2；旧空间预览稿导入时自动升级。导入会新增草稿；含图片的 JSON 最多 1 MiB。</p><label id="level-json-label" for="level-json">当前草稿</label><textarea id="level-json" spellcheck="false" maxlength="1048576"></textarea><p id="data-error" class="data-error" role="alert" hidden></p><div class="dialog-actions"><button id="import-level" class="button secondary">选择 JSON 文件</button><button id="export-level" class="button secondary">导出当前草稿</button><button id="apply-level" class="button primary">导入为新草稿</button></div><input id="level-file" type="file" accept=".json,application/json" hidden></dialog>
   <div id="toast" class="toast" role="status" hidden></div>
   <script type="module" src="/src/shell/editor.js"></script>
 </body>

@@ -1,7 +1,7 @@
 /** An ordinary DSL fixture. No runtime code recognizes its IDs or the example's subject matter. */
 export function createSpatialLevel() {
   const node=(id,x,depth,height,next)=>({id,x,depth,height,...(next?{next}:{})});
-  return {schemaVersion:1,id:'spatial-graybox',name:'空间灰盒 · 近路与远路',
+  return {schemaVersion:2,id:'spatial-graybox',name:'空间灰盒 · 近路与远路',
     description:'点击近侧移动物使它休息，再观察人物向远处走、上坡、穿过高架并落回地面。路线与物体都可编辑。',
     hint:'逻辑视图拖动圆点编辑路线；物体属性分别设置纵深与离地高度。美术视图显示同一空间，可添加并绑定自己的图片。',
     world:{width:1200,height:640,groundY:440,physics:{gravity:900,maxFallSpeed:480}},

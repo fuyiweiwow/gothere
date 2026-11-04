@@ -152,7 +152,7 @@ function frame(now){
 requestAnimationFrame(frame);
 document.addEventListener('visibilitychange',()=>{if(document.hidden){preview?.pause();sound.setPaused(true);accumulator=0;updateDebug();}});
 function download(text,name,type){const url=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
-$('open-data').addEventListener('click',()=>{preview?.pause();updateDebug();$('level-json').value=JSON.stringify(editor.document(),null,2);$('data-error').hidden=true;$('apply-level').disabled=!editor.isEditing();$('data-dialog').showModal();});
+$('open-data').addEventListener('click',()=>{preview?.pause();updateDebug();const level=editor.document();$('level-json').value=JSON.stringify(level,null,2);$('level-json-label').textContent='当前草稿 · schemaVersion '+level.schemaVersion;$('data-error').hidden=true;$('apply-level').disabled=!editor.isEditing();$('data-dialog').showModal();});
 $('close-data').addEventListener('click',()=>$('data-dialog').close());
 $('export-level').addEventListener('click',()=>download(JSON.stringify(editor.document(),null,2),editor.document().id+'.json','application/json'));
 $('import-level').addEventListener('click',()=>$('level-file').click());

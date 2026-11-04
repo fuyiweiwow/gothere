@@ -5,6 +5,7 @@ import { posedSurface } from './pose.js';
 import { initializeBodies, advanceBodies } from './bodies.js';
 import { updateSupportProbes } from './support.js';
 import {initializeSpatialActor,advanceSpatialActor,spaceTouches,spaceGoalReached} from './spatial.js';
+import {normalizeLevel} from './level-version.js';
 export { validateLevel } from './schema.js';
 export const TICKS_PER_SECOND = 60;
 const clone = (value) => structuredClone(value);
@@ -14,7 +15,7 @@ const MAX_TICKS = 36000;
 export function createSimulation(input) {
   const validation = validateLevel(input);
   if (!validation.valid) throw new Error(validation.errors.join('\n'));
-  const level = clone(input);
+  const level = normalizeLevel(input);
   const stripLayout=list=>{for(const a of list){delete a.editor;if(a.type==='after')stripLayout(a.actions);}};
   for(const rule of level.rules)stripLayout(rule.actions);
   for(const entity of level.entities)for(const behavior of entity.behaviors??[])stripLayout(behavior.actions);

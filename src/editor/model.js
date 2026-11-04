@@ -6,10 +6,11 @@ import { posePoint, poseInBounds } from '../core/pose.js';
 import {validateScene} from '../core/scene-schema.js';
 import {pruneFeedback} from '../core/feedback-schema.js';
 import {validateSpatial,unprojectSpace} from '../core/spatial.js';
+import {normalizeLevel,levelVersionValid} from '../core/level-version.js';
 
 const clone = (value) => structuredClone(value);
 const finiteY = value => value?.y === undefined || Number.isFinite(value.y);
-const shape = (level) => Boolean(level && level.schemaVersion === 1 && level.world?.width === 1200 &&
+const shape = (level) => Boolean(level && levelVersionValid(level) && level.world?.width === 1200 &&
   level.world?.height === 640 && level.world?.groundY === 440 && typeof level.id === 'string' &&
   typeof level.name === 'string' && typeof level.description === 'string' &&
   Number.isFinite(level.actor?.x) && Number.isFinite(level.actor?.speed) && Number.isFinite(level.goal?.x) && finiteY(level.actor) && finiteY(level.goal) &&
@@ -40,6 +41,7 @@ export function createEditorStore(serialized) {
     if (saved.version !== 1 || !Array.isArray(saved.documents) || saved.documents.length > 32 ||
       !saved.documents.length || typeof saved.activeKey !== 'string') throw new Error('无法识别草稿版本。');
     for (const entry of saved.documents) {
+      entry.level=normalizeLevel(entry.level);
       if (typeof entry.key !== 'string' || slots.has(entry.key) || !shape(entry.level)) throw new Error('草稿结构损坏。');
       slots.set(entry.key, { level:clone(entry.level), past:[], future:[] });
     }
@@ -52,11 +54,13 @@ export function createEditorStore(serialized) {
     revision:()=>workspaceRevision,
     resetWorkspace(key,initial,revision){
       if(revision===workspaceRevision)return false;
+      initial=normalizeLevel(initial);
       if(typeof revision!=='string'||!revision.length||revision.length>80||!shape(initial))throw new Error('里程碑工作区无效。');
       slots.clear();slots.set(key,{level:clone(initial),past:[],future:[]});active=key;workspaceRevision=revision;return true;
     },
     open(key, initial) {
       if (!slots.has(key)) {
+        initial=normalizeLevel(initial);
         if (slots.size >= 32) throw new Error('草稿已满（32 张）。请先导出备份并清理浏览器草稿。');
         if (!shape(initial)) throw new Error('关卡结构无效。');
         slots.set(key, { level:clone(initial), past:[], future:[] });

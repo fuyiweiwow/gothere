@@ -7,7 +7,7 @@ import {createEditorStore} from '../src/editor/model.js';
 import {artTransform} from '../src/render/resources.js';
 
 export function spatialFixture() {
-  return {schemaVersion:1,id:'spatial-test',name:'空间测试',description:'横向与纵深分别行走。',
+  return {schemaVersion:2,id:'spatial-test',name:'空间测试',description:'横向与纵深分别行走。',
     world:{width:1200,height:640,groundY:440,physics:{gravity:900,maxFallSpeed:480}},
     spatial:{projection:{originY:540,depthX:0.18,depthY:-0.65},start:'a',nodes:[
       {id:'a',x:100,depth:40,height:0,next:'b'},
