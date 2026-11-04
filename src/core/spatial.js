@@ -104,7 +104,8 @@ export function advanceSpatialActor(level,entities,actor) {
     const dt=target?Math.min(remaining,distance/level.actor.speed):remaining,travel=dt*level.actor.speed;
     actor.x+=actor.heading.x*travel;actor.space.depth+=actor.heading.depth*travel;
     if(Math.abs(actor.heading.x)>EPS)actor.direction=actor.heading.x>0?1:-1;
-    const support=spaceSupport(level,entities,actor,travel*2+EPS);
+    const support=spaceSurfaces(level,entities).map(s=>({id:s.id,height:surfaceAt(s,actor.x,actor.space.depth),before:surfaceAt(s,from.x,from.depth)}))
+      .filter(s=>s.height!==null&&s.before!==null&&Math.abs(s.before-from.height)<EPS).sort((a,b)=>b.height-a.height)[0];
     if(actor.mode==='walking'&&support){actor.space.height=support.height;actor.support=support.id;actor.vh=0;}
     else {
       if(actor.mode!=='falling'){actor.mode='falling';actor.vh=0;actor.support=null;}

@@ -5,7 +5,7 @@ import { surfaceEndY } from '../core/surfaces.js';
 import { posePoint, poseInBounds } from '../core/pose.js';
 import {validateScene} from '../core/scene-schema.js';
 import {pruneFeedback} from '../core/feedback-schema.js';
-import {validateSpatial} from '../core/spatial.js';
+import {validateSpatial,unprojectSpace} from '../core/spatial.js';
 
 const clone = (value) => structuredClone(value);
 const finiteY = value => value?.y === undefined || Number.isFinite(value.y);
@@ -101,9 +101,10 @@ export const KIND_NAMES = {platform:'路面 / 平台',bridge:'木桥',switch:'�
   object:'物件 / 生物',zone:'区域触发器',ladder:'高度通道（旧版）',lift:'电梯'};
 
 export function addObject(level, kind, x, y=440) {
+  const space=level.spatial?{depth:60,depthSize:kind==='platform'?60:24,height:0}:null;
   if (kind === 'platform') {
     if (level.platforms.length >= 64) throw new Error('最多放置 64 段路面。');
-    level.platforms.push({x:Math.max(0,Math.min(1000,x)),width:200,...(y!==440?{y}:{})});
+    level.platforms.push({x:Math.max(0,Math.min(1000,x)),width:200,...(space?{space}:y!==440?{y}:{})});
     return {type:'platform',index:level.platforms.length-1};
   }
   if (!Object.hasOwn(STATES,kind)) throw new Error('未知机关。');
@@ -111,7 +112,7 @@ export function addObject(level, kind, x, y=440) {
   let serial=1; while (level.entities.some(e=>e.id===kind+'-'+serial)) serial++;
   const id=kind+'-'+serial, width={bridge:160,switch:28,hazard:58,plate:44,gate:24,object:48,zone:90,ladder:40,lift:60}[kind];
   level.entities.push({id,kind,x:Math.max(25,Math.min(1200-width,x)),width,state:STATES[kind][0],label:KIND_NAMES[kind]+serial,
-    ...(y!==440?{y}:{}),...(kind==='object'?{appearance:{skin:'orb'}}:{}),
+    ...(space?{space}:y!==440?{y}:{}),...(kind==='object'?{appearance:{skin:'orb'}}:{}),
     ...(['ladder','lift'].includes(kind)?{y:Math.max(200,y),toY:Math.max(160,y-180),speed:90}:{} )});
   return {type:'entity',id};
 }
@@ -215,6 +216,13 @@ export function setSupportProbe(level,entity,enabled) {
 export function resizeObject(level,ref,handle,dx,dy,{snap=true,threshold=24}={}) {
   const e=ref.type==='entity'?level.entities.find(e=>e.id===ref.id):ref.type==='platform'?level.platforms[ref.index]:null;
   if(!e)return;
+  if(level.spatial){
+    if(handle.includes('e'))e.width=clamp(e.width+dx,8,Math.min(600,1200-e.x));
+    if(handle.includes('w')){const shift=clamp(dx,25-e.x,e.width-8);e.x+=shift;e.width-=shift;}
+    if(handle.includes('n'))e.height=clamp((e.height??36)-dy,8,240);
+    if(handle.includes('s'))e.space.depthSize=clamp((e.space.depthSize??24)+dy/level.spatial.projection.depthY,1,600-e.space.depth);
+    return;
+  }
   const road=ref.type==='platform',b=diagramBounds(e.kind??'platform',e),t=channelConfig(e);
   if(e.pose){
     const left=posePoint(e,0),right=posePoint(e,1);
@@ -252,6 +260,14 @@ export function moveObject(level, ref, dx, dy=0) {
   const target=ref.type==='entity'?level.entities.find(e=>e.id===ref.id):
     ref.type==='platform'?level.platforms[ref.index]:ref.type==='actor'?level.actor:ref.type==='goal'?level.goal:null;
   if(!target)return;
+  if(level.spatial){
+    const originalX=target.x;
+    const delta=unprojectSpace(level,{x:dx,y:level.spatial.projection.originY+dy},0);
+    target.x=clamp(target.x+delta.x,25,1200-(target.width??28));target.space.depth=clamp(target.space.depth+delta.depth,0,600-(target.space.depthSize??0));
+    if(target.motion){const shift=target.x-originalX;target.motion.minX+=shift;target.motion.maxX+=shift;}
+    if(ref.type==='actor'){const n=level.spatial.nodes.find(n=>n.id===level.spatial.start);n.x=target.x;n.depth=target.space.depth;n.height=target.space.height;}
+    return;
+  }
   let min=ref.type==='platform'?0:ref.type==='goal'?40:ref.type==='actor'?20:25;
   let max=ref.type==='actor'?1150:ref.type==='goal'?1180:Math.min(ref.type==='entity'?1175:1199,1200-(target.width??28));
   if(target.motion){min+=target.x-target.motion.minX;max-=target.motion.maxX-target.x;}

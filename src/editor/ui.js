@@ -12,6 +12,8 @@ import {alignMove,drawGuides} from './alignment.js';
 import {snapToSurface} from './surface-snapping.js';
 import {createWireUI} from './wire-ui.js';
 import {connectWire} from './wire-creation.js';
+import {createSpatialUI} from './spatial-ui.js';
+import {spaceBounds,unprojectSpace} from '../core/spatial.js';
 
 const $ = id => document.getElementById(id);
 const STORAGE = 'gothere.editor.v1';
@@ -69,7 +71,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
   function flushField(){const active=document.activeElement;if(active?.matches('input,textarea,select,[contenteditable="true"]'))active.blur();}
   function capturePointer(event){$('editor-overlay').setPointerCapture(event.pointerId);$('editor-overlay').dataset.dragging='true';}
   function releasePointer(pointerId){const overlay=$('editor-overlay');delete overlay.dataset.dragging;if(overlay.hasPointerCapture(pointerId))overlay.releasePointerCapture(pointerId);}
-  function cancelGesture(){const wiring=wireUI?.cancel()??false,active=drag??routeDrag;if(!active)return wiring;drag=null;routeDrag=null;releasePointer(active.pointerId);suppressClick=true;drawGuides($('alignment-guides'),[]);render();return true;}
+  function cancelGesture(){spatialUI?.cancel();const wiring=wireUI?.cancel()??false,active=drag??routeDrag;if(!active)return wiring;drag=null;routeDrag=null;releasePointer(active.pointerId);suppressClick=true;drawGuides($('alignment-guides'),[]);render();return true;}
   function beginDrag(event,ref,handle){
     if(event.button!==0)return;
     event.preventDefault();event.stopPropagation();
@@ -96,17 +98,28 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
       event.preventDefault();event.stopPropagation();const index=event.key==='Home'?0:event.key==='End'?3:(ids.indexOf(id)+(event.key==='ArrowRight'?1:3))%4;showTab(ids[index]);$('editor-tab-'+ids[index]).focus();});
   }
   $('library-search').addEventListener('input',()=>{query=$('library-search').value;renderLibrary(store.document());});
-  function chooseObject(ref) {selection=ref;selectedWire=null;tool='select';showTab('object');render();}
+  function chooseObject(ref) {spatialUI.clearNode();selection=ref;selectedWire=null;tool='select';showTab('object');render();}
   function beginWire(source,type,behavior) {
     tool='wire';wireSource=source;wireEvent=type;wireSourceBehavior=behavior??null;wireTarget=null;wireBehavior=null;
     showTab('logic');render();
   }
   wireUI=createWireUI({overlay:$('editor-overlay'),document:()=>store.document(),enabled:()=>mode==='editing'&&document.body.dataset.editTarget!=='art',change:edit,notify});
+  const spatialUI=createSpatialUI({document:()=>store.document(),change:edit,preview:onPreview,choose:ref=>{selection=ref;selectedWire=null;tool='select';showTab('object');render();},selection:()=>selection,
+    renderWires,wireRender:d=>wireUI.render(d,{selection,wireTool:tool==='wire'}),behaviorFields:(d,target,box)=>{
+      renderSlots(d,target,box);
+      const state=select(STATES[target.kind].map(s=>[s,stateLabel(s)]),target.state,'初始状态',value=>edit(doc=>{resolveObject(doc,selection).state=value;}));state.id='object-state';box.append(field('初始状态',state));
+      box.append(field('接触效果',select([['','无特殊效果'],['lethal','接触致命']],target.contact?.effect??'','接触效果',value=>edit(doc=>{const e=resolveObject(doc,selection);if(value)e.contact={effect:value};else delete e.contact;}))));
+      for(const behavior of target.behaviors??[]){const card=element('div',undefined,'behavior-card');card.dataset.behavior=behavior.id;card.append(element('h3',behavior.label));renderActions(d,behavior.actions,card,fn=>edit(doc=>fn(resolveObject(doc,selection).behaviors.find(b=>b.id===behavior.id))));box.append(card);}
+      box.append(button('＋ 新行为',()=>edit(doc=>addBehavior(resolveObject(doc,selection))),'text-button'));
+      box.append(button('打开绑定校准',()=>editResources(selection,null),'button secondary'));
+      box.append(button('删除物件',()=>edit(doc=>{deleteObject(doc,selection);selection=null;}),'button danger'));
+    }});
   function renderLibrary(d) {
     const filters=$('library-categories');filters.replaceChildren();
     for(const [id,label] of CATEGORIES){const b=button(label,()=>{category=id;renderLibrary(store.document());},'library-filter');b.dataset.category=id;b.setAttribute('aria-pressed',String(id===category));filters.append(b);}
     const list=$('library-items');list.replaceChildren();
     for(const item of filterCatalog(query,category)){
+      if(d.spatial&&!['platform','object','zone','switch','plate','gate'].includes(item.kind))continue;
       const b=button('',()=>{tool=item.kind;renderTools();renderLibrary(store.document());},'library-item');b.dataset.tool=item.kind;b.setAttribute('aria-label','放置'+item.name);b.setAttribute('aria-pressed',String(tool===item.kind));
       b.append(element('span',item.icon,'library-icon'),element('strong',item.name));b.title=item.description;list.append(b);
     }
@@ -222,7 +235,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     svg.setAttribute('viewBox','0 0 1200 640');svg.classList.add('wire-layer');svg.setAttribute('aria-label','事件连线');
     const defs=svgNode('defs'),marker=svgNode('marker',{id:'wire-arrow',viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:6,markerHeight:6,orient:'auto-start-reverse'});
     marker.append(svgNode('path',{d:'M 0 0 L 10 5 L 0 10 z',fill:'#637c70'}));defs.append(marker);svg.append(defs);
-    const point=(id,output)=>{const e=d.entities.find(e=>e.id===id);if(diagram){const b=diagramBounds(e?.kind??'actor',e??d.actor),socket=(tool==='wire'||selection?.type==='entity'&&selection.id===id)?20*1200/$('editor-overlay').getBoundingClientRect().width:6;return {x:Math.max(6,Math.min(1194,output?b.x+b.width+socket:b.x-socket)),y:b.y+b.height/2};}
+    const point=(id,output)=>{const e=d.entities.find(e=>e.id===id);if(diagram){const b=d.spatial?spaceBounds(d,e?.kind??'actor',e??d.actor):diagramBounds(e?.kind??'actor',e??d.actor),socket=(tool==='wire'||selection?.type==='entity'&&selection.id===id)?20*1200/$('editor-overlay').getBoundingClientRect().width:6;return {x:Math.max(6,Math.min(1194,output?b.x+b.width+socket:b.x-socket)),y:b.y+b.height/2};}
       return e?{x:Math.max(6,Math.min(1194,output?e.x+(e.width??28)+6:e.x-6)),y:(['lift','ladder'].includes(e.kind)?e.toY:floorY(e))-32}:{x:d.actor.x,y:floorY(d.actor)-32};};
     const duplicates=new Map(),wires=ruleWires(d).map(w=>{const key=w.source+':'+w.target,count=duplicates.get(key)??0;duplicates.set(key,count+1);return {...w,lane:w.rule%5+count};});
     if(wireView!=='none')for(const wire of wires.sort((a,b)=>Number(wireKey(a)===selectedWire)-Number(wireKey(b)===selectedWire))){
@@ -257,6 +270,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     $('editor-overlay').prepend(svg);
   }
   function renderOverlay(d) {
+    if(d.spatial){spatialUI.renderOverlay(d);return;}
     $('editor-overlay').replaceChildren();
     const objects=[...d.platforms.map((p,i)=>({ref:{type:'platform',index:i},p,kind:'platform',name:'路面 '+(i+1)})),
       ...d.entities.map(p=>({ref:{type:'entity',id:p.id},p,kind:p.kind,name:p.label})),
@@ -332,6 +346,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
       for(const [key,label,min,max] of [['gravity','重力加速度',60,3600],['maxFallSpeed','最大下落速度',60,1800]])fields.append(field(label,input(d.world.physics[key],label,value=>edit(doc=>{doc.world.physics[key]=value;}),{id:key==='gravity'?'edit-gravity':'edit-fall-speed',type:'number',min,max,step:1})));
     }
     const target=resolveObject(d,selection), box=$('object-fields');box.replaceChildren();
+    if(d.spatial){spatialUI.fields(d,box,fields);return;}
     $('object-title').textContent=target ? (target.label??KIND_NAMES[selection.type]) : '未选中物体';
     if(!target){box.append(element('p','在地图或仓库的场景列表中选择物体。','empty-state'));return;}
     const definition=element('div',undefined,'object-definition');definition.append(element('strong',KIND_NAMES[target.kind??selection.type]),element('code',target.id??selection.type));box.append(definition);
@@ -577,6 +592,9 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
   $('editor-overlay').addEventListener('click',event=>{
     if(tool==='select'){selection=null;selectedWire=null;render();return;}
     if(tool==='wire')return;const box=$('editor-overlay').getBoundingClientRect();
+    if(store.document().spatial){
+      edit(doc=>{const p=unprojectSpace(doc,{x:(event.clientX-box.left)/box.width*1200,y:(event.clientY-box.top)/box.height*640},spatialUI.placement.height),ref=addObject(doc,tool,Math.round(p.x),440),e=resolveObject(doc,ref);e.space.depth=Math.round(Math.max(0,Math.min(600-(e.space.depthSize??24),p.depth)));e.space.height=spatialUI.placement.height;});return;
+    }
     const x=Math.round((event.clientX-box.left)/box.width*1200/10)*10;
     const y=placementMode==='cursor'?Math.max(160,Math.min(560,Math.round((event.clientY-box.top)/box.height*640/10)*10)):placementY;
     const kind=tool;selectedWire=null;

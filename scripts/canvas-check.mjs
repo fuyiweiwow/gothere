@@ -12,7 +12,7 @@ const browser=await chromium.launch({headless:true,args:['--mute-audio'],...(!ex
 const context=await browser.newContext({viewport:{width:1600,height:1150}}),errors=[];
 const draft=p=>p.evaluate(()=>{const s=JSON.parse(localStorage.getItem('gothere.studio.v1'));return s.documents.find(d=>d.key===s.activeKey).level;});
 const near=(a,b,message,tolerance=.15)=>assert.ok(Math.abs(a-b)<tolerance,message+': '+a+' / '+b);
-async function open(url){const p=await context.newPage();p.on('pageerror',e=>errors.push(e.message));await p.goto(url);await p.locator('#scene[data-assets=ready]').waitFor();return p;}
+async function open(url){const p=await context.newPage();p.on('pageerror',e=>errors.push(e.message));const target=new URL(url);target.searchParams.set('legacy','1');await p.goto(target.href);await p.locator('#scene[data-assets=ready]').waitFor();return p;}
 async function chooseArt(p,label){await p.locator('#layer-search').fill(label);await p.locator('#resource-layers .resource-layer').first().click();}
 try{
   const p=await open(process.argv[2]??'http://127.0.0.1:'+server.address().port+'/'),initial=await draft(p);

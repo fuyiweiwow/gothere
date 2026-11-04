@@ -4,6 +4,7 @@ import {floorY} from '../core/schema.js';
 import {surfaceEndY} from '../core/surfaces.js';
 import {artBounds} from '../render/resources.js';
 import {bindArt} from './resources.js';
+import {spaceBounds} from '../core/spatial.js';
 
 const key=b=>b?b.type+':'+(b.id??b.index??''):'';
 const svg=(name,attrs={})=>{const e=document.createElementNS('http://www.w3.org/2000/svg',name);for(const [k,v]of Object.entries(attrs))e.setAttribute(k,String(v));return e;};
@@ -20,8 +21,8 @@ export function createBindingUI({editor,resources,paint,notify}) {
       ...level.entities.map(e=>({ref:{type:'entity',id:e.id},p:snapshot?.entities[e.id]??e,kind:e.kind,label:e.label})),
       {ref:{type:'actor'},p:snapshot?.actor??level.actor,kind:'actor',label:'主角'},{ref:{type:'goal'},p:level.goal,kind:'goal',label:'终点'}];
     for(const {ref,p,kind,label}of objects){
-      const b=diagramBounds(kind,p),chosen=key(ref)===highlight,group=svg('g',{'data-binding-ref':key(ref),class:chosen?'binding-shape selected':'binding-shape'});
-      const shape=p.pose?svg('polygon',{points:posePolygon(p).map(p=>p.x+','+p.y).join(' ')}):kind==='platform'?
+      const b=level.spatial?spaceBounds(level,kind,p):diagramBounds(kind,p),chosen=key(ref)===highlight,group=svg('g',{'data-binding-ref':key(ref),class:chosen?'binding-shape selected':'binding-shape'});
+      const shape=p.pose?svg('polygon',{points:posePolygon(p).map(p=>p.x+','+p.y).join(' ')}):kind==='platform'&&!level.spatial?
         svg('polygon',{points:`${p.x},${floorY(p)} ${p.x+p.width},${surfaceEndY(p)} ${p.x+p.width},${surfaceEndY(p)+10} ${p.x},${floorY(p)+10}`}):svg('rect',{x:b.x,y:b.y,width:b.width,height:b.height});
       const title=svg('title');title.textContent=label;group.append(title,shape);
       if(chosen||picking){const text=svg('text',{x:b.x,y:Math.max(12,b.y-6)});text.textContent=label;group.append(text);}

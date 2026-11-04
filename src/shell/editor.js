@@ -13,8 +13,12 @@ import {createViewport} from '../editor/viewport.js';
 import {createBindingUI} from '../editor/binding-ui.js';
 import {createFeedbackPlayer} from '../render/feedback.js';
 import {createSoundPlayer} from '../render/audio.js';
+import {createSpatialLevel} from '../editor/spatial-level.js';
+import {drawSpatial} from '../render/spatial.js';
+import {spaceBounds} from '../core/spatial.js';
 
 const $=id=>document.getElementById(id),canvas=$('scene'),ctx=canvas.getContext('2d');
+const spatialEntry=!new URLSearchParams(location.search).has('legacy');
 const standaloneHTML=document.getElementById('standalone-editor')?'<!doctype html>\n'+document.documentElement.outerHTML:null;
 let editor,resourceUI,bindingUI,lastDraft,loadSerial=0,preview=null,previewLevel=null,accumulator=0,last=0,debugLast=0,toastTimer,serial=0;
 let feedback=null,feedbackFrame=null,audition=null,endingTicks=0;
@@ -30,7 +34,8 @@ function draw(level,state){
     audition?audition.player.sample({tick:Math.floor(audition.tick),status:'running',signals:[]},{enabled:$('animation-toggle').checked,audible:$('sound-toggle').checked}):null;
   canvas.dataset.feedbackActive=String(feedbackFrame?.active??0);canvas.dataset.feedbackParticles=String(feedbackFrame?.particles.length??0);canvas.dataset.feedbackEnded=String(feedbackFrame?.tailFinished??true);
   canvas.dataset.view=displayMode;
-  if(displayMode!=='logic')drawScene(ctx,level,state,{animate:$('animation-toggle').checked,previewVariant:state?null:resourceUI?.variant(),
+  if(level.spatial)drawSpatial(ctx,level,state,{logic:displayMode==='logic',animate:$('animation-toggle').checked,hiddenLayers:state?null:resourceUI?.hiddenLayers(),previewVariant:state?null:resourceUI?.variant()});
+  else if(displayMode!=='logic')drawScene(ctx,level,state,{animate:$('animation-toggle').checked,previewVariant:state?null:resourceUI?.variant(),
     feedback:feedbackFrame,previewTarget:state?null:audition?.target,hiddenLayers:state?null:resourceUI?.hiddenLayers(),artOpacity:displayMode==='binding'?Number($('calibration-art-opacity').value):1});else drawDiagram(ctx,level,state);
   if(displayMode==='binding')bindingUI?.render(level,state);
   if(state)updateInteractions(state);
@@ -56,7 +61,7 @@ function updateInteractions(state){
     button.disabled=disabled;const status=remaining===null?(disabled?'暂不可触发':'可触发'):'剩余 '+(remaining/60).toFixed(1)+'秒 · 恢复';
     button.title=e.label+' · '+status;
     if(button.parentElement.id==='scene-interactions'){
-      const b=displayMode!=='logic'?(entityArtBounds(previewLevel,state,e.id,{feedback:feedbackFrame})??presentationBounds(e)):diagramBounds(e.kind,e);
+      const b=previewLevel.spatial?spaceBounds(previewLevel,e.kind,e):displayMode!=='logic'?(entityArtBounds(previewLevel,state,e.id,{feedback:feedbackFrame})??presentationBounds(e)):diagramBounds(e.kind,e);
       button.style.left=(b.x-4)/12+'%';button.style.top=(b.y-4)/6.4+'%';button.style.width=(b.width+8)/12+'%';button.style.height=Math.max(24,b.height+8)/6.4+'%';
       button.setAttribute('aria-label','触发 '+e.label+' · '+status);
     }else button.querySelector('small').textContent=status;
@@ -70,6 +75,7 @@ function updateDebug(){
   $('runtime-tick').textContent='tick '+state.tick+' · '+(state.tick/60).toFixed(2)+' s';
   $('preview-toggle').textContent=state.status==='running'?'Ⅱ 暂停':state.status==='paused'||state.status==='ready'?'▶ 运行':'↻ 再次运行';
   $('runtime-actor').textContent=`X ${state.actor.x.toFixed(1)}  Y ${state.actor.y.toFixed(1)}\n朝向 ${state.actor.direction===1?'右':'左'} · ${state.actor.mode}\n持有 ${state.actor.holding??'无'}`+(state.actor.vy!==undefined?'\n下落速度 '+state.actor.vy.toFixed(1)+(state.actor.maxLandingSpeed!==undefined?' · 安全上限 '+state.actor.maxLandingSpeed:''):'');
+  if(state.actor.space)$('runtime-actor').textContent=`X ${state.actor.x.toFixed(1)} · 纵深 ${state.actor.space.depth.toFixed(1)}\n离地高度 ${state.actor.space.height.toFixed(1)} · ${state.actor.mode}\n路线 ${state.actor.routeNode} → ${state.actor.targetNode??'沿当前方向'}\n垂直速度 ${state.actor.vh.toFixed(1)}`;
   const list=$('runtime-entities');list.replaceChildren();
   for(const e of Object.values(state.entities)){const row=document.createElement('div');row.className='runtime-entity';const name=document.createElement('span');name.textContent=e.label;const value=document.createElement('code');value.textContent=e.state+(e.kind==='lift'?' · Y '+e.carY.toFixed(1):'')+(e.pose?' · '+e.pose.angle.toFixed(1)+'°'+(e.rotation?' · 旋转中':''):'')+(e.bodyState?' · Y '+e.y.toFixed(1)+' · '+e.bodyState.mode+' · 支撑 '+(e.bodyState.support??'无'):'')+(e.supportState?' · '+e.supportState.mode+' · 支撑 '+(e.supportState.support??'无'):'')+(e.collider&&!e.collider.enabled?' · 碰撞停用':'');row.append(name,value);list.append(row);}
   $('runtime-timers').textContent=state.timers.length?state.timers.map(t=>`tick ${t.due}（余 ${Math.max(0,t.due-state.tick)} 帧）\n${t.actions.map(a=>a.type+(a.target?' → '+a.target:'')).join(', ')}`).join('\n'):'无';
@@ -94,7 +100,7 @@ function runPreview(level,{run=true}={}){
   draw(level,preview.snapshot());updateDebug();
 }
 editor=createEditorUI({play:runPreview,leave:()=>{},pause:()=>preview?.pause(),notify,diagram:true,
-  storageKey:'gothere.studio.v1',onChange:drawDocument,onPreview:draw,
+  storageKey:spatialEntry?'gothere.studio.spatial.v1':'gothere.studio.v1',onChange:drawDocument,onPreview:draw,
   editResources:(ref,id)=>{changeDisplay('binding','art');resourceUI.select(id??editor.document().scene?.nodes.find(n=>n.bind?.type===ref.type&&(ref.type==='entity'?n.bind.id===ref.id:ref.type==='platform'?n.bind.index===ref.index:true))?.id??null);},
   onMode:mode=>{const testing=mode==='testing';resourceUI?.cancel();bindingUI?.cancel();$('simulation-panel').hidden=!testing;$('preview-reset').disabled=!testing;$('scene-tag-text').textContent=testing?'模拟中':'正在创作';
     workspace();
@@ -108,7 +114,8 @@ resourceUI=createResourceUI({editor,notify,preview:draw,requestBind:id=>{changeD
     const player=createFeedbackPlayer(level,{onSound:e=>sound.play(e)});player.preview({...f,delay:0},0);audition={player,tick:0,duration:f.duration,target:f.target};$('animation-toggle').checked=true;draw(level);
   }});
 bindingUI=createBindingUI({editor,resources:resourceUI,paint:draw,notify});
-editor.open(createFirstLevel(),'milestone:02:v017',{workspaceRevision:'milestone-02-v017'});
+if(spatialEntry)editor.open(createSpatialLevel(),'spatial:01');
+else editor.open(createFirstLevel(),'milestone:02:v017',{workspaceRevision:'milestone-02-v017'});
 if(editor.document().id==='editor-first-level'&&!editor.document().scene)editor.change(d=>{d.scene=createFirstScene(d);});
 workspace();resourceUI.render(editor.document());
 createViewport({isEditing:()=>editor.isEditing(),onChange:()=>{
@@ -116,7 +123,8 @@ createViewport({isEditing:()=>editor.isEditing(),onChange:()=>{
   const width=Math.round(1200*scale),height=Math.round(640*scale);if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;ctx.setTransform(width/1200,0,0,height/640,0,0);}
   if(preview)draw(previewLevel,preview.snapshot());else draw(lastDraft??editor.document());
 }});
-$('reset-level').addEventListener('click',()=>editor.openDocument(createFirstLevel(),'first-level:'+Date.now().toString(36)+'-'+serial++));
+$('reset-level').textContent=spatialEntry?'新建空间灰盒副本':'新建首关副本';
+$('reset-level').addEventListener('click',()=>editor.openDocument(spatialEntry?createSpatialLevel():createFirstLevel(),'sample:'+Date.now().toString(36)+'-'+serial++));
 $('preview-toggle').addEventListener('click',()=>{
   if(editor.isEditing()){editor.preview();return;}
   const state=preview.snapshot();if(state.status==='running'){preview.pause();sound.setPaused(true);}else{if(['won','lost'].includes(state.status)){preview.reset();resetFeedback();}preview.start();sound.setPaused(false);sound.unlock();}

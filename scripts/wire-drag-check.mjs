@@ -9,7 +9,7 @@ await mkdir('artifacts',{recursive:true});const server=makeServer();await new Pr
 const browser=await chromium.launch({headless:true,args:['--mute-audio'],...(!existsSync(chromium.executablePath())?{channel:'msedge'}:{})});
 const context=await browser.newContext({viewport:{width:1600,height:1150}}),errors=[];
 const draft=p=>p.evaluate(()=>{const s=JSON.parse(localStorage.getItem('gothere.studio.v1'));return s.documents.find(d=>d.key===s.activeKey).level;});
-async function open(url){const p=await context.newPage();p.setDefaultTimeout(5000);p.on('pageerror',e=>errors.push(e.message));await p.goto(url);await p.locator('#scene[data-assets=ready]').waitFor();return p;}
+async function open(url){const p=await context.newPage();p.setDefaultTimeout(5000);p.on('pageerror',e=>errors.push(e.message));const target=new URL(url);target.searchParams.set('legacy','1');await p.goto(target.href);await p.locator('#scene[data-assets=ready]').waitFor();return p;}
 async function scenario(p){
   await p.locator('#display-mode').selectOption('logic');const l=await draft(p);l.scene=undefined;l.rules=[];l.platforms=[{x:0,y:440,width:1200}];l.actor={x:70,y:440,speed:45};l.goal={x:1100,y:440};
   l.entities=[{id:'a',label:'按钮',kind:'object',x:220,y:440,width:40,state:'active',behaviors:[{id:'press',label:'按下',actions:[{type:'set',target:'a',state:'inactive'}]}]},

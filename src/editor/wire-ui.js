@@ -1,5 +1,6 @@
 import {diagramBounds} from '../core/geometry.js';
 import {eventSlots,connectWire} from './wire-creation.js';
+import {spaceBounds} from '../core/spatial.js';
 
 const labels={click:'点击',contact:'碰到',enter:'走入区域',board:'登上电梯',arrive:'抵达出口',rotated:'旋转结束',supportlost:'失去支撑',supportfound:'获得支撑',landed:'落地',actorlanded:'主角落到上面',impact:'受到落物撞击',done:'行为完成'};
 const eventLabel=(entity,slot)=>slot.type==='done'?(entity.behaviors.find(b=>b.id===slot.behavior)?.label??'行为')+'完成':labels[slot.type];
@@ -90,7 +91,7 @@ export function createWireUI({overlay,document:read,enabled,change,notify}) {
     overlay.querySelector('.wire-handles')?.remove();if(!enabled())return;
     const ports=document.createElement('div');ports.className='wire-handles';
     for(const entity of level.entities.filter(e=>wireTool||selection?.type==='entity'&&selection.id===e.id)){
-      const b=diagramBounds(entity.kind,entity);
+      const b=level.spatial?spaceBounds(level,entity.kind,entity):diagramBounds(entity.kind,entity);
       for(const direction of ['input','output']){
         const port=button(direction==='output'?'●':'◇',()=>{});port.className='wire-entity-port '+direction;port.dataset.wireEntity=entity.id;port.dataset.wireDirection=direction;
         port.setAttribute('aria-label',entity.label+(direction==='output'?'：拖出事件连线':'：接入行为连线'));port.style.left=(direction==='output'?b.x+b.width:b.x)/12+'%';port.style.top=(b.y+b.height/2)/6.4+'%';
@@ -101,7 +102,7 @@ export function createWireUI({overlay,document:read,enabled,change,notify}) {
   }
   function position(level){
     for(const port of overlay.querySelectorAll('[data-wire-entity]')){
-      const entity=level.entities.find(e=>e.id===port.dataset.wireEntity);if(!entity)continue;const b=diagramBounds(entity.kind,entity);
+      const entity=level.entities.find(e=>e.id===port.dataset.wireEntity);if(!entity)continue;const b=level.spatial?spaceBounds(level,entity.kind,entity):diagramBounds(entity.kind,entity);
       port.style.left=(port.dataset.wireDirection==='output'?b.x+b.width:b.x)/12+'%';port.style.top=(b.y+b.height/2)/6.4+'%';
     }
   }

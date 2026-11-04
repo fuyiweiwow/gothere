@@ -9,7 +9,7 @@ await mkdir('artifacts',{recursive:true});const server=makeServer();await new Pr
 const browser=await chromium.launch({headless:true,args:['--mute-audio'],...(!existsSync(chromium.executablePath())?{channel:'msedge'}:{})});
 const context=await browser.newContext({viewport:{width:1600,height:1150}}),errors=[];
 const draft=p=>p.evaluate(()=>{const s=JSON.parse(localStorage.getItem('gothere.studio.v1'));return s.documents.find(d=>d.key===s.activeKey).level;});
-async function open(url){const p=await context.newPage();p.setDefaultTimeout(7000);p.on('pageerror',e=>errors.push(e.message));await p.goto(url);await p.locator('#scene[data-assets=ready]').waitFor();return p;}
+async function open(url){const p=await context.newPage();p.setDefaultTimeout(7000);p.on('pageerror',e=>errors.push(e.message));const target=new URL(url);target.searchParams.set('legacy','1');await p.goto(target.href);await p.locator('#scene[data-assets=ready]').waitFor();return p;}
 async function scenario(p){await p.locator('#display-mode').selectOption('logic');await p.locator('#snap-enabled').uncheck();
   const l=await draft(p);l.platforms=[{x:50,y:303,width:800}];l.entities=[];l.rules=[];l.scene=undefined;l.actor={x:100,y:303,speed:45};l.goal={x:700,y:303};
   await p.locator('#open-data').click();await p.locator('#level-json').fill(JSON.stringify(l));await p.locator('#apply-level').click();

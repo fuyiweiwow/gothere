@@ -7,7 +7,7 @@ await mkdir('artifacts',{recursive:true});const server=makeServer();await new Pr
 const browser=await chromium.launch({headless:true,args:['--mute-audio'],...(!existsSync(chromium.executablePath())?{channel:'msedge'}:{})});
 const context=await browser.newContext({viewport:{width:1600,height:1150}}),errors=[];
 try{
-  const p=await context.newPage();p.setDefaultTimeout(7000);p.on('pageerror',e=>errors.push(e.message));await p.goto('http://127.0.0.1:'+server.address().port+'/');await p.locator('#scene[data-assets=ready]').waitFor();
+  const p=await context.newPage();p.setDefaultTimeout(7000);p.on('pageerror',e=>errors.push(e.message));await p.goto('http://127.0.0.1:'+server.address().port+'/?legacy=1');await p.locator('#scene[data-assets=ready]').waitFor();
   await p.locator('#display-mode').selectOption('logic');
   // Put a real saved connection directly over the small item, then click the visible item.
   await p.locator('#open-data').click();const level=JSON.parse(await p.locator('#level-json').inputValue());
