@@ -121,7 +121,7 @@ export function advanceSpatialActor(level,entities,actor) {
     const from=position(actor),target=nodes.find(n=>n.id===actor.targetNode);
     const dx=target?target.x-actor.x:actor.heading.x,dd=target?target.depth-actor.space.depth:actor.heading.depth;
     const distance=Math.hypot(dx,dd);
-    if(target&&distance<EPS){actor.routeNode=target.id;actor.targetNode=target.next??null;continue;}
+    if(target&&distance<EPS){actor.targetNode=Math.abs(actor.space.height-target.height)<EPS?target.next??null:null;if(Math.abs(actor.space.height-target.height)<EPS)actor.routeNode=target.id;continue;}
     if(distance>EPS)actor.heading={x:dx/distance,depth:dd/distance};
     const dt=target?Math.min(remaining,distance/level.actor.speed):remaining,travel=dt*level.actor.speed;
     actor.x+=actor.heading.x*travel;actor.space.depth+=actor.heading.depth*travel;
@@ -139,7 +139,9 @@ export function advanceSpatialActor(level,entities,actor) {
       else actor.space.height=nextHeight;
     }
     trace.push({from,to:position(actor)});remaining-=dt;
-    if(target&&distance<=travel+EPS){actor.x=target.x;actor.space.depth=target.depth;actor.routeNode=target.id;actor.targetNode=target.next??null;}
+    if(target&&distance<=travel+EPS){actor.x=target.x;actor.space.depth=target.depth;actor.targetNode=null;
+      if(Math.abs(actor.space.height-target.height)<EPS){actor.routeNode=target.id;actor.targetNode=target.next??null;}
+    }
   }
   return {trace,landings};
 }
