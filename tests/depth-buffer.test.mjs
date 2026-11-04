@@ -29,3 +29,9 @@ test('offscreen and degenerate triangles are clipped without allocating outside 
     {points:[{x:1,y:1,depth:0},{x:1,y:1,depth:0},{x:2,y:2,depth:0}],color:[255,0,0,255]}]);
   assert.equal(frame.data.some(v=>v!==0),false);
 });
+test('large translucent artwork grows fragment storage and clears it on the next frame',()=>{
+  const frame=createDepthBuffer(257,257);
+  frame.render([{points:[{x:0,y:0,depth:4},{x:257,y:0,depth:4},{x:257,y:257,depth:4},{x:0,y:257,depth:4}],color:[80,120,160,128]}]);
+  assert.deepEqual(pixel(frame,256,256),[80,120,160,128]);
+  frame.render([]);assert.deepEqual(pixel(frame,256,256),[0,0,0,0]);
+});

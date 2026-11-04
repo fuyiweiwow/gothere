@@ -39,9 +39,13 @@ try{
    await p.clock.runFor(42000);assert.match(await p.locator('#runtime-status').textContent(),/已到达终点/);
    await p.locator('#editor-return').click();
   }
-  await p.locator('#open-data').click();const json=JSON.parse(await p.locator('#level-json').inputValue());assert.ok(json.spatial);await p.locator('#close-data').click();
+  await p.locator('#open-data').click();const json=JSON.parse(await p.locator('#level-json').inputValue());assert.ok(json.spatial);assert.equal(json.schemaVersion,2);
+  assert.match(await p.locator('#level-json-label').textContent(),/schemaVersion 2/);await p.locator('#close-data').click();
   await p.reload();await p.locator('#scene[data-assets=ready]').waitFor();assert.deepEqual(await draft(p),json);
   await p.locator('#display-mode').selectOption('logic');await p.screenshot({path:'artifacts/spatial-'+(url.startsWith('file:')?'offline':'online')+'.png',fullPage:true});
+  // Loading a previous spatial-preview workspace preserves the author's edits.
+  await p.evaluate(()=>{const key='gothere.studio.spatial.v1',saved=JSON.parse(localStorage.getItem(key));for(const entry of saved.documents)if(entry.level.spatial)entry.level.schemaVersion=1;localStorage.setItem(key,JSON.stringify(saved));});
+  await p.reload();await p.locator('#scene[data-assets=ready]').waitFor();assert.deepEqual(await draft(p),json);
   assert.deepEqual(requests,[]);await context.close();
  }
  assert.deepEqual(errors,[]);console.log('PASS spatial: route drag/fields, object depth, undo, both views complete, JSON/reload, offline no network.');

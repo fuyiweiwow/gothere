@@ -15,6 +15,7 @@ test('spatial exports have an explicit version; horizontal DSL v1 stays playable
 });
 test('previous spatial v1 drafts migrate without resetting content, active key or revision',()=>{
   const previous=createSpatialLevel();previous.schemaVersion=1;previous.name='我修改过的空间草稿';previous.platforms[1].space.heightEnd=76;
+  previous.scene={background:'#161e2b',assets:[],nodes:[{id:'my-art',label:'我的资源',asset:'travelerIdle',x:-16,y:-40,width:32,height:40,layer:0,bind:{type:'entity',id:'traffic'}}]};
   const copy=structuredClone(previous),expected={...copy,schemaVersion:2};
   const store=createEditorStore(JSON.stringify({version:1,activeKey:'mine',workspaceRevision:'my-revision',documents:[{key:'mine',level:previous}]}));
   assert.equal(store.key(),'mine');assert.equal(store.revision(),'my-revision');assert.deepEqual(store.document(),expected);

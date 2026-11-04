@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createSimulation,replayRecording} from '../src/core/engine.js';
 import {validateLevel} from '../src/core/schema.js';
-import {projectSpace,unprojectSpace,spaceBounds,spaceSupport,spatialDrawOrder} from '../src/core/spatial.js';
+import {projectSpace,unprojectSpace,spaceBounds,spaceSupport} from '../src/core/spatial.js';
 import {createEditorStore} from '../src/editor/model.js';
 import {artTransform} from '../src/render/resources.js';
 
@@ -104,19 +104,6 @@ test('spatial documents survive draft history and JSON and bound art uses the pr
   assert.deepEqual(createEditorStore(store.serialize()).document(),store.document());
   const n={x:-10,y:-40,width:20,height:40,asset:'test',bind:{type:'actor'}};
   assert.equal(artTransform(n,l).y,projectSpace(l,{x:100,depth:40,height:0}).y-40);
-});
-
-test('depth order puts far objects behind near objects and bridge tops above traffic below',()=>{
-  const l=spatialFixture(),far={id:'far',x:200,space:{depth:200,height:0}},near={id:'near',x:200,space:{depth:10,height:0}},bridge={id:'bridge',x:200,space:{depth:10,height:80}};
-  assert.deepEqual(spatialDrawOrder(l,[near,bridge,far]).map(e=>e.id),['far','near','bridge']);
-});
-
-test('a wide ground surface is painted before every object it supports, with bridge tops over traffic',()=>{
-  const l=spatialFixture(),ground={id:'ground',x:20,width:1100,space:{depth:0,depthSize:400,height:0}},
-    far={id:'far',x:300,width:30,height:40,space:{depth:260,depthSize:30,height:0}},
-    near={id:'near',x:300,width:30,height:40,space:{depth:80,depthSize:30,height:0}},
-    bridge={id:'bridge',x:300,width:40,space:{depth:40,depthSize:300,height:80}};
-  assert.deepEqual(spatialDrawOrder(l,[near,bridge,ground,far]).map(o=>o.id),['ground','far','near','bridge']);
 });
 
 test('spatial pressure plates use normal enter rules and change their state',()=>{

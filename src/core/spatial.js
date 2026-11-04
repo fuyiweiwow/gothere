@@ -39,34 +39,6 @@ export function spaceSupport(level,entities,actor,tolerance=EPS) {
   return matches.sort((a,b)=>Math.abs(a.height-p.height)-Math.abs(b.height-p.height)||a.id.localeCompare(b.id))[0]??null;
 }
 
-/** A stable painter order for the finite upright boxes used by the spatial graybox. */
-export function spatialDrawOrder(level,items) {
-  const c=level.spatial.projection;
-  const entries=items.map((item,index)=>{
-    const p=position(item),actor=item.renderKind==='actor';
-    return {item,index,key:p.depth+p.height*c.depthY,x:item.x-(actor?12:0),width:item.width??(actor?24:28),depth:p.depth,
-      size:item.space?.depthSize??24,low:Math.min(p.height,item.space?.heightEnd??p.height),
-      high:Math.max(p.height,item.space?.heightEnd??p.height)+(item.renderKind==='actor'?32:item.renderKind==='goal'?40:item.renderKind==='platform'?0:item.height??0),before:new Set()};
-  });
-  const overlap=(a,b)=>a.x<=b.x+b.width+EPS&&b.x<=a.x+a.width+EPS;
-  for(let i=0;i<entries.length;i++)for(let j=i+1;j<entries.length;j++){
-    const a=entries[i],b=entries[j];if(!overlap(a,b))continue;
-    const footprint=a.depth<=b.depth+b.size+EPS&&b.depth<=a.depth+a.size+EPS;
-    if(footprint&&a.high<=b.low+EPS&&a.low<b.high-EPS)b.before.add(a.index);
-    else if(footprint&&b.high<=a.low+EPS&&b.low<a.high-EPS)a.before.add(b.index);
-    else if(a.depth>=b.depth+b.size-EPS)b.before.add(a.index);
-    else if(b.depth>=a.depth+a.size-EPS)a.before.add(b.index);
-  }
-  const ordered=[],pending=new Set(entries.map(e=>e.index));
-  while(pending.size){
-    const available=entries.filter(e=>pending.has(e.index)&&[...e.before].every(i=>!pending.has(i)));
-    // Intersecting volumes can have no unique painter order. Keep a deterministic fallback.
-    const next=(available.length?available:entries.filter(e=>pending.has(e.index))).sort((a,b)=>b.key-a.key||a.index-b.index)[0];
-    ordered.push(next.item);pending.delete(next.index);
-  }
-  return ordered;
-}
-
 export function validateSpatial(level,{draft=false}={}) {
   const s=level.spatial,errors=[],check=(ok,message)=>{if(!ok)errors.push('空间：'+message);};
   if(s===undefined)return errors;
