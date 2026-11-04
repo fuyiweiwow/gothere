@@ -42,14 +42,36 @@ export function spaceSupport(level,entities,actor,tolerance=EPS) {
 /** A stable painter order for the finite upright boxes used by the spatial graybox. */
 export function spatialDrawOrder(level,items) {
   const c=level.spatial.projection;
-  return items.map((item,index)=>({item,index,key:position(item).depth+position(item).height*c.depthY}))
-    .sort((a,b)=>b.key-a.key||a.index-b.index).map(e=>e.item);
+  const entries=items.map((item,index)=>{
+    const p=position(item),actor=item.renderKind==='actor';
+    return {item,index,key:p.depth+p.height*c.depthY,x:item.x-(actor?12:0),width:item.width??(actor?24:28),depth:p.depth,
+      size:item.space?.depthSize??24,low:Math.min(p.height,item.space?.heightEnd??p.height),
+      high:Math.max(p.height,item.space?.heightEnd??p.height)+(item.renderKind==='actor'?32:item.renderKind==='goal'?40:item.renderKind==='platform'?0:item.height??0),before:new Set()};
+  });
+  const overlap=(a,b)=>a.x<=b.x+b.width+EPS&&b.x<=a.x+a.width+EPS;
+  for(let i=0;i<entries.length;i++)for(let j=i+1;j<entries.length;j++){
+    const a=entries[i],b=entries[j];if(!overlap(a,b))continue;
+    const footprint=a.depth<=b.depth+b.size+EPS&&b.depth<=a.depth+a.size+EPS;
+    if(footprint&&a.high<=b.low+EPS&&a.low<b.high-EPS)b.before.add(a.index);
+    else if(footprint&&b.high<=a.low+EPS&&b.low<a.high-EPS)a.before.add(b.index);
+    else if(a.depth>=b.depth+b.size-EPS)b.before.add(a.index);
+    else if(b.depth>=a.depth+a.size-EPS)a.before.add(b.index);
+  }
+  const ordered=[],pending=new Set(entries.map(e=>e.index));
+  while(pending.size){
+    const available=entries.filter(e=>pending.has(e.index)&&[...e.before].every(i=>!pending.has(i)));
+    // Intersecting volumes can have no unique painter order. Keep a deterministic fallback.
+    const next=(available.length?available:entries.filter(e=>pending.has(e.index))).sort((a,b)=>b.key-a.key||a.index-b.index)[0];
+    ordered.push(next.item);pending.delete(next.index);
+  }
+  return ordered;
 }
 
 export function validateSpatial(level,{draft=false}={}) {
   const s=level.spatial,errors=[],check=(ok,message)=>{if(!ok)errors.push('空间：'+message);};
   if(s===undefined)return errors;
   if(!s||typeof s!=='object'||Array.isArray(s))return ['空间：配置必须是对象。'];
+  if(!Array.isArray(level.platforms)||!Array.isArray(level.entities)||!Array.isArray(level.rules))return ['空间：路面、物体和规则必须是数组。'];
   const c=s.projection;
   check(c&&finite(c.originY,200,620)&&finite(c.depthX,-0.5,0.5)&&finite(c.depthY,-1,-0.2),'投影需要 originY（200～620）、depthX（-0.5～0.5）与 depthY（-1～-0.2）。');
   check(Boolean(level.world?.physics),'必须启用重力。');
@@ -73,9 +95,9 @@ export function validateSpatial(level,{draft=false}={}) {
   }
   for(const e of level.entities??[])check(e&&['object','zone','switch','gate','plate'].includes(e.kind)&&
     !e.body&&!e.pose&&!e.transport&&!e.supportProbe&&!e.carriedPhysics,'当前支持普通物体、区域与水平巡逻；动态刚体、旋转和高度通道尚未接入。');
-  const actions=list=>{for(const a of list??[]){if(a.type==='after')actions(a.actions);else check(['set','hurt','invoke','enable'].includes(a.type),'动作 '+a.type+' 尚未接入空间模型。');}};
-  for(const r of level.rules??[])actions(r.actions);
-  for(const e of level.entities??[])for(const b of e.behaviors??[])actions(b.actions);
+  const actions=(list,depth=0)=>{if(!Array.isArray(list)||depth>4)return;for(const a of list){if(!a)continue;if(a.type==='after')actions(a.actions,depth+1);else check(['set','hurt','invoke','enable'].includes(a.type),'动作 '+a.type+' 尚未接入空间模型。');}};
+  for(const r of level.rules)actions(r?.actions);
+  for(const e of level.entities)if(Array.isArray(e?.behaviors))for(const b of e.behaviors)actions(b?.actions);
   if(!draft&&errors.length===0){
     const n=nodes.find(n=>n.id===s.start),a=position(level.actor);
     check(Math.hypot(n.x-a.x,n.depth-a.depth,n.height-a.height)<EPS,'主角起点必须与起始节点一致。');

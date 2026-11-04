@@ -277,6 +277,7 @@ export function createSimulation(input) {
         if(['inactive','disabled','stopped','open'].includes(e.state)||!spaceTouches(trace,e))continue;
         touching.add(e.id);
         if(!contacts.has(e.id))trigger(e.kind==='zone'?'enter':'contact',e.id);
+        if(e.kind==='plate'&&e.state==='idle'){e.state='pressed';signal('state',e.id,{state:e.state});trigger('enter',e.id);}
         if(state.status!=='running')return;
         if(!['inactive','disabled','stopped','open'].includes(e.state)&&(e.contact?.effect==='lethal'||e.kind==='gate'&&e.state==='closed')){lose('hurt',e.contact?.message??'碰到了危险物。');return;}
       }

@@ -23,12 +23,12 @@ const text = (value, max) => typeof value === 'string' && value.length > 0 && va
 const idPattern = /^[a-z][a-z0-9-]{0,47}$/;
 
 /** Validate the supported DSL, including every reference, before simulation. */
-export function validateLevel(input) {
+export function validateLevel(input,{spatialDraft=false}={}) {
   const errors = [];
   const check = (ok, message) => { if (!ok) errors.push(message); };
   if (!object(input)) return { valid: false, errors: ['关卡必须是一个 JSON 对象。'] };
   errors.push(...validateScene(input));
-  errors.push(...validateSpatial(input));
+  errors.push(...validateSpatial(input,{draft:spatialDraft}));
   check(input.schemaVersion === 1, 'schemaVersion 必须为 1。');
   check(text(input.id, 48) && idPattern.test(input.id), 'id 必须是小写英文、数字或短横线，以字母开头。');
   check(text(input.name, 60), 'name 必须是 1～60 字的关卡名称。');

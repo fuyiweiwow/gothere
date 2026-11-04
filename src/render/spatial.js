@@ -1,5 +1,5 @@
 import {projectSpace,spatialDrawOrder} from '../core/spatial.js';
-import {artTransform,assetImage,assetLibrary,boundObject} from './resources.js';
+import {artTransform,assetImage,assetLibrary} from './resources.js';
 
 function polygon(ctx,points,fill,stroke) {
   ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();ctx.fillStyle=fill;ctx.fill();
