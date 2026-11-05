@@ -45,7 +45,7 @@ try{
     await p.locator('#open-data').click();assert.deepEqual(JSON.parse(await p.locator('#level-json').inputValue()),before);await p.locator('#close-data').click();
     await p.reload();await p.locator('#scene[data-assets=ready]').waitFor();assert.deepEqual(await draft(p),before);
     await p.evaluate(level=>{level.name='Saved bus edit';const key='gothere.studio.layered.v1',s=JSON.parse(localStorage.getItem(key));s.documents=[{key:'commute:bus-stop:03',level}];s.activeKey='commute:bus-stop:03';localStorage.setItem(key,JSON.stringify(s));},createBusStopLevel());
-    const root=new URL(url);root.search='';await p.goto(root.href);await p.locator('#scene[data-assets=ready]').waitFor();assert.equal((await draft(p)).id,'commute-tow-street');
+    const root=new URL(url);root.search='';await p.goto(root.href);await p.locator('#scene[data-assets=ready]').waitFor();assert.equal((await draft(p)).id,'commute-crosswalk');
     assert.equal(await p.evaluate(()=>JSON.parse(localStorage.getItem('gothere.studio.layered.v1')).documents.find(d=>d.key==='commute:bus-stop:03').level.name),'Saved bus edit');
     assert.deepEqual(requests,[]);await context.close();console.log('PASS tow street '+(index?'offline':'online')+': full scene/logic play, pause, failure, editable art, history/JSON, persistence and preserved bus drafts.');
   }

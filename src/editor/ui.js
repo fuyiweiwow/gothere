@@ -38,7 +38,7 @@ function input(value,label,onChange,settings={}) {
   return el;
 }
 const button = (name,handler,className='button secondary') => {const el=element('button',name,className);el.type='button';el.addEventListener('click',handler);return el;};
-const eventNames={click:'点击',contact:'碰到',placed:'放到对象处',enter:'走入区域',board:'进入连接',arrive:'抵达出口',rotated:'旋转结束',moved:'位移结束',supportlost:'失去支撑',supportfound:'获得支撑',landed:'落地',actorlanded:'主角落到上面',impact:'受到落物撞击',done:'行为完成'};
+const eventNames={click:'点击',contact:'碰到',placed:'放到对象处',enter:'走入区域',board:'进入连接',arrive:'抵达出口',rotated:'旋转结束',moved:'位移结束',moveblocked:'位移条件未满足',supportlost:'失去支撑',supportfound:'获得支撑',landed:'落地',actorlanded:'主角落到上面',impact:'受到落物撞击',done:'行为完成'};
 const availableEvents=e=>eventTypes(e).filter(t=>t!=='done'||e.behaviors?.length);
 const actionList = (actions,path) => {for(const index of path)actions=actions[index].actions;return actions;};
 
@@ -559,14 +559,22 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
         }
         if(action.type==='move'){
           const movable=d.entities.filter(e=>e.kind==='object'&&!e.motion&&!e.body&&!e.transport&&!e.passage);
-          row.append(select(movable.map(e=>[e.id,e.label]),action.target,'移动哪个物体',value=>changeAction(a=>{const e=d.entities.find(e=>e.id===value);a.target=value;delete a.progress;delete a.x;delete a.depth;delete a.height;Object.assign(a,destination(e));}),'data-action-target'));
+          row.append(select(movable.map(e=>[e.id,e.label]),action.target,'移动哪个物体',value=>changeAction(a=>{const e=d.entities.find(e=>e.id===value);a.target=value;delete a.progress;delete a.x;delete a.depth;delete a.height;delete a.plane;Object.assign(a,destination(e));}),'data-action-target'));
           const target=d.entities.find(e=>e.id===action.target),onPassage=target?.space.passage;
-          for(const [key,label,min,max] of [...(onPassage?[['progress','目标通路进度',0,1]]:[['x','目标 X（允许画外）',SPATIAL_MOVE_X.min,SPATIAL_MOVE_X.max-(target?.width??28)],['depth','目标纵深',0,600],['height','目标离地高度',0,360]]),['ticks','持续秒数',1/60,60]]){
+          if(onPassage){
+            const p=d.entities.find(e=>e.id===onPassage).passage,endpoints=d.spatial.nodes.filter(n=>n.id===p.from||n.id===p.to);
+            row.append(select([['','沿通路移动'],...endpoints.map(n=>[n.plane,'到端点后走入 · '+d.spatial.planes.find(p=>p.id===n.plane).label])],action.plane??'','移动范围',value=>changeAction(a=>{
+              delete a.progress;delete a.x;delete a.depth;delete a.height;delete a.plane;
+              if(value){const n=endpoints.find(n=>n.plane===value);Object.assign(a,{plane:value,x:n.x,depth:n.depth,height:n.height});}else a.progress=target.space.progress;
+            }),'data-move-plane'));
+          }
+          for(const [key,label,min,max] of [...(onPassage&&!action.plane?[['progress','目标通路进度',0,1]]:[['x','目标 X（允许画外）',SPATIAL_MOVE_X.min,SPATIAL_MOVE_X.max-(target?.width??28)],['depth','目标纵深',0,600],['height','目标离地高度',0,360]]),['ticks','持续秒数',1/60,60]]){
             if(isLayered(d)&&key==='depth')continue;
             const control=input(key==='ticks'?action.ticks/60:action[key],label,value=>changeAction(a=>{a[key]=key==='ticks'?Math.max(1,Math.round(value*60)):value;}),{type:'number',min,max,step:'any'});
             control.setAttribute('data-move-'+(key==='ticks'?'duration':key),'');row.append(field(label,control));
           }
-          if(!onPassage){const fixed=element('input');fixed.type='checkbox';fixed.checked=Boolean(action.editor?.keepWorldX);fixed.setAttribute('data-move-world-x','');
+          if(onPassage&&action.plane)row.append(element('p','先用进度移动到对应端点，再执行本动作；未到端点会产生「位移条件未满足」事件。','panel-note'));
+          if(!onPassage||action.plane){const fixed=element('input');fixed.type='checkbox';fixed.checked=Boolean(action.editor?.keepWorldX);fixed.setAttribute('data-move-world-x','');
             fixed.onchange=()=>changeAction(a=>{a.editor??={waypoints:[]};a.editor.keepWorldX=fixed.checked;});row.append(field('组合移动时固定目标 X 到地图',fixed));}
         }
         if(action.type==='hold')row.append(select(d.entities.filter(e=>e.kind==='object').map(e=>[e.id,e.label]),action.target,'拿起哪个物件',value=>changeAction(a=>{a.target=value;})));

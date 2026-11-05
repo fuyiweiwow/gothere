@@ -14,6 +14,25 @@ export function syncPassageObject(level,object){
   const p=passagePosition(level,object.space.passage,object.space.progress);object.x=p.x;object.space.depth=p.depth;
 }
 
+/** Leaving a passage changes ownership only at its real, matching endpoint.
+ * The following translation starts at the same world position. */
+export function beginSpatialMove(level,object,action){
+  const space=object.space;
+  if(action.progress!==undefined){
+    if(!space.passage)return false;
+    object.translation={fromProgress:space.progress,toProgress:action.progress,ticks:action.ticks,elapsed:0};return true;
+  }
+  if(space.passage){
+    const passage=level.entities.find(e=>e.id===space.passage).passage;
+    const endpoint=Math.abs(space.progress)<EPS?passage.from:Math.abs(space.progress-1)<EPS?passage.to:null;
+    const node=level.spatial.nodes.find(n=>n.id===endpoint);
+    if(!node||action.plane!==node.plane||Math.abs(space.height-node.height)>EPS)return false;
+    object.space={plane:node.plane,depth:node.depth,depthSize:space.depthSize??20,height:space.height};
+  }else if(action.plane!==undefined&&action.plane!==space.plane)return false;
+  object.translation={from:{x:object.x,depth:object.space.depth,height:object.space.height},
+    to:{x:action.x,depth:action.depth,height:action.height},ticks:action.ticks,elapsed:0};return true;
+}
+
 export function projectSpace(level,p) {
   const c=level.spatial.projection;
   return {x:p.x+p.depth*c.depthX,y:c.originY+p.depth*c.depthY-p.height};
@@ -121,7 +140,12 @@ export function validateSpatial(level,{draft=false}={}) {
     check(['set','hurt','invoke','enable','rotate','move','hold','drop','place'].includes(a.type),'动作 '+a.type+' 尚未接入空间模型。');
     if(layered&&a.type==='move'){
       const e=level.entities.find(e=>e?.id===a.target);
-      check(e?.space?.passage?finite(a.progress,0,1):a.depth===e?.space?.depth,'分层物体在所属层中移动；通路物体使用进度。');
+      if(a.plane!==undefined){
+        const p=level.entities.find(p=>p?.id===e?.space?.passage)?.passage;
+        const endpoints=p?nodes.filter(n=>n.id===p.from||n.id===p.to):[];
+        check(typeof a.plane==='string'&&a.progress===undefined&&planes.some(p=>p.id===a.plane&&p.depth===a.depth)&&
+          (e?.space?.passage?endpoints.some(n=>n.plane===a.plane):a.plane===e?.space?.plane),'move.plane 必须是物体当前层或通路两端的行走层。');
+      }else check(e?.space?.passage?finite(a.progress,0,1):a.depth===e?.space?.depth,'分层物体在所属层中移动；通路物体使用进度。');
     }
   }}};
   for(const r of level.rules)actions(r?.actions);

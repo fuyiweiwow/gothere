@@ -17,7 +17,7 @@ export const eventTypes = (source) => {const kind=typeof source==='string'?sourc
   ...(kind==='lift'?['board','arrive']:[]), ...(kind==='ladder'||(kind==='object'&&(verticalTransport(source)||source?.passage))?['arrive']:[]),
   ...(source?.passage?['board']:[]),
   ...(typeof source==='object'&&source?.pose?['rotated']:[]),
-  ...(typeof source==='object'&&source?.kind==='object'&&source.space?['moved']:[]),
+  ...(typeof source==='object'&&source?.kind==='object'&&source.space?['moved','moveblocked']:[]),
   ...(source?.body||source?.supportProbe?['supportlost']:[]),...(source?.body?['landed']:[]),
   ...(source?.supportProbe?['supportfound']:[]),...(source?.collider||source?.surface?['impact','actorlanded']:[]), 'done'];};
 const object = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -200,9 +200,10 @@ export function validateLevel(input,{spatialDraft=false}={}) {
       } else if(action.type==='move') {
         const e=byId.get(action.target);
         check(Boolean(input.spatial&&e?.kind==='object'&&!e.motion&&!e.body&&!e.transport&&!e.passage),'move 需要空间普通物体，不能组合巡逻、动态刚体或连接能力。');
-        check((e?.space?.passage?number(action.progress,0,1)&&action.x===undefined&&action.depth===undefined&&action.height===undefined:
-          number(action.x,SPATIAL_MOVE_X.min,SPATIAL_MOVE_X.max-(e?.width??28))&&number(action.depth,0,600-(e?.space?.depthSize??24))&&number(action.height,0,360))&&action.y===undefined&&
+        check((e?.space?.passage&&action.plane===undefined?number(action.progress,0,1)&&action.x===undefined&&action.depth===undefined&&action.height===undefined:
+          action.progress===undefined&&number(action.x,SPATIAL_MOVE_X.min,SPATIAL_MOVE_X.max-(e?.width??28))&&number(action.depth,0,600-(e?.space?.depthSize??24))&&number(action.height,0,360))&&action.y===undefined&&
           Number.isInteger(action.ticks)&&number(action.ticks,1,3600),'move 需要合法的空间坐标或通路进度，以及 ticks（1～3600）。');
+        if(action.plane!==undefined)check(input.spatial?.mode==='layered','move.plane 需要二维分层 DSL。');
         if(e?.pose)check(spatialPoseInBounds({...e,x:action.x,space:{...e.space,height:action.height}}),'move 的姿态端点超出地图范围。');
       } else if (action.type === 'enable') {
         check(['collider','surface','passage'].includes(action.capability)&&object(byId.get(action.target)?.[action.capability])&&typeof action.enabled==='boolean',

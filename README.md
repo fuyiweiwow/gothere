@@ -2,9 +2,11 @@
 
 轻松诙谐的 2D 环境解谜与关卡编辑引擎，最终目标为 Steam。主角认准目的地持续前进，玩家通过物体、行为和事件改变环境，帮助他到达那里。
 
-当前分支 `codex/spatial-2-5d` 的本地开发版为 **0.24.0 二维分层编辑器**。当前优先制作可直接试玩的关卡片段，使用者无需花时间编辑。新片段 [借过一下](http://localhost:4173/?sample=tow-street) 约24秒：点击被占道车辆挡住的路人，他打电话叫来拖车；挂接清路后，端着早饭的车主追出店门。动作、帧动画和反馈均由现有 DSL 表达，场景使用统一风格的 CC0 矢量素材。范围与限制见 [清障片段记录](docs/tow-street-direction.md)。
+当前分支 `codex/spatial-2-5d` 的本地开发版为 **0.25.0 二维分层编辑器**。当前优先制作可直接试玩的关卡片段，使用者无需花时间编辑。新片段 [抬头看路](http://localhost:4173/?sample=crosswalk) 约23秒：主角走近时，低头看手机的行人进入斑马线；点击路边交警，他收起手机制止，行人退回路边，让主角正常过街。场景沿用统一的 CC0 街景风格，并保留结尾的无字反转。范围与限制见 [路口片段记录](docs/crosswalk-direction.md)。
 
-本地入口 [借过一下](http://localhost:4173/?sample=tow-street)、[公交站片段](http://localhost:4173/?sample=bus-stop)、[模板练习](http://localhost:4173/?sample=templates)、[三个街口旧稿](http://localhost:4173/?sample=commute)、[局部连接样例](http://localhost:4173/?sample=layered)；离线文件为 `dist/gothere-editor.html`。新工作区默认清障片段，旧工作区首次升级时新增该槽并展示；已有草稿与后续编辑均保留。编辑仍分逻辑、资源与绑定校准三种视图。
+本地入口 [抬头看路](http://localhost:4173/?sample=crosswalk)、[借过一下](http://localhost:4173/?sample=tow-street)、[公交站片段](http://localhost:4173/?sample=bus-stop)、[模板练习](http://localhost:4173/?sample=templates)、[三个街口旧稿](http://localhost:4173/?sample=commute)、[局部连接样例](http://localhost:4173/?sample=layered)；离线文件为 `dist/gothere-editor.html`。新工作区默认路口片段，旧工作区首次升级时新增该槽并展示；已有草稿与后续编辑均保留。编辑仍分逻辑、资源与绑定校准三种视图。
+
+清障片段「借过一下」继续保留：点击被占道车辆挡住的路人，他打电话叫来拖车；挂接清路后，端着早饭的车主追出店门。约24秒，数据与限制见 [清障片段记录](docs/tow-street-direction.md)。
 
 此前的4种内置模板继续可用：完整街景背景、两种建筑、公交与队伍；活动组合保留行为、内部连线、帧动画和音效槽，可整体移动、复制或展开修改。模板练习从已铺背景开始，放入公交模板后可以直接试玩。导入任意素材包、保存自定义模板库和自动识图尚未实现，本轮暂缓这些扩展。
 

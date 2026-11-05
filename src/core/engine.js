@@ -4,7 +4,7 @@ import { collectSurfaces, advanceWalker, touchesFootPath, touchesSurfacePath, su
 import { posedSurface } from './pose.js';
 import { initializeBodies, advanceBodies } from './bodies.js';
 import { updateSupportProbes } from './support.js';
-import {initializeSpatialActor,advanceSpatialActor,spaceTouches,spaceGoalReached,spaceSupport,spaceSurfaces,syncPassageObject} from './spatial.js';
+import {initializeSpatialActor,advanceSpatialActor,spaceTouches,spaceGoalReached,spaceSupport,spaceSurfaces,syncPassageObject,beginSpatialMove} from './spatial.js';
 import {normalizeLevel} from './level-version.js';
 export { validateLevel } from './schema.js';
 export const TICKS_PER_SECOND = 60;
@@ -96,8 +96,7 @@ export function createSimulation(input) {
         e.rotation={from:e.pose.angle,to:action.angle,ticks:action.ticks,elapsed:0};
       } else if(action.type==='move') {
         const e=state.entities[action.target];if(state.actor.holding===e.id)continue;
-        e.translation=e.space.passage?{fromProgress:e.space.progress,toProgress:action.progress,ticks:action.ticks,elapsed:0}:
-          {from:{x:e.x,depth:e.space.depth,height:e.space.height},to:{x:action.x,depth:action.depth,height:action.height},ticks:action.ticks,elapsed:0};
+        if(!beginSpatialMove(level,e,action)){emit(e.label+' 位移条件未满足，本次指令未执行。','moveblocked');trigger('moveblocked',e.id);}
       } else if (action.type==='enable') {
         const e=state.entities[action.target];e[action.capability].enabled=action.enabled;
         emit(e.label+' · '+(action.capability==='collider'?'碰撞':action.capability==='passage'?'通路':'承托')+(action.enabled?'启用':'停用'));

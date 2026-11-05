@@ -64,7 +64,7 @@ export function createSpatialUI({document:current,change,preview,choose,selectio
       select.onchange=()=>change(doc=>{const e=doc.entities.find(e=>e.id===target.id);
         if(select.value==='plane')assignWalkPlane(doc,e,doc.spatial.planes[0].id);
         else{delete e.space.plane;e.space.passage=select.value;e.space.progress=.5;e.space.length=28;syncPassageObject(doc,e);}
-        const strip=actions=>{for(const a of actions)if(a.type==='after')strip(a.actions);else if(a.type==='move'&&a.target===e.id){delete a.progress;delete a.x;delete a.depth;delete a.height;Object.assign(a,e.space.passage?{progress:e.space.progress}:{x:e.x,depth:e.space.depth,height:e.space.height});}};
+        const strip=actions=>{for(const a of actions)if(a.type==='after')strip(a.actions);else if(a.type==='move'&&a.target===e.id){delete a.progress;delete a.x;delete a.depth;delete a.height;delete a.plane;Object.assign(a,e.space.passage?{progress:e.space.progress}:{x:e.x,depth:e.space.depth,height:e.space.height});}};
         for(const r of doc.rules)strip(r.actions);for(const o of doc.entities)for(const b of o.behaviors??[])strip(b.actions);
       });label.append(select);box.append(label);box.append(el('p','切换位置归属会将移动目的地重置到当前位置。'));
     }

@@ -43,7 +43,7 @@ function allocator(level){
 }
 function translateActions(level,ids,dx,plane){
   eachAction(level,a=>{
-    if(a.type==='move'&&ids.has(a.target)){if(!a.editor?.keepWorldX)a.x+=dx;if(plane)a.depth=plane.depth;}
+    if(a.type==='move'&&ids.has(a.target)){if(!a.editor?.keepWorldX)a.x+=dx;if(plane){a.depth=plane.depth;if(a.plane!==undefined)a.plane=plane.id;}}
     if(a.editor?.waypoints&&(ids.has(a.target)))a.editor.waypoints=a.editor.waypoints.map(p=>({...p,x:Math.max(0,Math.min(1200,p.x+dx))}));
   });
 }

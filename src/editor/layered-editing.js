@@ -27,7 +27,7 @@ export function assignWalkPlane(level,target,planeId){
   delete target.space.passage;delete target.space.progress;delete target.space.length;
   // Plane moves retain coordinates; passage moves reset to the converted position.
   const update=actions=>{for(const a of actions){if(a.type==='after')update(a.actions);else if(a.type==='move'&&a.target===target.id){
-    if(fromPassage){delete a.progress;a.x=target.x;a.height=target.space.height;}a.depth=p.depth;
+    if(fromPassage){delete a.progress;delete a.plane;a.x=target.x;a.height=target.space.height;}else if(a.plane!==undefined)a.plane=p.id;a.depth=p.depth;
   }}};
   if(target.id){for(const r of level.rules)update(r.actions);for(const e of level.entities)for(const b of e.behaviors??[])update(b.actions);}
 }
@@ -37,6 +37,8 @@ export function setPlaneBaseline(level,planeId,baseline){
   plane.depth=level.spatial.projection.originY-baseline;
   for(const target of [level.actor,level.goal,...level.platforms,...level.entities])if(target.space.plane===planeId)assignWalkPlane(level,target,planeId);
   for(const n of level.spatial.nodes)if(n.plane===planeId)n.depth=plane.depth;
+  const update=actions=>{for(const a of actions)if(a.type==='after')update(a.actions);else if(a.type==='move'&&a.plane===planeId)a.depth=plane.depth;};
+  for(const r of level.rules)update(r.actions);for(const e of level.entities)for(const b of e.behaviors??[])update(b.actions);
   for(const n of level.scene?.nodes??[])if(n.anchor?.plane===planeId)n.anchor.depth=plane.depth;
   for(const e of level.entities)if(e.space.passage)syncPassageObject(level,e);
 }
