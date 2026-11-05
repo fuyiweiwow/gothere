@@ -2268,5 +2268,75 @@
     "height": 78,
     "source": "gothere-original",
     "license": "CC0-1.0"
+  },
+  {
+    "id": "scootAlley",
+    "label": "街巷 · 公寓院门与通道",
+    "category": "街景构图",
+    "file": "original/commute/scootAlley.svg",
+    "width": 485,
+    "height": 389,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "scootPosts",
+    "label": "街巷 · 留有缺口的路桩",
+    "category": "街景构图",
+    "file": "original/commute/scootPosts.svg",
+    "width": 149,
+    "height": 56,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "scootBarrier",
+    "label": "街巷 · 活动路障",
+    "category": "街景物件",
+    "file": "original/commute/scootBarrier.svg",
+    "width": 96,
+    "height": 58,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "scootBikes",
+    "label": "街巷 · 墙边的两辆自行车",
+    "category": "街景物件",
+    "file": "original/commute/scootBikes.svg",
+    "width": 140,
+    "height": 73,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "scootBins",
+    "label": "街巷 · 路边垃圾桶",
+    "category": "街景物件",
+    "file": "original/commute/scootBins.svg",
+    "width": 70,
+    "height": 61,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "scootRider",
+    "label": "街巷 · 满载电瓶车与骑手",
+    "category": "街景角色",
+    "file": "original/commute/scootRider.svg",
+    "width": 154,
+    "height": 110,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "scootRiderPhone",
+    "label": "街巷 · 骑手停下看手机",
+    "category": "街景角色",
+    "file": "original/commute/scootRiderPhone.svg",
+    "width": 154,
+    "height": 110,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
   }
 ]

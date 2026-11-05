@@ -15,7 +15,7 @@ export const floorY = (value) => value?.y ?? 440;
 export const eventTypes = (source) => {const kind=typeof source==='string'?source:source?.kind;return [...(kind==='object'?['contact','click',...(source?.space?['placed']:[])]:['switch','hazard'].includes(kind)?['click']:[]),
   ...(kind==='plate'||kind==='zone'?['enter']:[]), ...(['zone','object'].includes(kind)?[]:['contact']),
   ...(kind==='lift'?['board','arrive']:[]), ...(kind==='ladder'||(kind==='object'&&(verticalTransport(source)||source?.passage))?['arrive']:[]),
-  ...(source?.passage?['board']:[]),
+  ...(source?.passage?['board']:[]),...(source?.draggable?['droprejected',...(!source.space?['placed']:[])]:[]),
   ...(typeof source==='object'&&source?.pose?['rotated']:[]),
   ...(typeof source==='object'&&source?.kind==='object'&&source.space?['moved','moveblocked']:[]),
   ...(source?.body||source?.supportProbe?['supportlost']:[]),...(source?.body?['landed']:[]),
@@ -148,6 +148,17 @@ export function validateLevel(input,{spatialDraft=false}={}) {
     });
   }
   check(imageBytes<=98304, '一张地图的内嵌贴图总计不能超过 96 KiB。');
+  for(const e of byId.values()){
+    if(e.dropTarget!==undefined)check(e.kind==='object'&&!e.space?.passage&&object(e.dropTarget)&&typeof e.dropTarget.enabled==='boolean'&&number(e.dropTarget.radius,12,96),
+      '接收点需要普通物体、enabled 和 radius（12～96）：'+e.id);
+    if(e.draggable!==undefined){
+      const d=e.draggable;
+      check(e.kind==='object'&&!e.space?.passage&&!['motion','body','pose','transport','passage','surface','collider'].some(key=>e[key])&&object(d)&&typeof d.enabled==='boolean',
+        '玩家拖放需要普通物体及 enabled，暂不组合运动、承托或碰撞体：'+e.id);
+      check(object(d)&&Array.isArray(d.targets)&&d.targets.length<=16&&new Set(d.targets).size===d.targets.length&&
+        d.targets.every(id=>id!==e.id&&Boolean(byId.get(id)?.dropTarget)), '拖放 targets 需要最多16个不重复的接收点：'+e.id);
+    }
+  }
   const conditionsValid = (conditions, where) => {
     check(Array.isArray(conditions) && conditions.length <= 16, where + ' 的 if 必须是最多 16 项的数组。');
     if (!Array.isArray(conditions)) return;
@@ -206,8 +217,8 @@ export function validateLevel(input,{spatialDraft=false}={}) {
         if(action.plane!==undefined)check(input.spatial?.mode==='layered','move.plane 需要二维分层 DSL。');
         if(e?.pose)check(spatialPoseInBounds({...e,x:action.x,space:{...e.space,height:action.height}}),'move 的姿态端点超出地图范围。');
       } else if (action.type === 'enable') {
-        check(['collider','surface','passage'].includes(action.capability)&&object(byId.get(action.target)?.[action.capability])&&typeof action.enabled==='boolean',
-          'enable 需要已定义的 collider/surface/passage 能力和 enabled 布尔值。');
+        check(['collider','surface','passage','draggable','dropTarget'].includes(action.capability)&&object(byId.get(action.target)?.[action.capability])&&typeof action.enabled==='boolean',
+          'enable 需要已定义的 collider/surface/passage/draggable/dropTarget 能力和 enabled 布尔值。');
       } else errors.push('未知动作类型：' + String(action.type));
     }
   };

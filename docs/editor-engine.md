@@ -1,6 +1,8 @@
 # 关卡编辑器
 
-本地开发版 v0.25.0 默认展示「上班路 · 抬头看路」：点击「运行」，约4秒时点击对街遮阳伞下的交警，约23秒即可看完，无需编辑。直接入口 `?sample=crosswalk`。清障片段 `?sample=tow-street`、模板练习、公交站、三个街口、局部连接样例、旧屋顶关和空间实验继续保留。路口事件见 [片段记录](crosswalk-direction.md)，分层与通路出口衔接见 [分层 DSL 规范](layered-dsl.md)。公开 Pages 仍是 main 稳定版；以下也以旧屋顶关为例说明共用的编辑功能。使用者无需安装 Node.js/npm。
+本地开发版 v0.26.0 默认展示「上班路 · 此路不借」：点击「运行」，将左侧活动路障拖到右侧两根路桩之间，约20秒，无需编辑。直接入口 `?sample=scooter`。斑马线 `?sample=crosswalk`、清障 `?sample=tow-street` 及此前示例保留。玩家拖放见 [片段与能力记录](scooter-direction.md)，分层与通路出口衔接见 [分层 DSL 规范](layered-dsl.md)。公开 Pages 仍是 main 稳定版；以下也以旧屋顶关为例说明共用的编辑功能。使用者无需安装 Node.js/npm。
+
+逻辑视图选中普通物体，可配置「玩家可拖放」及允许的接收对象；另一个物体勾选「作为拖放接收点」并设置半径。运行时拖到接收点附近吸附，放错归位，Esc取消。拖放不会更改编辑草稿。`placed` 和「放错归位」可从事件槽接线；`enable` 可控制拖放/接收，表达时机窗口。暂停不接受拖放。接收范围使用逻辑基准点，不随图片尺寸改变。
 
 [在线编辑器](https://fuyiweiwow.github.io/gothere/editor.html) · [离线 HTML](https://fuyiweiwow.github.io/gothere/gothere-editor.html)
 

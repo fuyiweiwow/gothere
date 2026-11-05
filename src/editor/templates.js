@@ -15,6 +15,7 @@ function assertPortable(entities){
 function assertClosed(template){
   const entities=new Set(template.entities.map(e=>e.id)),check=id=>{if(id!==undefined&&id!==null&&!entities.has(id))throw new Error('模板仍引用组合外的逻辑对象：'+id);};
   eachAction(template,a=>{check(a.target);check(a.at);});
+  for(const e of template.entities)for(const id of e.draggable?.targets??[])check(id);
   for(const r of template.rules){check(r.on.source);check(r.on.other);for(const c of r.if??[]){check(c.entity);check(c.holding);}}
   for(const n of template.nodes)if(n.bind){if(n.bind.type!=='entity')throw new Error('模板成员只可绑定组合内的逻辑对象。');check(n.bind.id);}
   for(const f of template.feedback)if(['behavior','state','event'].includes(f.trigger.type))check(f.trigger.source);
@@ -23,6 +24,7 @@ function assertClosed(template){
 /** Capture authored pieces, never infer collisions or behavior from their pixels. */
 export function captureTemplate(level,{id,label,nodes,entities=[],origin}){
   const selected=new Set(nodes),actors=new Set(entities),scene=level.scene;
+  if(level.entities.some(e=>!actors.has(e.id)&&e.draggable?.targets.some(id=>actors.has(id))))throw new Error('组合存在外部拖放引用，请先纳入对应物体。');
   const incoming=actions=>{let found=false;visitActions(actions,a=>{if(actors.has(a.target)||actors.has(a.at))found=true;});return found;};
   if(level.rules.some(r=>!actors.has(r.on.source)&&(incoming(r.actions)||actors.has(r.on.other)||(r.if??[]).some(c=>actors.has(c.entity)||actors.has(c.holding))))||
     level.entities.some(e=>!actors.has(e.id)&&(e.behaviors??[]).some(b=>incoming(b.actions))))throw new Error('组合存在外部逻辑引用，请先纳入对应物体或解除引用。');
@@ -72,7 +74,7 @@ export function placeTemplate(level,template,{x=template.origin.x,y=template.ori
     const old=resource.id;resource.id=fresh(prefix);map.set(old,resource.id);target.push(resource);
   }
   const remap=id=>entityMap.get(id)??id,remapArt=id=>assetMap.get(id)??id;
-  for(const e of copy.entities){e.id=remap(e.id);e.x+=dx;e.space.plane=plane.id;e.space.depth=plane.depth;}
+  for(const e of copy.entities){e.id=remap(e.id);e.x+=dx;e.space.plane=plane.id;e.space.depth=plane.depth;if(e.draggable)e.draggable.targets=e.draggable.targets.map(remap);}
   eachAction(copy,a=>{if(a.target)a.target=remap(a.target);if(a.at)a.at=remap(a.at);});
   for(const r of copy.rules){r.on.source=remap(r.on.source);if(r.on.other)r.on.other=remap(r.on.other);for(const c of r.if??[]){if(c.entity)c.entity=remap(c.entity);if(c.holding)c.holding=remap(c.holding);}}
   const entityIds=new Set(copy.entities.map(e=>e.id));translateActions(copy,entityIds,dx,plane);

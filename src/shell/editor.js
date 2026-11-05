@@ -19,32 +19,40 @@ import {createStreetLevel} from '../editor/street-level.js';
 import {createBusStopLevel} from '../editor/bus-stop-level.js';
 import {createTowStreetLevel} from '../editor/tow-street-level.js';
 import {createCrosswalkLevel} from '../editor/crosswalk-level.js';
+import {createScooterLevel} from '../editor/scooter-level.js';
 import {createTemplatePractice} from '../editor/template-catalog.js';
 import {createLayeredLevel} from '../editor/layered-level.js';
 import {drawSpatial} from '../render/spatial.js';
 import {spaceBounds} from '../core/spatial.js';
+import {canDrag} from '../core/placement.js';
+import {createRuntimeDrag} from './runtime-drag.js';
 
 const $=id=>document.getElementById(id),canvas=$('scene'),ctx=canvas.getContext('2d');
 const params=new URLSearchParams(location.search),spatialEntry=!params.has('legacy');
 const templateEntry=params.get('sample')==='templates';
-const crossEntry=(!params.has('sample')&&!params.has('spatial'))||params.get('sample')==='crosswalk';
+const scooterEntry=(!params.has('sample')&&!params.has('spatial'))||params.get('sample')==='scooter';
+const crossEntry=params.get('sample')==='crosswalk';
 const towEntry=params.get('sample')==='tow-street';
 const graybox=params.get('sample')==='graybox',busStop=params.get('sample')==='bus-stop';
 const oldSpatial=params.has('spatial')||params.get('sample')==='spatial-commute',layeredDemo=params.get('sample')==='layered';
 const layeredEntry=spatialEntry&&!graybox&&!oldSpatial;
-const sample=spatialEntry?(crossEntry?createCrosswalkLevel:towEntry?createTowStreetLevel:templateEntry?()=>createTemplatePractice('template-practice'):graybox?createSpatialLevel:oldSpatial?createCommuteLevel:layeredDemo?createLayeredLevel:busStop?createBusStopLevel:createStreetLevel):createFirstLevel;
-const sampleKey=spatialEntry?(crossEntry?'commute:crosswalk:01':towEntry?'commute:tow-street:01':templateEntry?'templates:practice:01':graybox?'spatial:01':oldSpatial?'commute:spatial:01':layeredDemo?'layered:graybox:01':busStop?'commute:bus-stop:03':'commute:layered:02'):'milestone:02:v017';
+const sample=spatialEntry?(scooterEntry?createScooterLevel:crossEntry?createCrosswalkLevel:towEntry?createTowStreetLevel:templateEntry?()=>createTemplatePractice('template-practice'):graybox?createSpatialLevel:oldSpatial?createCommuteLevel:layeredDemo?createLayeredLevel:busStop?createBusStopLevel:createStreetLevel):createFirstLevel;
+const sampleKey=spatialEntry?(scooterEntry?'commute:scooter:01':crossEntry?'commute:crosswalk:01':towEntry?'commute:tow-street:01':templateEntry?'templates:practice:01':graybox?'spatial:01':oldSpatial?'commute:spatial:01':layeredDemo?'layered:graybox:01':busStop?'commute:bus-stop:03':'commute:layered:02'):'milestone:02:v017';
 const standaloneHTML=document.getElementById('standalone-editor')?'<!doctype html>\n'+document.documentElement.outerHTML:null;
 let editor,resourceUI,bindingUI,lastDraft,loadSerial=0,preview=null,previewLevel=null,accumulator=0,last=0,debugLast=0,toastTimer,serial=0;
 let feedback=null,feedbackFrame=null,audition=null,endingTicks=0;
 const sound=createSoundPlayer({notify,onPlay:()=>{canvas.dataset.audioPlayed=String(Number(canvas.dataset.audioPlayed??0)+1);}});
+const runtimeDrag=createRuntimeDrag({overlay:$('scene-interactions'),viewport:$('viewport'),session:()=>({preview,level:previewLevel}),
+  paint:()=>{if(preview)draw(previewLevel,preview.snapshot());},notify,
+  click:source=>{if(canClick(source,preview.snapshot())&&preview.click(source))notify('点击已排队：'+preview.snapshot().entities[source].label);}});
 let displayMode='scene';
 try{displayMode=localStorage.getItem('gothere.studio.display')??'scene';}catch{}
 if(!['logic','scene','binding'].includes(displayMode))displayMode='scene';
 $('display-mode').value=displayMode;
 $('animation-toggle').checked=!matchMedia('(prefers-reduced-motion: reduce)').matches;
 function draw(level,state){
-  if(!state)lastDraft=level;
+  if(!state){runtimeDrag.cancel();lastDraft=level;}
+  const actualState=state;if(state)state=runtimeDrag.visualState(level,state);
   feedbackFrame=state&&feedback?state.status==='ready'?null:feedback.sample(state,{endingTicks,enabled:$('animation-toggle').checked,audible:$('sound-toggle').checked}):
     audition?audition.player.sample({tick:Math.floor(audition.tick),status:'running',signals:[]},{enabled:$('animation-toggle').checked,audible:$('sound-toggle').checked}):null;
   canvas.dataset.feedbackActive=String(feedbackFrame?.active??0);canvas.dataset.feedbackParticles=String(feedbackFrame?.particles.length??0);canvas.dataset.feedbackEnded=String(feedbackFrame?.tailFinished??true);
@@ -54,6 +62,7 @@ function draw(level,state){
   else if(displayMode!=='logic')drawScene(ctx,level,state,{animate:$('animation-toggle').checked,previewVariant:state?null:resourceUI?.variant(),
     feedback:feedbackFrame,previewTarget:state?null:audition?.target,hiddenLayers:state?null:resourceUI?.hiddenLayers(),artOpacity:displayMode==='binding'?Number($('calibration-art-opacity').value):1});else drawDiagram(ctx,level,state);
   if(displayMode==='binding')bindingUI?.render(level,state);
+  if(actualState)runtimeDrag.drawTargets(ctx,level,actualState);
   if(state)updateInteractions(state);
 }
 function workspace(){document.body.dataset.display=displayMode;const editing=editor?.isEditing()??false,target=displayMode==='binding'?$('binding-target').value:displayMode==='logic'?'logic':'art';
@@ -73,17 +82,18 @@ function drawDocument(level){if(audition){audition=null;sound.stop();}bindingUI?
 function canClick(id,state){return previewLevel.rules.some(r=>r.on.source===id&&r.on.type==='click'&&(r.if??[]).every(c=>Object.hasOwn(c,'holding')?state.actor.holding===c.holding:state.entities[c.entity].state===c.state));}
 function updateInteractions(state){
   for(const button of document.querySelectorAll('#scene-interactions button,#runtime-inputs button')){
-    const e=state.entities[button.dataset.source],remaining=recoveryTicks(e.id,state),disabled=['won','lost'].includes(state.status)||!canClick(e.id,state);
-    button.disabled=disabled;const status=remaining===null?(disabled?'暂不可触发':'可触发'):'剩余 '+(remaining/60).toFixed(1)+'秒 · 恢复';
+    const e=state.entities[button.dataset.source],remaining=recoveryTicks(e.id,state),draggable=state.status==='running'&&canDrag(state,e.id),disabled=['won','lost'].includes(state.status)||(!canClick(e.id,state)&&!draggable);
+    button.disabled=disabled;const status=remaining===null?(disabled?'暂不可触发':draggable?'可拖放':'可触发'):'剩余 '+(remaining/60).toFixed(1)+'秒 · 恢复';
     button.title=e.label+' · '+status;
     if(button.parentElement.id==='scene-interactions'){
+      button.dataset.draggable=String(draggable);
       const logical=()=>previewLevel.spatial?spaceBounds(previewLevel,e.kind,e):diagramBounds(e.kind,e);
       const b=displayMode==='logic'?logical():(entityArtBounds(previewLevel,state,e.id,{feedback:feedbackFrame})??(previewLevel.spatial?logical():presentationBounds(e)));
       button.style.left=(b.x-4)/12+'%';button.style.top=(b.y-4)/6.4+'%';button.style.width=(b.width+8)/12+'%';button.style.height=Math.max(24,b.height+8)/6.4+'%';
       // Small items remain reachable when receivers share the same screen area.
       // Disabled rules never cover a usable target underneath them.
       button.style.pointerEvents=disabled?'none':'auto';button.style.zIndex=String(Math.max(1,1000-Math.round(b.width*b.height/100)));
-      button.setAttribute('aria-label','触发 '+e.label+' · '+status);
+      button.setAttribute('aria-label',(draggable?'拖放 ':'触发 ')+e.label+' · '+status);
     }else button.querySelector('small').textContent=status;
   }
 }
@@ -105,18 +115,20 @@ function updateDebug(){
   updateInteractions(state);
 }
 function runPreview(level,{run=true}={}){
+  runtimeDrag.cancel();
   audition=null;previewLevel=level;preview=createPreview(level);accumulator=0;endingTicks=0;
   sound.setLevel(level);sound.setPaused(!run);sound.setMuted(!$('sound-toggle').checked);if(run)sound.unlock();canvas.dataset.audioPlayed='0';
   feedback=createFeedbackPlayer(level,{onSound:e=>sound.play(e)});
   if(run)preview.start();
   const inputs=$('runtime-inputs');inputs.replaceChildren();
   $('scene-interactions').replaceChildren();
-  for(const e of level.entities.filter(e=>eventTypes(e).includes('click')&&level.rules.some(r=>r.on.source===e.id&&r.on.type==='click'))){
+  for(const e of level.entities.filter(e=>e.draggable||eventTypes(e).includes('click')&&level.rules.some(r=>r.on.source===e.id&&r.on.type==='click'))){
     for(const container of [inputs,$('scene-interactions')]){const b=document.createElement('button');b.className=container===inputs?'button secondary':'scene-target';b.dataset.source=e.id;
+      if(container===inputs&&e.draggable&&!level.rules.some(r=>r.on.source===e.id&&r.on.type==='click'))continue;
       if(container===inputs){const title=document.createElement('span');title.textContent=e.label;b.append(title,document.createElement('small'));}
-      b.addEventListener('click',()=>{if(preview.click(e.id)){notify('点击已排队：'+e.label);updateDebug();}});container.append(b);}
+      b.addEventListener('click',()=>{if(canClick(e.id,preview.snapshot())&&preview.click(e.id)){notify('点击已排队：'+e.label);updateDebug();}});container.append(b);}
   }
-  if(!inputs.children.length)inputs.textContent='没有点击事件源。';
+  if(!inputs.children.length)inputs.textContent=level.entities.some(e=>e.draggable)?'在画布中拖放物品。':'没有点击事件源。';
   draw(level,preview.snapshot());updateDebug();
 }
 editor=createEditorUI({play:runPreview,leave:()=>{},pause:()=>preview?.pause(),notify,diagram:true,
@@ -135,7 +147,7 @@ resourceUI=createResourceUI({editor,notify,preview:draw,requestBind:id=>{changeD
     const player=createFeedbackPlayer(level,{onSound:e=>sound.play(e)});player.preview({...f,delay:0},0);audition={player,tick:0,duration:f.duration,target:f.target};$('animation-toggle').checked=true;draw(level);
   }});
 bindingUI=createBindingUI({editor,resources:resourceUI,paint:draw,notify});
-if(spatialEntry)editor.open(sample(),sampleKey,{updateSample:layeredEntry&&!layeredDemo,offerSample:layeredEntry&&(crossEntry||towEntry||busStop||templateEntry)});
+if(spatialEntry)editor.open(sample(),sampleKey,{updateSample:layeredEntry&&!layeredDemo,offerSample:layeredEntry&&(scooterEntry||crossEntry||towEntry||busStop||templateEntry)});
 else editor.open(createFirstLevel(),'milestone:02:v017',{workspaceRevision:'milestone-02-v017'});
 // An explicit sample link selects its saved slot, preserving authored edits.
 if(spatialEntry&&params.has('sample'))editor.openDocument(sample(),sampleKey);
@@ -147,7 +159,7 @@ createViewport({isEditing:()=>editor.isEditing(),onChange:()=>{
   const width=Math.round(1200*scale),height=Math.round(640*scale);if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;ctx.setTransform(width/1200,0,0,height/640,0,0);}
   if(preview)draw(previewLevel,preview.snapshot());else draw(lastDraft??editor.document());
 }});
-$('editor-example').value=spatialEntry?(editor.document().id==='commute-crosswalk'?'crosswalk':editor.document().id==='commute-tow-street'?'tow-street':editor.document().id.startsWith('template-practice')?'templates':editor.document().id==='spatial-graybox'?'graybox':editor.document().id==='commute-spatial'?'spatial-commute':editor.document().id==='layered-graybox'?'layered':editor.document().id==='commute-bus-stop'?'bus-stop':'commute'):'rooftop';
+$('editor-example').value=spatialEntry?(editor.document().id==='commute-scooter'?'scooter':editor.document().id==='commute-crosswalk'?'crosswalk':editor.document().id==='commute-tow-street'?'tow-street':editor.document().id.startsWith('template-practice')?'templates':editor.document().id==='spatial-graybox'?'graybox':editor.document().id==='commute-spatial'?'spatial-commute':editor.document().id==='layered-graybox'?'layered':editor.document().id==='commute-bus-stop'?'bus-stop':'commute'):'rooftop';
 $('editor-example').addEventListener('change',()=>{const url=new URL(location.href);url.searchParams.delete('legacy');url.searchParams.delete('sample');url.searchParams.delete('spatial');
   if($('editor-example').value==='rooftop')url.searchParams.set('legacy','1');else url.searchParams.set('sample',$('editor-example').value);location.href=url.href;});
 $('reset-level').textContent='新建示例副本';

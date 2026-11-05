@@ -60,7 +60,7 @@ try{
     await p.reload();await p.locator('#scene[data-assets=ready]').waitFor();assert.deepEqual(await draft(p),before);
     // Switching to this trial must retain an authored previous street draft.
     await p.evaluate(level=>{const key='gothere.studio.layered.v1',s=JSON.parse(localStorage.getItem(key));level.name='Saved street edits';s.documents=[{key:'commute:layered:02',level}];s.activeKey='commute:layered:02';localStorage.setItem(key,JSON.stringify(s));},createStreetLevel());
-    const defaultURL=new URL(url);defaultURL.search='';await p.goto(defaultURL.href);await p.locator('#scene[data-assets=ready]').waitFor();assert.equal((await draft(p)).id,'commute-crosswalk');
+    const defaultURL=new URL(url);defaultURL.search='';await p.goto(defaultURL.href);await p.locator('#scene[data-assets=ready]').waitFor();assert.equal((await draft(p)).id,'commute-scooter');
     assert.equal(await p.evaluate(()=>JSON.parse(localStorage.getItem('gothere.studio.layered.v1')).documents.find(d=>d.key==='commute:layered:02').level.name),'Saved street edits');
     assert.deepEqual(requests,[]);await context.close();console.log('PASS bus stop '+(index?'offline':'online')+': art groups, editing, moving clips, body hitbox, complete scene/logic play, failure, persistence and old drafts.');
   }

@@ -313,6 +313,7 @@ export function moveObject(level, ref, dx, dy=0) {
 // Removing the last action can remove a behavior, which can invalidate other calls.
 function pruneReferences(level) {
   const byId=new Map(level.entities.map(e=>[e.id,e]));
+  for(const e of level.entities)if(e.draggable)e.draggable.targets=e.draggable.targets.filter(id=>byId.has(id));
   let changed;
   do {
     changed=false;

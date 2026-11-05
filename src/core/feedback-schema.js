@@ -35,7 +35,7 @@ export function validateFeedback(level) {
     if(['start','lost','won'].includes(t?.type)&&t.source!==undefined)check(t.source===(t.type==='start'?'scene':'actor'),'反馈生命周期来源无效：'+f.id);
     if(t?.type==='behavior')check(Boolean(e?.behaviors?.some(b=>b.id===t.behavior)),'反馈引用的行为不存在：'+f.id);
     if(t?.type==='state')check(Boolean(e)&&id(t.state),'反馈状态来源无效：'+f.id);
-    if(t?.type==='event')check(Boolean(e)&&['click','contact','placed','enter','board','arrive','rotated','moved','supportlost','supportfound','landed','impact','actorlanded','done'].includes(t.event),'反馈事件来源无效：'+f.id);
+    if(t?.type==='event')check(Boolean(e)&&['click','contact','placed','droprejected','enter','board','arrive','rotated','moved','moveblocked','supportlost','supportfound','landed','impact','actorlanded','done'].includes(t.event),'反馈事件来源无效：'+f.id);
     if(t?.type==='event'&&t.behavior!==undefined)check(t.event==='done'&&Boolean(e?.behaviors?.some(b=>b.id===t.behavior)),'反馈完成事件的行为不存在：'+f.id);
     if(t?.reason!==undefined)check(typeof t.reason==='string'&&t.reason.length<=64,'反馈失败原因无效。');
   }

@@ -38,7 +38,7 @@ function input(value,label,onChange,settings={}) {
   return el;
 }
 const button = (name,handler,className='button secondary') => {const el=element('button',name,className);el.type='button';el.addEventListener('click',handler);return el;};
-const eventNames={click:'点击',contact:'碰到',placed:'放到对象处',enter:'走入区域',board:'进入连接',arrive:'抵达出口',rotated:'旋转结束',moved:'位移结束',moveblocked:'位移条件未满足',supportlost:'失去支撑',supportfound:'获得支撑',landed:'落地',actorlanded:'主角落到上面',impact:'受到落物撞击',done:'行为完成'};
+const eventNames={click:'点击',contact:'碰到',placed:'放到对象处',droprejected:'放错归位',enter:'走入区域',board:'进入连接',arrive:'抵达出口',rotated:'旋转结束',moved:'位移结束',moveblocked:'位移条件未满足',supportlost:'失去支撑',supportfound:'获得支撑',landed:'落地',actorlanded:'主角落到上面',impact:'受到落物撞击',done:'行为完成'};
 const availableEvents=e=>eventTypes(e).filter(t=>t!=='done'||e.behaviors?.length);
 const actionList = (actions,path) => {for(const index of path)actions=actions[index].actions;return actions;};
 
@@ -110,13 +110,14 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
       box.append(field('显示名称',input(target.label,'显示名称',value=>edit(doc=>{resolveObject(doc,selection).label=value;}),{id:'object-label',maxLength:30})));
       const state=select(STATES[target.kind].map(s=>[s,stateLabel(s)]),target.state,'初始状态',value=>edit(doc=>{resolveObject(doc,selection).state=value;}));state.id='object-state';box.append(field('初始状态',state));
       if(target.kind==='object'){
-        const pose=element('input');pose.type='checkbox';pose.id='object-pose';pose.checked=Boolean(target.pose);pose.disabled=Boolean(target.collider||target.passage||target.space?.passage);
+        renderPlacementFields(d,target,box);
+        const pose=element('input');pose.type='checkbox';pose.id='object-pose';pose.checked=Boolean(target.pose);pose.disabled=Boolean(target.draggable||target.collider||target.passage||target.space?.passage);
         pose.onchange=()=>edit(doc=>{const e=resolveObject(doc,selection);if(pose.checked)e.pose={angle:0,pivot:0};else{delete e.pose;}});box.append(field('姿态与旋转',pose));
         if(target.pose)for(const [key,label,min,max] of [['angle','初始角度',-75,75],['pivot','支点',0,1]])box.append(field(label,input(target.pose[key],label,value=>edit(doc=>{resolveObject(doc,selection).pose[key]=value;}),{id:'object-'+key,type:'number',min,max,step:'any'})));
-        const patrol=element('input');patrol.type='checkbox';patrol.checked=Boolean(target.motion);patrol.disabled=Boolean(target.passage||target.space?.passage);patrol.id='object-motion';patrol.onchange=()=>edit(doc=>{const e=resolveObject(doc,selection);if(patrol.checked)e.motion={type:'patrol',minX:Math.max(25,e.x-50),maxX:Math.min(1200-(e.width??28),e.x+50),speed:45};else delete e.motion;});box.append(field('左右巡逻',patrol));
+        const patrol=element('input');patrol.type='checkbox';patrol.checked=Boolean(target.motion);patrol.disabled=Boolean(target.draggable||target.passage||target.space?.passage);patrol.id='object-motion';patrol.onchange=()=>edit(doc=>{const e=resolveObject(doc,selection);if(patrol.checked)e.motion={type:'patrol',minX:Math.max(25,e.x-50),maxX:Math.min(1200-(e.width??28),e.x+50),speed:45};else delete e.motion;});box.append(field('左右巡逻',patrol));
         if(target.motion)for(const [key,label,min,max] of [['minX','巡逻左界',25,1175],['maxX','巡逻右界',35,1190],['speed','巡逻速度',15,180]])box.append(field(label,input(target.motion[key],label,value=>edit(doc=>{resolveObject(doc,selection).motion[key]=value;}),{id:'object-motion-'+(key==='speed'?'speed':key),type:'number',min,max,step:1})));
         for(const [key,label] of [['surface','承托面'],['collider','矩形碰撞体']]){
-          const enabled=element('input');enabled.type='checkbox';enabled.id='object-'+key;enabled.disabled=Boolean(target.passage||target.space?.passage)||key==='collider'&&Boolean(target.pose);enabled.checked=Boolean(target[key]?.enabled);enabled.onchange=()=>edit(doc=>{const e=resolveObject(doc,selection);if(e[key])e[key].enabled=enabled.checked;else if(enabled.checked)e[key]={enabled:true};});box.append(field(label,enabled));
+          const enabled=element('input');enabled.type='checkbox';enabled.id='object-'+key;enabled.disabled=Boolean(target.draggable||target.passage||target.space?.passage)||key==='collider'&&Boolean(target.pose);enabled.checked=Boolean(target[key]?.enabled);enabled.onchange=()=>edit(doc=>{const e=resolveObject(doc,selection);if(e[key])e[key].enabled=enabled.checked;else if(enabled.checked)e[key]={enabled:true};});box.append(field(label,enabled));
         }
       }
       box.append(field('接触效果',select([['','无特殊效果'],['lethal','接触致命']],target.contact?.effect??'','接触效果',value=>edit(doc=>{const e=resolveObject(doc,selection);if(value)e.contact={effect:value};else delete e.contact;}))));
@@ -129,6 +130,21 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
       box.append(button('打开绑定校准',()=>editResources(selection,null),'button secondary'));
       box.append(button('删除物件',()=>edit(doc=>{deleteObject(doc,selection);selection=null;}),'button danger'));
     }});
+  function renderPlacementFields(d,target,box){
+    const toggle=(id,label,value,change,disabled=false)=>{const c=element('input');c.id=id;c.type='checkbox';c.checked=value;c.disabled=disabled;c.onchange=()=>{if(!edit(doc=>change(resolveObject(doc,selection),c.checked,doc)))render();};box.append(field(label,c));};
+    toggle('object-drop-target','作为拖放接收点',Boolean(target.dropTarget),(e,on,doc)=>{if(on)e.dropTarget={enabled:true,radius:38};else{if(doc.entities.some(item=>item.draggable?.targets.includes(e.id)))throw new Error('请先取消物品对该接收点的引用；暂停接收可关闭「接收初始启用」。');delete e.dropTarget;}},Boolean(target.space?.passage));
+    if(target.dropTarget){
+      toggle('object-drop-enabled','接收初始启用',target.dropTarget.enabled,(e,on)=>e.dropTarget.enabled=on);
+      box.append(field('接收半径',input(target.dropTarget.radius,'接收半径',value=>edit(doc=>{resolveObject(doc,selection).dropTarget.radius=value;}),{id:'object-drop-radius',type:'number',min:12,max:96,step:1})));
+    }
+    toggle('object-draggable','玩家可拖放',Boolean(target.draggable),(e,on)=>{if(on)e.draggable={enabled:true,targets:[]};else delete e.draggable;},Boolean(target.space?.passage||['motion','body','pose','transport','passage','surface','collider'].some(key=>target[key])));
+    if(target.draggable){
+      toggle('object-drag-enabled','拖放初始启用',target.draggable.enabled,(e,on)=>e.draggable.enabled=on);
+      box.append(element('h3','允许放到','inspector-heading'));
+      for(const r of d.entities.filter(e=>e.id!==target.id&&e.dropTarget))toggle('drop-target-'+r.id,r.label,target.draggable.targets.includes(r.id),(e,on)=>{e.draggable.targets=on?[...e.draggable.targets,r.id]:e.draggable.targets.filter(id=>id!==r.id);});
+      box.append(element('p','拖到所选接收点附近会吸附；放错或取消会归位。放置成功和放错归位均可连线触发行为。','panel-note'));
+    }
+  }
   function renderLibrary(d) {
     const filters=$('library-categories');filters.replaceChildren();
     for(const [id,label] of CATEGORIES){const b=button(label,()=>{category=id;renderLibrary(store.document());},'library-filter');b.dataset.category=id;b.setAttribute('aria-pressed',String(id===category));filters.append(b);}
@@ -387,14 +403,15 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
       if(target.maxLandingSpeed!==undefined)box.append(field('安全落地速度上限',input(target.maxLandingSpeed,'安全落地速度上限',value=>update('maxLandingSpeed',value),{id:'object-landing-speed',type:'number',min:60,max:1800,step:1})));
     }
     if(selection.type==='entity') {
+      if(target.kind==='object')renderPlacementFields(d,target,box);
       box.append(field('显示名称',input(target.label,'显示名称',value=>update('label',value),{id:'object-label',maxLength:30})));
       const state=select(STATES[target.kind].map(s=>[s,stateLabel(s)]),target.state,'初始状态',value=>update('state',value));state.id='object-state';box.append(field('初始状态',state));
       if(target.kind==='object'){
-        const collider=element('input');collider.id='object-collider';collider.type='checkbox';collider.checked=Boolean(target.collider);collider.disabled=Boolean(target.pose||target.transport);collider.setAttribute('aria-label','矩形碰撞体');
+        const collider=element('input');collider.id='object-collider';collider.type='checkbox';collider.checked=Boolean(target.collider);collider.disabled=Boolean(target.draggable||target.pose||target.transport);collider.setAttribute('aria-label','矩形碰撞体');
         collider.addEventListener('change',()=>edit(doc=>setPhysicalCapability(doc,resolveObject(doc,selection),'collider',collider.checked)));box.append(field('矩形碰撞体',collider));
         if(target.collider){const enabled=element('input');enabled.id='object-collider-enabled';enabled.type='checkbox';enabled.checked=target.collider.enabled;enabled.setAttribute('aria-label','碰撞初始启用');
           enabled.addEventListener('change',()=>edit(doc=>{resolveObject(doc,selection).collider.enabled=enabled.checked;}));box.append(field('碰撞初始启用',enabled));}
-        const body=element('input');body.id='object-body';body.type='checkbox';body.checked=Boolean(target.body);body.disabled=Boolean(target.pose||target.transport||target.motion||target.supportProbe);body.setAttribute('aria-label','受重力影响');
+        const body=element('input');body.id='object-body';body.type='checkbox';body.checked=Boolean(target.body);body.disabled=Boolean(target.draggable||target.pose||target.transport||target.motion||target.supportProbe);body.setAttribute('aria-label','受重力影响');
         body.addEventListener('change',()=>edit(doc=>setPhysicalCapability(doc,resolveObject(doc,selection),'body',body.checked)));box.append(field('受重力影响',body));
         if(target.collider)box.append(element('p','上沿承托主角和物体；受重力影响时，失去支撑会自行下落。碰撞开关不改变外观或激活状态。','panel-note'));
         const probe=element('input');probe.id='object-support-probe';probe.type='checkbox';probe.checked=Boolean(target.supportProbe);probe.disabled=Boolean(target.body);probe.setAttribute('aria-label','检测下方支撑');
@@ -411,7 +428,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
             field('持有时最大下落速度',input(target.carriedPhysics.maxFallSpeed,'持有时最大下落速度',value=>changeFall('maxFallSpeed',value),{id:'object-fall-limit',type:'number',min:60,max:1800,step:1})),
             element('p','主角持有且物体处于激活状态时生效；收起或放下恢复地图重力。','panel-note'));
         }
-        const pose=element('input');pose.id='object-pose';pose.type='checkbox';pose.checked=Boolean(target.pose);pose.disabled=Boolean(verticalTransport(target)||target.collider);pose.setAttribute('aria-label','姿态与旋转');
+        const pose=element('input');pose.id='object-pose';pose.type='checkbox';pose.checked=Boolean(target.pose);pose.disabled=Boolean(target.draggable||verticalTransport(target)||target.collider);pose.setAttribute('aria-label','姿态与旋转');
         pose.addEventListener('change',()=>edit(doc=>{
           const e=resolveObject(doc,selection);
           if(pose.checked)e.pose={angle:0,pivot:0};
@@ -431,7 +448,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
           box.append(element('p','正角度向右下倾斜。拖动两端编辑姿态；旋转动作结束后，从事件槽继续接线。','panel-note'));
         }
         const enabled=element('input');enabled.id='object-transport';enabled.type='checkbox';enabled.checked=Boolean(verticalTransport(target));enabled.setAttribute('aria-label','高度移动能力');
-        enabled.disabled=Boolean(target.pose||target.collider);
+        enabled.disabled=Boolean(target.draggable||target.pose||target.collider);
         enabled.addEventListener('change',()=>{edit(doc=>setHeightTransport(doc,resolveObject(doc,selection),enabled.checked));renderFields(store.document());});
         box.append(field('高度移动能力',enabled));
       }
@@ -449,7 +466,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
         }
       }
       if(target.kind==='object') {
-        const patrol=element('input');patrol.type='checkbox';patrol.disabled=Boolean(transport||target.body);patrol.title=transport||target.body?'关闭高度移动和受重力影响后可启用左右巡逻':'';patrol.checked=Boolean(target.motion);patrol.setAttribute('aria-label','启用巡逻');patrol.addEventListener('change',()=>edit(doc=>{const e=resolveObject(doc,selection);e.motion=patrol.checked?{type:'patrol',minX:Math.max(25,e.x-50),maxX:Math.min(1200-(e.width??28),e.x+50),speed:45}:undefined;}));box.append(field('左右巡逻',patrol));
+        const patrol=element('input');patrol.type='checkbox';patrol.disabled=Boolean(target.draggable||transport||target.body);patrol.title=transport||target.body?'关闭高度移动和受重力影响后可启用左右巡逻':'';patrol.checked=Boolean(target.motion);patrol.setAttribute('aria-label','启用巡逻');patrol.addEventListener('change',()=>edit(doc=>{const e=resolveObject(doc,selection);e.motion=patrol.checked?{type:'patrol',minX:Math.max(25,e.x-50),maxX:Math.min(1200-(e.width??28),e.x+50),speed:45}:undefined;}));box.append(field('左右巡逻',patrol));
         if(target.motion)for(const [key,label,min,max] of [['minX','巡逻左界',25,1175],['maxX','巡逻右界',35,1190],['speed','巡逻速度',15,180]])box.append(field(label,input(target.motion[key],label,value=>edit(doc=>{resolveObject(doc,selection).motion[key]=value;}),{type:'number',min,max,step:5})));
 
       }
@@ -510,7 +527,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
   }
   function renderActions(d,actions,parent,changeRule,path=[]) {
     const entities=d.entities.map(e=>[e.id,e.label]);
-    const capable=d.entities.filter(e=>e.collider||e.surface||e.passage),capabilities=e=>['collider','surface','passage'].filter(key=>e?.[key]);
+    const capable=d.entities.filter(e=>e.collider||e.surface||e.passage||e.draggable||e.dropTarget),capabilities=e=>['collider','surface','passage','draggable','dropTarget'].filter(key=>e?.[key]);
     const destination=e=>e.space.passage?{progress:e.space.progress}:{x:e.x,depth:e.space.depth,height:e.space.height};
     actions.forEach((action,ai)=>{
       const changeAction=fn=>changeRule(r=>{const items=actionList(r.actions,path);fn(items[ai],items);});
@@ -548,7 +565,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
         if(action.type==='enable'){
           const target=d.entities.find(e=>e.id===action.target);
           row.append(select(capable.map(e=>[e.id,e.label]),action.target,'能力所属物体',value=>changeAction(a=>{a.target=value;a.capability=capabilities(d.entities.find(e=>e.id===value))[0];}),'data-action-target'),
-            select(capabilities(target).map(key=>[key,key==='collider'?'矩形碰撞体':key==='passage'?'内外连接':'承托面']),action.capability,'操作哪个能力',value=>changeAction(a=>{a.capability=value;}),'data-enable-capability'),
+            select(capabilities(target).map(key=>[key,({collider:'矩形碰撞体',passage:'内外连接',surface:'承托面',draggable:'玩家拖放',dropTarget:'拖放接收'})[key]]),action.capability,'操作哪个能力',value=>changeAction(a=>{a.capability=value;}),'data-enable-capability'),
             select([['true','启用'],['false','停用']],String(action.enabled),'启用或停用',value=>changeAction(a=>{a.enabled=value==='true';}),'data-enable-value'));
         }
         if(action.type==='rotate'){

@@ -11,6 +11,7 @@ export function createPreview(level) {
     advance:count=>simulation.step(count),
     step:()=>{simulation.pause();simulation.singleStep();},
     reset:()=>simulation.reset(),
+    placeAt:(source,point)=>simulation.placeAt(source,point),
     click(source) {
       const state=simulation.snapshot(),status=state.status,entity=state.entities[source];
       if(!['ready','paused','running'].includes(status)||!entity||!eventTypes(entity).includes('click'))return false;

@@ -6,6 +6,7 @@ import { initializeBodies, advanceBodies } from './bodies.js';
 import { updateSupportProbes } from './support.js';
 import {initializeSpatialActor,advanceSpatialActor,spaceTouches,spaceGoalReached,spaceSupport,spaceSurfaces,syncPassageObject,beginSpatialMove} from './spatial.js';
 import {normalizeLevel} from './level-version.js';
+import {canDrag,validPlacementPoint,placementReceiver} from './placement.js';
 export { validateLevel } from './schema.js';
 export const TICKS_PER_SECOND = 60;
 const clone = (value) => structuredClone(value);
@@ -99,7 +100,7 @@ export function createSimulation(input) {
         if(!beginSpatialMove(level,e,action)){emit(e.label+' 位移条件未满足，本次指令未执行。','moveblocked');trigger('moveblocked',e.id);}
       } else if (action.type==='enable') {
         const e=state.entities[action.target];e[action.capability].enabled=action.enabled;
-        emit(e.label+' · '+(action.capability==='collider'?'碰撞':action.capability==='passage'?'通路':'承托')+(action.enabled?'启用':'停用'));
+        emit(e.label+' · '+({collider:'碰撞',passage:'通路',surface:'承托',draggable:'拖放',dropTarget:'接收'})[action.capability]+(action.enabled?'启用':'停用'));
       } else if (action.type==='after') {
         if(invocation)invocation.remaining++;
         state.timers.push({ due: state.tick + action.ticks, order: serial++, actions: clone(action.actions), ...(invocation?{invocation}:{}) });
@@ -299,9 +300,18 @@ export function createSimulation(input) {
     state.timers = state.timers.filter((timer) => timer.due > state.tick);
     for (const timer of due) execute(timer.actions,timer.invocation);
     if (state.status !== 'running') { pending = []; return; }
-    for (const source of pending) {
+    for (const input of pending) {
       if (state.status !== 'running') break;
-      state.clicks++; inputs.push({ tick: state.tick, source }); trigger('click', source);
+      inputs.push({tick:state.tick,...input});
+      const {source}=input;
+      if(input.type==='place'){
+        if(!canDrag(state,source))continue;
+        const e=state.entities[source],receiver=placementReceiver(level,state,source,input.point);
+        if(!receiver){trigger('droprejected',source);emit(e.label+' 未放到接收点，回到原位。','droprejected');continue;}
+        e.x=receiver.x;e.y=receiver.y;
+        if(level.spatial)e.space={...e.space,plane:receiver.space.plane,depth:receiver.space.depth,height:receiver.space.height};
+        emit('把'+e.label+'放到'+receiver.label+'处。');trigger('placed',source,undefined,receiver.id);
+      }else{state.clicks++;trigger('click',source);}
     }
     pending = [];
     if (state.status !== 'running') return;
@@ -391,7 +401,11 @@ export function createSimulation(input) {
       if (state.status !== 'running' || pending.length >= 32) return false;
       const entity = state.entities[source];
       if (!entity || !eventTypes(entity).includes('click')) return false;
-      pending.push(source); return true;
+      pending.push({source}); return true;
+    },
+    placeAt(source,point){
+      if(state.status!=='running'||pending.length>=32||!canDrag(state,source)||!validPlacementPoint(point))return false;
+      pending.push({type:'place',source,point:{x:point.x,y:point.y}});return true;
     },
     step(count = 1) {
       if (!Number.isInteger(count) || count < 0 || count > MAX_TICKS) throw new Error('步数必须为 0～36000 的整数。');
@@ -420,13 +434,15 @@ export function replayRecording(level, recording) {
   let previous = 0;
   for (const input of recording.inputs) {
     if (!input || !Number.isInteger(input.tick) || input.tick < 1 || input.tick < previous ||
-      input.tick > recording.untilTick || typeof input.source !== 'string') throw new Error('回放操作序列不合法。');
+      input.tick > recording.untilTick || typeof input.source !== 'string'||
+      (input.type!==undefined&&(input.type!=='place'||!validPlacementPoint(input.point)))) throw new Error('回放操作序列不合法。');
     previous = input.tick;
   }
   const game = createSimulation(level); game.start(); let index = 0;
   for (let tick = 1; tick <= recording.untilTick; tick++) {
     while (recording.inputs[index]?.tick === tick) {
-      if (!game.click(recording.inputs[index++].source)) throw new Error('回放包含不可执行的机关操作。');
+      const input=recording.inputs[index++];
+      if (!(input.type==='place'?game.placeAt(input.source,input.point):game.click(input.source))) throw new Error('回放包含不可执行的机关操作。');
     }
     game.step();
     if (['won', 'lost'].includes(game.snapshot().status) && tick < recording.untilTick) throw new Error('回放在结束后仍包含时间或操作。');
