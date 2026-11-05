@@ -11,6 +11,7 @@ const server=makeServer();await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const browser=await chromium.launch({headless:true,args:['--mute-audio'],...(!existsSync(chromium.executablePath())?{channel:'msedge'}:{})});
 const draft=p=>p.evaluate(()=>{const s=JSON.parse(localStorage.getItem('gothere.studio.layered.v1'));return s.documents.find(d=>d.key===s.activeKey).level;});
 const errors=[];
+const shelterPixel=p=>p.locator('#scene').evaluate(c=>[...c.getContext('2d').getImageData(Math.round(351*c.width/1200),Math.round(494*c.height/640),1,1).data]);
 async function tick(p){return Number((await p.locator('#runtime-tick').innerText()).match(/tick (\d+)/)[1]);}
 async function until(p,target){for(let i=0;i<4;i++){const now=await tick(p);if(now>=target)return;await p.clock.runFor(Math.ceil((target-now)*1000/60)+20);}}
 async function drag(p,source,dx,dy=0){
@@ -45,7 +46,14 @@ try{
     p.setDefaultTimeout(7000);p.on('pageerror',e=>errors.push(e.message));p.on('request',r=>{if(index&&/^https?:/.test(r.url()))requests.push(r.url());});
     const time=new Date('2026-11-05T00:00:00Z');await p.clock.install({time});await p.clock.pauseAt(new Date(+time+1000));
     await p.goto(url);await p.locator('#scene[data-assets=ready]').waitFor();const before=await draft(p);assert.equal(before.id,'commute-chapter');
-    await p.locator('#display-mode').selectOption('scene');await p.locator('#scene').screenshot({path:'artifacts/chapter-initial-'+index+'.png'});
+    await p.locator('#display-mode').selectOption('scene');
+    assert.deepEqual(await shelterPixel(p),[111,139,123,255],'the shelter roof must remain visible in front of the shop');
+    await p.locator('#layer-search').fill('轻薄候车亭');await p.locator('#resource-layers .resource-layer').first().click();
+    assert.equal(await p.locator('#art-plane').inputValue(),'front');assert.match(await p.locator('#art-layer').evaluate(e=>e.closest('label').textContent),/层内显示顺序/);
+    await p.locator('#art-layer').fill('-80');await p.locator('#art-layer').press('Enter');
+    assert.notDeepEqual(await shelterPixel(p),[111,139,123,255],'layer editing changes the actual canvas order');
+    await p.locator('#editor-undo').click();assert.deepEqual(await draft(p),before);assert.deepEqual(await shelterPixel(p),[111,139,123,255]);
+    await p.locator('#layer-search').fill('');await p.locator('#scene').screenshot({path:'artifacts/chapter-initial-'+index+'.png'});
     for(const mode of ['scene','logic']){await solution(p,index,mode);assert.deepEqual(await draft(p),before);}
     await p.locator('#open-data').click();assert.deepEqual(JSON.parse(await p.locator('#level-json').inputValue()),before);await p.locator('#close-data').click();
     await p.locator('#display-mode').selectOption('logic');await p.locator('[data-ref="entity:alley"]').click({force:true});

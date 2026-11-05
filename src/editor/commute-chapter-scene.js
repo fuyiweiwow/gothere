@@ -3,6 +3,7 @@ import {createTowStreetScene} from './tow-street-scene.js';
 import {createCrosswalkScene} from './crosswalk-scene.js';
 import {createScooterScene} from './scooter-scene.js';
 import {feedbackDefault} from '../content/feedback-presets.js';
+import {projectSpace} from '../core/spatial.js';
 
 /** One elevated parallel view: shared ground bands, shallow roofs and constant
  * adult scale. Paving, architecture and performers remain editable resources. */
@@ -10,6 +11,12 @@ export function createCommuteChapterScene(level){
   const scene={background:'#d7d3b5',assets:[],sounds:[],nodes:[],feedback:[]};
   const add=(id,asset,label,x,y,width,height,layer=-30,extra={})=>{
     const n={id,asset,label,group:label.split(' / ')[0],x,y,width,height,layer,...extra};scene.nodes.push(n);return n;
+  };
+  // Preserve screen placement while assigning scenery its authored walk plane.
+  const onPlane=(node,plane)=>{
+    const depth=level.spatial.planes.find(p=>p.id===plane).depth;
+    node.anchor={plane,x:Math.max(0,node.x),depth,height:0};const p=projectSpace(level,node.anchor);
+    node.x-=p.x;node.y-=p.y;return node;
   };
   add('chapter-streets','blockStreets','街区 / 同一地面上的三条街',0,0,1200,640,-90);
   // Passage images follow their endpoints. Their local y offset places the
@@ -27,19 +34,18 @@ export function createCommuteChapterScene(level){
     add('chapter-far-building-'+i,'blockApartment','建筑 / 外街公寓',x,2,w,180,-76);
   add('chapter-office','blockOffice','终点 / 公司外门',-69,-199,159,208,-74,{bind:{type:'goal'}});
   add('chapter-office-clock','commuteClock','终点 / 门外时钟',-12,-172,20,20,-65,{bind:{type:'goal'}});
-  add('chapter-shelter','blockShelter','站台 / 轻薄候车亭',301,486,133,90,-40);
-  add('chapter-umbrella','crossUmbrella','路口 / 执勤遮阳伞',1137,301,63,80,-40);
+  onPlane(add('chapter-shelter','blockShelter','站台 / 轻薄候车亭',301,486,133,90,-40),'front');
+  onPlane(add('chapter-umbrella','crossUmbrella','路口 / 执勤遮阳伞',1137,301,63,80,-40),'middle');
   add('chapter-alley-posts','chapterPosts','窄巷 / 人行空隙与路桩',-76,-33,151,39,15,{bind:{type:'entity',id:'gap'}});
-  for(const [id,x,y]of [['a',52,366],['b',929,366],['c',875,551],['d',271,191],['e',993,191]])
-    add('chapter-tree-'+id,'stopTree','布景 / 街角树池',x,y-89,57,91,-32);
-  for(const [id,x,y]of [['a',270,359],['b',785,544],['c',548,184]])add('chapter-bikes-'+id,'scootBikes','布景 / 靠墙自行车',x,y,61,32,-31);
-  for(const [id,x,y]of [['a',15,542],['b',949,357],['c',372,182]])add('chapter-bin-'+id,'scootBins','布景 / 店边垃圾桶',x,y,30,26,-31);
+  for(const [id,x,y,plane]of [['a',52,366,'middle'],['b',929,366,'middle'],['c',875,551,'front'],['d',271,191,'far'],['e',993,191,'far']])
+    onPlane(add('chapter-tree-'+id,'stopTree','布景 / 街角树池',x,y-89,57,91,-32),plane);
+  for(const [id,x,y,plane]of [['a',270,359,'middle'],['b',785,544,'front'],['c',548,184,'far']])onPlane(add('chapter-bikes-'+id,'scootBikes','布景 / 靠墙自行车',x,y,61,32,-31),plane);
+  for(const [id,x,y,plane]of [['a',15,542,'front'],['b',949,357,'middle'],['c',372,182,'far']])onPlane(add('chapter-bin-'+id,'scootBins','布景 / 店边垃圾桶',x,y,30,26,-31),plane);
 
   // A nearer building may hide a road vehicle behind its roof edge. This is
   // authored plane ownership, not a renderer exception for vehicles.
   for(const n of scene.nodes.filter(n=>n.id.startsWith('chapter-shop-'))){
-    const plane=n.id.includes('-near-')?'front':'middle',depth=level.spatial.planes.find(p=>p.id===plane).depth,anchorX=Math.max(0,n.x);
-    n.anchor={plane,x:anchorX,depth,height:0};n.x-=anchorX;n.y-=620-depth;
+    onPlane(n,n.id.includes('-near-')?'front':'middle');
   }
 
   // Reuse the tested encounter performers and feedback, not their full-width backgrounds.

@@ -117,8 +117,10 @@ export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspe
     box.append(select('图片',library.map(a=>[a.id,a.label]),effective.asset,v=>update('asset',v),'art-asset'));
     const image=el('img',undefined,'asset-inspector-image');image.src=library.find(a=>a.id===effective.asset)?.src??'';image.alt=effective.label;box.append(image);
     const grid=el('div',undefined,'asset-field-grid');box.append(grid);
-    for(const [k,label,min,max]of (n.ground?[['layer','显示层级',-100,100]]:[['x',n.bind||n.anchor?'偏移 X':'位置 X',-2400,3600],['y',n.bind||n.anchor?'偏移 Y':'位置 Y',-1280,1920],['width','图片宽度',1,2400],['height','图片高度',1,1920],['rotation','附加角度',-180,180],['layer','显示层级',-100,100]]))
+    const layerLabel=isLayered(d)?n.bind||n.anchor?'层内显示顺序':'背景显示顺序':'显示层级';
+    for(const [k,label,min,max]of (n.ground?[['layer',layerLabel,-100,100]]:[['x',n.bind||n.anchor?'偏移 X':'位置 X',-2400,3600],['y',n.bind||n.anchor?'偏移 Y':'位置 Y',-1280,1920],['width','图片宽度',1,2400],['height','图片高度',1,1920],['rotation','附加角度',-180,180],['layer',layerLabel,-100,100]]))
       if(k!=='width'||!n.fitPassage)grid.append(field(label,effective[k]??0,v=>update(k,v),{id:'art-'+k,min,max,step:k==='rotation'?.1:1}));
+    if(isLayered(d))box.append(el('p','行走层决定前后，数字调整同层顺序；背景图片位于所有行走层下方。','panel-note'));
     box.append(field('不透明度',effective.opacity??1,v=>update('opacity',v),{id:'art-opacity',min:0,max:1,step:.05}));
     box.append(checkbox('水平翻转',effective.flipX??false,v=>update('flipX',v),'art-flip'));
     box.append(checkbox('显示此图片',effective.visible!==false,v=>update('visible',v),'art-visible'));
