@@ -49,7 +49,7 @@ try{
     await p.locator('#open-data').click();assert.deepEqual(JSON.parse(await p.locator('#level-json').inputValue()),before);await p.locator('#close-data').click();
     await p.reload();await p.locator('#scene[data-assets=ready]').waitFor();assert.deepEqual(await draft(p),before);
     await p.evaluate(level=>{level.name='Saved towing edit';const key='gothere.studio.layered.v1',s=JSON.parse(localStorage.getItem(key));s.documents=[{key:'commute:tow-street:01',level}];s.activeKey='commute:tow-street:01';localStorage.setItem(key,JSON.stringify(s));},createTowStreetLevel());
-    const root=new URL(url);root.search='';await p.goto(root.href);await p.locator('#scene[data-assets=ready]').waitFor();assert.equal((await draft(p)).id,'commute-scooter');
+    const root=new URL(url);root.search='';await p.goto(root.href);await p.locator('#scene[data-assets=ready]').waitFor();assert.equal((await draft(p)).id,'commute-chapter');
     assert.equal(await p.evaluate(()=>JSON.parse(localStorage.getItem('gothere.studio.layered.v1')).documents.find(d=>d.key==='commute:tow-street:01').level.name),'Saved towing edit');
     assert.deepEqual(requests,[]);await context.close();console.log('PASS crosswalk '+(index?'offline':'online')+': authored exit controls, real scene clicks, both views, failure, pause, JSON/history and preserved tow drafts.');
   }

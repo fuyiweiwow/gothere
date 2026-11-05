@@ -2,9 +2,9 @@
 
 轻松诙谐的 2D 环境解谜与关卡编辑引擎，最终目标为 Steam。主角认准目的地持续前进，玩家通过物体、行为和事件改变环境，帮助他到达那里。
 
-当前分支 `codex/spatial-2-5d` 的本地开发版为 **0.26.0 二维分层编辑器**。当前优先制作可直接试玩的关卡片段，使用者无需花时间编辑。新片段 [此路不借](http://localhost:4173/?sample=scooter) 约20秒：把活动路障拖到两根路桩之间，让准备借人行道抄近路的电瓶车停下退回；放错归位，不操作会实际碰撞失败。拖放、接收点和事件均可在编辑器配置，沿用统一 CC0 街景与现有动画。范围见 [片段记录](docs/scooter-direction.md)。
+当前分支 `codex/spatial-2-5d` 的本地开发版为 **0.27.0 二维分层编辑器**。默认展示完整街区 [上班路 · 还得去](http://localhost:4173/?sample=chapter)：近街公交站 → 右侧向里过街 → 中街清障与车主追车 → 左侧窄巷电瓶车 → 远街早餐与狗 → 公司外门。约一分钟，使用者无需编辑。三条街均有实际赶路与互动，全部使用公共 DSL；事件由主角接近和行为完成驱动，沿用现有动画。方案与限制见 [整章记录](docs/commute-chapter-layout.md)。
 
-本地入口 [此路不借](http://localhost:4173/?sample=scooter)、[抬头看路](http://localhost:4173/?sample=crosswalk)、[借过一下](http://localhost:4173/?sample=tow-street)、[公交站片段](http://localhost:4173/?sample=bus-stop)、[模板练习](http://localhost:4173/?sample=templates)、[三个街口旧稿](http://localhost:4173/?sample=commute)、[局部连接样例](http://localhost:4173/?sample=layered)；离线文件为 `dist/gothere-editor.html`。新工作区默认电瓶车片段，旧工作区首次升级时新增该槽并展示；已有草稿与后续编辑均保留。编辑仍分逻辑、资源与绑定校准三种视图。
+本地入口 [完整街区](http://localhost:4173/?sample=chapter)、[此路不借](http://localhost:4173/?sample=scooter)、[抬头看路](http://localhost:4173/?sample=crosswalk)、[借过一下](http://localhost:4173/?sample=tow-street)、[公交站片段](http://localhost:4173/?sample=bus-stop)、[模板练习](http://localhost:4173/?sample=templates)、[三个街口旧稿](http://localhost:4173/?sample=commute)、[局部连接样例](http://localhost:4173/?sample=layered)；离线文件为 `dist/gothere-editor.html`。默认新增并展示完整街区槽，已有草稿与后续编辑均保留。编辑仍分逻辑、资源与绑定校准三种视图。
 
 清障片段「借过一下」继续保留：点击被占道车辆挡住的路人，他打电话叫来拖车；挂接清路后，端着早饭的车主追出店门。约24秒，数据与限制见 [清障片段记录](docs/tow-street-direction.md)。
 

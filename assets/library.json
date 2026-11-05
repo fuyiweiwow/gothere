@@ -2338,5 +2338,75 @@
     "height": 110,
     "source": "gothere-original",
     "license": "CC0-1.0"
+  },
+  {
+    "id": "chapterStreets",
+    "label": "街区 · 三街与紧凑内外路口",
+    "category": "街景构图",
+    "file": "original/commute/chapterStreets.svg",
+    "width": 1200,
+    "height": 640,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "chapterCrossing",
+    "label": "街区 · 可沿连接铺设的斑马线",
+    "category": "街景构图",
+    "file": "original/commute/chapterCrossing.svg",
+    "width": 180,
+    "height": 120,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "chapterAlley",
+    "label": "街区 · 可沿连接铺设的平面窄巷",
+    "category": "街景构图",
+    "file": "original/commute/chapterAlley.svg",
+    "width": 180,
+    "height": 120,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "chapterShop",
+    "label": "街区 · 连续小店模组",
+    "category": "街景构图",
+    "file": "original/commute/chapterShop.svg",
+    "width": 158,
+    "height": 105,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "chapterBreakfast",
+    "label": "街区 · 早餐铺模组",
+    "category": "街景构图",
+    "file": "original/commute/chapterBreakfast.svg",
+    "width": 158,
+    "height": 105,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "chapterOffice",
+    "label": "街区 · 公司外门与整栋楼",
+    "category": "街景构图",
+    "file": "original/commute/chapterOffice.svg",
+    "width": 150,
+    "height": 151,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "chapterPosts",
+    "label": "街区 · 人行留缝的巷口路桩",
+    "category": "街景构图",
+    "file": "original/commute/chapterPosts.svg",
+    "width": 151,
+    "height": 39,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
   }
 ]

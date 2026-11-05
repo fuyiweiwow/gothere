@@ -54,7 +54,7 @@ try{
     await p.locator('#open-data').click();await p.locator('#level-json').fill(JSON.stringify(both));await p.locator('#apply-level').click();await p.locator('#preview-toggle').click();
     await p.locator('#scene-interactions [data-source=barrier]').click();await p.clock.runFor(300);assert.match(await p.locator('#runtime-log').innerText(),/车辆已经靠近/);await p.locator('#editor-return').click();
     await p.evaluate(level=>{level.name='Saved crossing';const key='gothere.studio.layered.v1',s=JSON.parse(localStorage.getItem(key));s.documents=[{key:'commute:crosswalk:01',level}];s.activeKey='commute:crosswalk:01';localStorage.setItem(key,JSON.stringify(s));},createCrosswalkLevel());
-    const root=new URL(url);root.search='';await p.goto(root.href);await p.locator('#scene[data-assets=ready]').waitFor();assert.equal((await draft(p)).id,'commute-scooter');assert.equal(await p.evaluate(()=>JSON.parse(localStorage.getItem('gothere.studio.layered.v1')).documents.find(d=>d.key==='commute:crosswalk:01').level.name),'Saved crossing');
+    const root=new URL(url);root.search='';await p.goto(root.href);await p.locator('#scene[data-assets=ready]').waitFor();assert.equal((await draft(p)).id,'commute-chapter');assert.equal(await p.evaluate(()=>JSON.parse(localStorage.getItem('gothere.studio.layered.v1')).documents.find(d=>d.key==='commute:crosswalk:01').level.name),'Saved crossing');
     assert.deepEqual(requests,[]);await context.close();console.log('PASS scooter '+(index?'offline':'online')+': placement inspector, real drag in both views with zoom, rejection/cancel/pause/reset, solution/failure, JSON/history and preserved drafts.');
   }
   assert.deepEqual(errors,[]);

@@ -17,6 +17,8 @@ library.json records the source, license, size and relative file of every librar
 
 The v0.26.0 scooter encounter adds 7 original CC0 SVGs under `original/commute/scoot*.svg`: apartment alley, fixed posts, movable barrier, parked bicycles, bins and two rider states. Source drawings are preserved in `scripts/draw-scooter.mjs`. They share the existing street palette and contain no original-game artwork.
 
+The v0.27.0 continuous chapter adds 7 original CC0 SVGs (`original/commute/chapter*.svg`): shared three-street pavement, separate endpoint-bound crossing and alley paving, two small shop modules, company exterior and alley posts. The drawing source is `scripts/draw-commute-chapter.mjs`. They reuse the established palette and LICENSE-original.txt; no third-party or original-game artwork was added.
+
 The v0.16.0 smoke, dust and sparks are drawn procedurally; the six built-in audio cues are synthesized by project code. They add no third-party image/audio files. User-imported audio remains part of the user's level document.
 
 The spatial commute study adds modular street props in original/commute/ (bus, cars, scooters, rails, signals, road textures and office equipment), authored for this project and released under the same LICENSE-original.txt CC0 dedication. Its four worker PNGs are palette adaptations of the bundled Kenney Toon Characters, retaining that pack's CC0 license. These assets are editable library entries; they contain no original Snoozleberg artwork or in-scene text.

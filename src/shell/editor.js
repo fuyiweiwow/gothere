@@ -20,6 +20,7 @@ import {createBusStopLevel} from '../editor/bus-stop-level.js';
 import {createTowStreetLevel} from '../editor/tow-street-level.js';
 import {createCrosswalkLevel} from '../editor/crosswalk-level.js';
 import {createScooterLevel} from '../editor/scooter-level.js';
+import {createCommuteChapter} from '../editor/commute-chapter.js';
 import {createTemplatePractice} from '../editor/template-catalog.js';
 import {createLayeredLevel} from '../editor/layered-level.js';
 import {drawSpatial} from '../render/spatial.js';
@@ -30,14 +31,15 @@ import {createRuntimeDrag} from './runtime-drag.js';
 const $=id=>document.getElementById(id),canvas=$('scene'),ctx=canvas.getContext('2d');
 const params=new URLSearchParams(location.search),spatialEntry=!params.has('legacy');
 const templateEntry=params.get('sample')==='templates';
-const scooterEntry=(!params.has('sample')&&!params.has('spatial'))||params.get('sample')==='scooter';
+const chapterEntry=(!params.has('sample')&&!params.has('spatial'))||params.get('sample')==='chapter';
+const scooterEntry=params.get('sample')==='scooter';
 const crossEntry=params.get('sample')==='crosswalk';
 const towEntry=params.get('sample')==='tow-street';
 const graybox=params.get('sample')==='graybox',busStop=params.get('sample')==='bus-stop';
 const oldSpatial=params.has('spatial')||params.get('sample')==='spatial-commute',layeredDemo=params.get('sample')==='layered';
 const layeredEntry=spatialEntry&&!graybox&&!oldSpatial;
-const sample=spatialEntry?(scooterEntry?createScooterLevel:crossEntry?createCrosswalkLevel:towEntry?createTowStreetLevel:templateEntry?()=>createTemplatePractice('template-practice'):graybox?createSpatialLevel:oldSpatial?createCommuteLevel:layeredDemo?createLayeredLevel:busStop?createBusStopLevel:createStreetLevel):createFirstLevel;
-const sampleKey=spatialEntry?(scooterEntry?'commute:scooter:01':crossEntry?'commute:crosswalk:01':towEntry?'commute:tow-street:01':templateEntry?'templates:practice:01':graybox?'spatial:01':oldSpatial?'commute:spatial:01':layeredDemo?'layered:graybox:01':busStop?'commute:bus-stop:03':'commute:layered:02'):'milestone:02:v017';
+const sample=spatialEntry?(chapterEntry?createCommuteChapter:scooterEntry?createScooterLevel:crossEntry?createCrosswalkLevel:towEntry?createTowStreetLevel:templateEntry?()=>createTemplatePractice('template-practice'):graybox?createSpatialLevel:oldSpatial?createCommuteLevel:layeredDemo?createLayeredLevel:busStop?createBusStopLevel:createStreetLevel):createFirstLevel;
+const sampleKey=spatialEntry?(chapterEntry?'commute:chapter:01':scooterEntry?'commute:scooter:01':crossEntry?'commute:crosswalk:01':towEntry?'commute:tow-street:01':templateEntry?'templates:practice:01':graybox?'spatial:01':oldSpatial?'commute:spatial:01':layeredDemo?'layered:graybox:01':busStop?'commute:bus-stop:03':'commute:layered:02'):'milestone:02:v017';
 const standaloneHTML=document.getElementById('standalone-editor')?'<!doctype html>\n'+document.documentElement.outerHTML:null;
 let editor,resourceUI,bindingUI,lastDraft,loadSerial=0,preview=null,previewLevel=null,accumulator=0,last=0,debugLast=0,toastTimer,serial=0;
 let feedback=null,feedbackFrame=null,audition=null,endingTicks=0;
@@ -147,7 +149,7 @@ resourceUI=createResourceUI({editor,notify,preview:draw,requestBind:id=>{changeD
     const player=createFeedbackPlayer(level,{onSound:e=>sound.play(e)});player.preview({...f,delay:0},0);audition={player,tick:0,duration:f.duration,target:f.target};$('animation-toggle').checked=true;draw(level);
   }});
 bindingUI=createBindingUI({editor,resources:resourceUI,paint:draw,notify});
-if(spatialEntry)editor.open(sample(),sampleKey,{updateSample:layeredEntry&&!layeredDemo,offerSample:layeredEntry&&(scooterEntry||crossEntry||towEntry||busStop||templateEntry)});
+if(spatialEntry)editor.open(sample(),sampleKey,{updateSample:layeredEntry&&!layeredDemo,offerSample:layeredEntry&&(chapterEntry||scooterEntry||crossEntry||towEntry||busStop||templateEntry)});
 else editor.open(createFirstLevel(),'milestone:02:v017',{workspaceRevision:'milestone-02-v017'});
 // An explicit sample link selects its saved slot, preserving authored edits.
 if(spatialEntry&&params.has('sample'))editor.openDocument(sample(),sampleKey);
@@ -159,7 +161,7 @@ createViewport({isEditing:()=>editor.isEditing(),onChange:()=>{
   const width=Math.round(1200*scale),height=Math.round(640*scale);if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;ctx.setTransform(width/1200,0,0,height/640,0,0);}
   if(preview)draw(previewLevel,preview.snapshot());else draw(lastDraft??editor.document());
 }});
-$('editor-example').value=spatialEntry?(editor.document().id==='commute-scooter'?'scooter':editor.document().id==='commute-crosswalk'?'crosswalk':editor.document().id==='commute-tow-street'?'tow-street':editor.document().id.startsWith('template-practice')?'templates':editor.document().id==='spatial-graybox'?'graybox':editor.document().id==='commute-spatial'?'spatial-commute':editor.document().id==='layered-graybox'?'layered':editor.document().id==='commute-bus-stop'?'bus-stop':'commute'):'rooftop';
+$('editor-example').value=spatialEntry?(editor.document().id==='commute-chapter'?'chapter':editor.document().id==='commute-scooter'?'scooter':editor.document().id==='commute-crosswalk'?'crosswalk':editor.document().id==='commute-tow-street'?'tow-street':editor.document().id.startsWith('template-practice')?'templates':editor.document().id==='spatial-graybox'?'graybox':editor.document().id==='commute-spatial'?'spatial-commute':editor.document().id==='layered-graybox'?'layered':editor.document().id==='commute-bus-stop'?'bus-stop':'commute'):'rooftop';
 $('editor-example').addEventListener('change',()=>{const url=new URL(location.href);url.searchParams.delete('legacy');url.searchParams.delete('sample');url.searchParams.delete('spatial');
   if($('editor-example').value==='rooftop')url.searchParams.set('legacy','1');else url.searchParams.set('sample',$('editor-example').value);location.href=url.href;});
 $('reset-level').textContent='新建示例副本';
