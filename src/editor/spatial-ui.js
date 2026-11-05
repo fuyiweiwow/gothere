@@ -64,7 +64,7 @@ export function createSpatialUI({document:current,change,preview,choose,selectio
       select.onchange=()=>change(doc=>{const e=doc.entities.find(e=>e.id===target.id);
         if(select.value==='plane')assignWalkPlane(doc,e,doc.spatial.planes[0].id);
         else{delete e.space.plane;e.space.passage=select.value;e.space.progress=.5;e.space.length=28;syncPassageObject(doc,e);}
-        const strip=actions=>{for(const a of actions)if(a.type==='after')strip(a.actions);else if(a.type==='move'&&a.target===e.id){delete a.progress;delete a.x;delete a.depth;delete a.height;delete a.plane;Object.assign(a,e.space.passage?{progress:e.space.progress}:{x:e.x,depth:e.space.depth,height:e.space.height});}};
+        const strip=actions=>{for(const a of actions)if(a.type==='after')strip(a.actions);else if(a.type==='move'&&a.target===e.id){delete a.progress;delete a.passage;delete a.x;delete a.depth;delete a.height;delete a.plane;Object.assign(a,e.space.passage?{progress:e.space.progress}:{x:e.x,depth:e.space.depth,height:e.space.height});}};
         for(const r of doc.rules)strip(r.actions);for(const o of doc.entities)for(const b of o.behaviors??[])strip(b.actions);
       });label.append(select);box.append(label);box.append(el('p','切换位置归属会将移动目的地重置到当前位置。'));
     }
@@ -78,7 +78,8 @@ export function createSpatialUI({document:current,change,preview,choose,selectio
       if(key==='x'||key==='width'||key==='height')t[key]=v;else t.space[key==='elevation'?'height':key]=v;
       if(ref.type==='actor'){const n=doc.spatial.nodes.find(n=>n.id===doc.spatial.start);n.x=t.x;n.depth=t.space.depth;n.height=t.space.height;}
     });
-    number(box,'位置 X','object-x',target.x,v=>update('x',v),25,1180);
+    const offscreen=target.kind==='object'&&!target.passage&&!target.pose&&!target.surface&&!target.collider&&!target.motion;
+    number(box,'位置 X','object-x',target.x,v=>update('x',v),offscreen?-1200:25,offscreen?2400-(target.width??28):1180);
     if(layered)planeField(box,d,'object-space-plane',target.space.plane,v=>change(doc=>{const t=ref.type==='entity'?doc.entities.find(e=>e.id===ref.id):ref.type==='platform'?doc.platforms[ref.index]:doc[ref.type];assignWalkPlane(doc,t,v);if(ref.type==='actor'){const n=doc.spatial.nodes.find(n=>n.id===doc.spatial.start);n.plane=v;n.depth=t.space.depth;}}));
     else number(box,'地面纵深','object-space-depth',target.space.depth,v=>update('depth',v),0,600);
     number(box,'离地高度','object-space-height',target.space.height,v=>update('elevation',v),0,360);

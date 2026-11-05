@@ -2518,5 +2518,25 @@
     "height": 72,
     "source": "gothere-original",
     "license": "CC0-1.0"
+  },
+  {
+    "id": "blockBusBack",
+    "label": "街区 · 看不到乘客门的一侧公交",
+    "category": "街景构图",
+    "file": "original/commute/blockBusBack.svg",
+    "width": 365,
+    "height": 132,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "blockMeal",
+    "label": "街区 · 放进碗里的早餐",
+    "category": "街景构图",
+    "file": "original/commute/blockMeal.svg",
+    "width": 22,
+    "height": 8,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
   }
 ]

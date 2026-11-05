@@ -22,12 +22,14 @@ export function connectLayeredNodes(level,sourceId,targetId){
 
 export function assignWalkPlane(level,target,planeId){
   const p=level.spatial.planes.find(p=>p.id===planeId);if(!p)throw new Error('行走层不存在。');
-  const fromPassage=Boolean(target.space.passage);if(fromPassage)syncPassageObject(level,target);
+  const fromPassage=Boolean(target.space.passage),changedPlane=fromPassage||target.space.plane!==p.id;if(fromPassage)syncPassageObject(level,target);
   target.space.plane=p.id;target.space.depth=p.depth;
   delete target.space.passage;delete target.space.progress;delete target.space.length;
-  // Plane moves retain coordinates; passage moves reset to the converted position.
+  // Moving a baseline keeps route commands. Changing ownership resets their
+  // destinations to the converted position rather than inventing a new route.
   const update=actions=>{for(const a of actions){if(a.type==='after')update(a.actions);else if(a.type==='move'&&a.target===target.id){
-    if(fromPassage){delete a.progress;delete a.plane;a.x=target.x;a.height=target.space.height;}else if(a.plane!==undefined)a.plane=p.id;a.depth=p.depth;
+    if(!changedPlane){if(a.passage===undefined&&a.progress===undefined&&(a.plane===undefined||a.plane===p.id))a.depth=p.depth;continue;}
+    if(fromPassage||a.passage!==undefined){delete a.progress;delete a.passage;delete a.plane;a.x=target.x;a.height=target.space.height;}else if(a.plane!==undefined)a.plane=p.id;a.depth=p.depth;
   }}};
   if(target.id){for(const r of level.rules)update(r.actions);for(const e of level.entities)for(const b of e.behaviors??[])update(b.actions);}
 }

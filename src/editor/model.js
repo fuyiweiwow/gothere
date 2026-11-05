@@ -319,7 +319,7 @@ function pruneReferences(level) {
     changed=false;
     const clean=actions=>actions.flatMap(a=>{
       if(a.type==='after') {const nested=clean(a.actions);if(nested.length)return [{...a,actions:nested}];}
-      else if((a.type!=='place'||byId.has(a.at))&&(!a.target || (byId.has(a.target) && (a.type!=='invoke' || byId.get(a.target).behaviors?.some(b=>b.id===a.behavior)))))return [a];
+      else if((a.passage===undefined||byId.has(a.passage))&&(a.type!=='place'||byId.has(a.at))&&(!a.target || (byId.has(a.target) && (a.type!=='invoke' || byId.get(a.target).behaviors?.some(b=>b.id===a.behavior)))))return [a];
       changed=true;return [];
     });
     for(const e of level.entities)if(e.behaviors)e.behaviors=e.behaviors.flatMap(b=>{

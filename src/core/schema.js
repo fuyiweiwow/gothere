@@ -74,8 +74,9 @@ export function validateLevel(input,{spatialDraft=false}={}) {
       check(text(entity.id, 48) && idPattern.test(entity.id) && !byId.has(entity.id), '实体 id 无效或重复：' + String(entity.id));
       check(Object.hasOwn(STATES, entity.kind), '未知实体类型：' + String(entity.kind));
       check(Object.hasOwn(STATES, entity.kind) && STATES[entity.kind].includes(entity.state), '实体初始状态无效：' + String(entity.id));
-      check(number(entity.x, 25, 1175) && (entity.width === undefined || number(entity.width, 8, 600)) &&
-        entity.x + (entity.width ?? 28) <= 1200, '实体位置或宽度无效：' + String(entity.id));
+      const offscreen=input.spatial&&entity.kind==='object'&&!entity.passage&&!entity.pose&&!entity.surface&&!entity.collider&&!entity.motion;
+      check(number(entity.x, offscreen?SPATIAL_MOVE_X.min:25,offscreen?SPATIAL_MOVE_X.max:1175) && (entity.width === undefined || number(entity.width, 8, 600)) &&
+        entity.x + (entity.width ?? 28) <= (offscreen?SPATIAL_MOVE_X.max:1200), '实体位置或宽度无效：' + String(entity.id));
       check(text(entity.label, 30), '实体需要 1～30 字的 label：' + String(entity.id));
       check(entity.y===undefined || number(entity.y,160,560), '实体 y 必须为 160～560：' + String(entity.id));
       check(entity.height===undefined||number(entity.height,8,240),'实体 height 必须为 8～240：'+entity.id);
@@ -211,10 +212,11 @@ export function validateLevel(input,{spatialDraft=false}={}) {
       } else if(action.type==='move') {
         const e=byId.get(action.target);
         check(Boolean(input.spatial&&e?.kind==='object'&&!e.motion&&!e.body&&!e.transport&&!e.passage),'move 需要空间普通物体，不能组合巡逻、动态刚体或连接能力。');
-        check((e?.space?.passage&&action.plane===undefined?number(action.progress,0,1)&&action.x===undefined&&action.depth===undefined&&action.height===undefined:
+        check(((e?.space?.passage||action.passage!==undefined)&&action.plane===undefined?number(action.progress,0,1)&&action.x===undefined&&action.depth===undefined&&action.height===undefined:
           action.progress===undefined&&number(action.x,SPATIAL_MOVE_X.min,SPATIAL_MOVE_X.max-(e?.width??28))&&number(action.depth,0,600-(e?.space?.depthSize??24))&&number(action.height,0,360))&&action.y===undefined&&
           Number.isInteger(action.ticks)&&number(action.ticks,1,3600),'move 需要合法的空间坐标或通路进度，以及 ticks（1～3600）。');
         if(action.plane!==undefined)check(input.spatial?.mode==='layered','move.plane 需要二维分层 DSL。');
+        if(action.passage!==undefined)check(input.spatial?.mode==='layered'&&action.plane===undefined,'move.passage 需要二维分层 DSL，不能混合 plane。');
         if(e?.pose)check(spatialPoseInBounds({...e,x:action.x,space:{...e.space,height:action.height}}),'move 的姿态端点超出地图范围。');
       } else if (action.type === 'enable') {
         check(['collider','surface','passage','draggable','dropTarget'].includes(action.capability)&&object(byId.get(action.target)?.[action.capability])&&typeof action.enabled==='boolean',

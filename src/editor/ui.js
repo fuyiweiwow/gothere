@@ -13,7 +13,8 @@ import {snapToSurface} from './surface-snapping.js';
 import {createWireUI} from './wire-ui.js';
 import {connectWire} from './wire-creation.js';
 import {createSpatialUI} from './spatial-ui.js';
-import {spaceBounds,unprojectSpace,isLayered,SPATIAL_MOVE_X} from '../core/spatial.js';
+import {spaceBounds,unprojectSpace,isLayered,SPATIAL_MOVE_X,objectPassages} from '../core/spatial.js';
+import {replaceDSLDocument} from './dsl.js';
 
 const $ = id => document.getElementById(id);
 const STORAGE = 'gothere.editor.v1';
@@ -576,13 +577,26 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
         }
         if(action.type==='move'){
           const movable=d.entities.filter(e=>e.kind==='object'&&!e.motion&&!e.body&&!e.transport&&!e.passage);
-          row.append(select(movable.map(e=>[e.id,e.label]),action.target,'移动哪个物体',value=>changeAction(a=>{const e=d.entities.find(e=>e.id===value);a.target=value;delete a.progress;delete a.x;delete a.depth;delete a.height;delete a.plane;Object.assign(a,destination(e));}),'data-action-target'));
-          const target=d.entities.find(e=>e.id===action.target),onPassage=target?.space.passage;
-          if(onPassage){
+          row.append(select(movable.map(e=>[e.id,e.label]),action.target,'移动哪个物体',value=>changeAction(a=>{const e=d.entities.find(e=>e.id===value);a.target=value;delete a.progress;delete a.passage;delete a.x;delete a.depth;delete a.height;delete a.plane;Object.assign(a,destination(e));}),'data-action-target'));
+          const target=d.entities.find(e=>e.id===action.target),onPassage=action.passage??target?.space.passage;
+          if(isLayered(d)&&!target?.space.passage&&!target?.pose&&!target?.collider&&!target?.surface&&(target?.width??28)<=160){
+            row.append(select([['','在所属行走层移动'],...d.entities.filter(e=>e.passage).map(e=>[e.id,'进入 / 沿通路 · '+e.label])],action.passage??'','通路移动',value=>changeAction(a=>{
+              delete a.progress;delete a.passage;delete a.plane;delete a.x;delete a.depth;delete a.height;
+              if(value)Object.assign(a,{passage:value,progress:1});else Object.assign(a,destination(target));
+            }),'data-move-passage'));
+            if(action.passage)row.append(element('p','先移动到通路任一端点，保持同层同高，再进入；未到端点会产生位移条件未满足事件。','panel-note'));
+          }
+          if(onPassage&&!action.passage){
             const p=d.entities.find(e=>e.id===onPassage).passage,endpoints=d.spatial.nodes.filter(n=>n.id===p.from||n.id===p.to);
             row.append(select([['','沿通路移动'],...endpoints.map(n=>[n.plane,'到端点后走入 · '+d.spatial.planes.find(p=>p.id===n.plane).label])],action.plane??'','移动范围',value=>changeAction(a=>{
               delete a.progress;delete a.x;delete a.depth;delete a.height;delete a.plane;
               if(value){const n=endpoints.find(n=>n.plane===value);Object.assign(a,{plane:value,x:n.x,depth:n.depth,height:n.height});}else a.progress=target.space.progress;
+            }),'data-move-plane'));
+          }
+          if(isLayered(d)&&!onPassage&&objectPassages(d,target.id).length){
+            const paths=objectPassages(d,target.id).map(e=>e.passage),planes=d.spatial.planes.filter(p=>p.id===target.space.plane||d.spatial.nodes.some(n=>n.plane===p.id&&paths.some(q=>q.from===n.id||q.to===n.id)));
+            row.append(select(planes.map(p=>[p.id,'沿街 / 从端点退出 · '+p.label]),action.plane??target.space.plane,'退出通路后的行走层',value=>changeAction(a=>{
+              const p=d.spatial.planes.find(p=>p.id===value);a.plane=p.id;a.depth=p.depth;
             }),'data-move-plane'));
           }
           for(const [key,label,min,max] of [...(onPassage&&!action.plane?[['progress','目标通路进度',0,1]]:[['x','目标 X（允许画外）',SPATIAL_MOVE_X.min,SPATIAL_MOVE_X.max-(target?.width??28)],['depth','目标纵深',0,600],['height','目标离地高度',0,360]]),['ticks','持续秒数',1/60,60]]){
@@ -794,6 +808,12 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     }else openDocument(level,key);},
     openDocument,
     importDocument(level){if(!openDocument(level,'import:'+Date.now().toString(36)+'-'+serial++))throw new Error('无法创建导入草稿，请检查草稿数量。');},
+    applyDocument(level){
+      if(mode!=='editing')throw new Error('请先返回编辑，再应用 DSL。');
+      const validation=validateLevel(level);if(!validation.valid)throw new Error(validation.errors.join('\n'));
+      cancelGesture();store.change(doc=>replaceDSLDocument(doc,level));
+      selection=null;selectedWire=null;wireSource=null;wireTarget=null;spatialUI.clearNode();save();render();
+    },
     snapshot(){const d=store.document();return {tick:0,status:'ready',reason:null,actor:{x:d.actor.x,y:floorY(d.actor),direction:d.actor.direction??1,holding:null,mode:'walking'},
       entities:Object.fromEntries(d.entities.map(e=>[e.id,{...e,y:floorY(e),width:e.width??28,...(e.kind==='lift'?{carY:e.state==='upper'?e.toY:floorY(e)}:{})}])),events:[],clicks:0,timers:[]};},
   };

@@ -124,6 +124,14 @@ s+=p('M18 9q0-7 10-7t10 8l-3 10q-8 6-14-1Z','#dcb58b',ink,1.3)+p('M16 11q0-12 12
 s+=p('M24 15h3m6 0h3','none',ink,1.2)+r(40,21,10,13,'#be8d64',1)+r(41,22,8,3,cream);
 add('blockRider','街区 · 校准成人比例的正面骑手',54,72,s);
 
+// View the opposite bus side: the passenger entrance is on its hidden side.
+const bus=await readFile(new URL('../assets/original/commute/stopBus.svg',import.meta.url),'utf8');
+s=bus.match(/^<svg[^>]*>([\s\S]*)<\/svg>\s*$/)[1].replace(/<rect x="75" y="18"[\s\S]*?(?=<rect x="134" y="13")/,
+  r(75,76,43,28,teal)+p('M75 89h43','none','#d5c79f',2));
+add('blockBusBack','街区 · 看不到乘客门的一侧公交',365,132,s);
+s=p('M1 6q2-4 5-3 1-4 5-2 3-2 5 1 4-1 5 4Z','#dac99c',ink,.7)+p('M6 4l1-2m7 2 1-1','none',paper,1);
+add('blockMeal','街区 · 放进碗里的早餐',22,8,s);
+
 for(const a of assets)await writeFile(new URL('../assets/'+a.file,import.meta.url),a.body);
 const file=new URL('../assets/library.json',import.meta.url),manifest=JSON.parse(await readFile(file,'utf8')),ids=new Set(assets.map(a=>a.id));
 await writeFile(file,JSON.stringify([...manifest.filter(a=>!ids.has(a.id)),...assets.map(({body,...a})=>a)],null,2)+'\n');

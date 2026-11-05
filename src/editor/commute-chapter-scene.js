@@ -25,8 +25,8 @@ export function createCommuteChapterScene(level){
   ])for(const [i,[x,w,asset]]of blocks.entries())add('chapter-shop-'+row+'-'+i,asset,'建筑 / '+(row==='near'?'前街店面':'早餐街店面'),x,y,w,120,-75);
   for(const [i,[x,w]]of [[-25,222],[199,218],[419,222],[643,215],[862,178]].entries())
     add('chapter-far-building-'+i,'blockApartment','建筑 / 外街公寓',x,2,w,180,-76);
-  add('chapter-office','blockOffice','终点 / 公司外门',1040,21,159,190,-74);
-  add('chapter-office-clock','commuteClock','终点 / 门外时钟',1097,48,20,20,-65);
+  add('chapter-office','blockOffice','终点 / 公司外门',-69,-199,159,208,-74,{bind:{type:'goal'}});
+  add('chapter-office-clock','commuteClock','终点 / 门外时钟',-12,-172,20,20,-65,{bind:{type:'goal'}});
   add('chapter-shelter','blockShelter','站台 / 轻薄候车亭',301,486,133,90,-40);
   add('chapter-umbrella','crossUmbrella','路口 / 执勤遮阳伞',1137,301,63,80,-40);
   add('chapter-alley-posts','chapterPosts','窄巷 / 人行空隙与路桩',-76,-33,151,39,15,{bind:{type:'entity',id:'gap'}});
@@ -34,6 +34,13 @@ export function createCommuteChapterScene(level){
     add('chapter-tree-'+id,'stopTree','布景 / 街角树池',x,y-89,57,91,-32);
   for(const [id,x,y]of [['a',270,359],['b',785,544],['c',548,184]])add('chapter-bikes-'+id,'scootBikes','布景 / 靠墙自行车',x,y,61,32,-31);
   for(const [id,x,y]of [['a',15,542],['b',949,357],['c',372,182]])add('chapter-bin-'+id,'scootBins','布景 / 店边垃圾桶',x,y,30,26,-31);
+
+  // A nearer building may hide a road vehicle behind its roof edge. This is
+  // authored plane ownership, not a renderer exception for vehicles.
+  for(const n of scene.nodes.filter(n=>n.id.startsWith('chapter-shop-'))){
+    const plane=n.id.includes('-near-')?'front':'middle',depth=level.spatial.planes.find(p=>p.id===plane).depth,anchorX=Math.max(0,n.x);
+    n.anchor={plane,x:anchorX,depth,height:0};n.x-=anchorX;n.y-=620-depth;
+  }
 
   // Reuse the tested encounter performers and feedback, not their full-width backgrounds.
   const copy=(source,entities,scale=.72)=>{
@@ -45,19 +52,20 @@ export function createCommuteChapterScene(level){
     scene.feedback.push(...source.feedback.filter(f=>ids.has(f.target)));
   };
   copy(createBusStopScene(),['bus','passenger-a','passenger-b','passenger-c']);
+  const door=scene.nodes.find(n=>n.id==='stop-door');
+  scene.nodes=scene.nodes.filter(n=>n.id!==door.id);scene.feedback=scene.feedback.filter(f=>f.target!==door.id);
+  scene.nodes.find(n=>n.id==='stop-bus').asset='blockBusBack';
   copy(createTowStreetScene(level),['caller','car','tow','owner']);
   copy(createCrosswalkScene(),['officer','jaywalker','signal']);
   copy(createScooterScene(),['barrier']);
   const barrier=scene.nodes.find(n=>n.bind?.id==='barrier');Object.assign(barrier,{x:0,y:-29,width:62,height:38,layer:45});
-  const car=scene.nodes.find(n=>n.id==='tow-car');Object.assign(car,{x:-12,y:-53,width:150,height:60});car.variants.inactive.y=-44;
+  const car=scene.nodes.find(n=>n.id==='tow-car');Object.assign(car,{x:-12,y:-53,width:150,height:60});car.variants.inactive.y=-53;
   Object.assign(scene.nodes.find(n=>n.id==='tow-truck'),{x:60,y:-69,width:190,height:71});
   add('chapter-rider','blockRider','骑手 / 窄巷来车',17,-48,37,50,25,{bind:{type:'entity',id:'scooter'},variants:{
     inactive:{asset:'scootRiderPhone',x:4,y:-41,width:62,height:44}}});
-  add('chapter-food','streetBreakfast','外街 / 可拖放的早餐',-2,-23,25,26,45,{bind:{type:'entity',id:'breakfast'}});
-  add('chapter-bowl','streetBowl','外街 / 狗碗',-1,-9,31,12,15,{bind:{type:'entity',id:'bowl'}});
-  add('chapter-dog','streetDog','外街 / 守路与吃早餐的狗',-3,-32,48,35,25,{bind:{type:'entity',id:'dog'},variants:{inactive:{rotation:8,y:-28}}});
-  add('chapter-commuter','stopPassengerBIdle','外街 / 也在赶路的人',-10,-49,31,50,30,{bind:{type:'entity',id:'commuter'},variants:{
-    inactive:{visible:false},moving:{animation:{frames:['stopPassengerBIdle','stopPassengerBWalk'],fps:8}}}});
+  add('chapter-food','streetBreakfast','外街 / 可拖放的早餐',-2,-23,25,26,45,{bind:{type:'entity',id:'breakfast'},variants:{inactive:{asset:'blockMeal',x:5,y:-13,width:20,height:8}}});
+  add('chapter-bowl','streetBowl','外街 / 狗碗',-1,-9,31,12,44,{bind:{type:'entity',id:'bowl'}});
+  add('chapter-dog','streetDog','外街 / 守路与吃早餐的狗',-3,-32,48,35,40,{bind:{type:'entity',id:'dog'},variants:{inactive:{rotation:12,y:-28}}});
   const player=structuredClone(createCrosswalkScene().nodes.find(n=>n.bind?.type==='actor'));
   Object.assign(player,{id:'chapter-player',x:-13,y:-49,width:31,height:50});scene.nodes.push(player);
   const cue=(target,trigger,extra)=>scene.feedback.push({...feedbackDefault(target,'chapter-cue-'+scene.feedback.length),trigger,...extra});

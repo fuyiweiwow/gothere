@@ -14,7 +14,7 @@ function assertPortable(entities){
 }
 function assertClosed(template){
   const entities=new Set(template.entities.map(e=>e.id)),check=id=>{if(id!==undefined&&id!==null&&!entities.has(id))throw new Error('模板仍引用组合外的逻辑对象：'+id);};
-  eachAction(template,a=>{check(a.target);check(a.at);});
+  eachAction(template,a=>{check(a.target);check(a.at);check(a.passage);});
   for(const e of template.entities)for(const id of e.draggable?.targets??[])check(id);
   for(const r of template.rules){check(r.on.source);check(r.on.other);for(const c of r.if??[]){check(c.entity);check(c.holding);}}
   for(const n of template.nodes)if(n.bind){if(n.bind.type!=='entity')throw new Error('模板成员只可绑定组合内的逻辑对象。');check(n.bind.id);}

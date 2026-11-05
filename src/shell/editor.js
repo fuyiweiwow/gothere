@@ -27,6 +27,7 @@ import {drawSpatial} from '../render/spatial.js';
 import {spaceBounds} from '../core/spatial.js';
 import {canDrag} from '../core/placement.js';
 import {createRuntimeDrag} from './runtime-drag.js';
+import {parseDSL} from '../editor/dsl.js';
 
 const $=id=>document.getElementById(id),canvas=$('scene'),ctx=canvas.getContext('2d');
 const params=new URLSearchParams(location.search),spatialEntry=!params.has('legacy');
@@ -39,7 +40,7 @@ const graybox=params.get('sample')==='graybox',busStop=params.get('sample')==='b
 const oldSpatial=params.has('spatial')||params.get('sample')==='spatial-commute',layeredDemo=params.get('sample')==='layered';
 const layeredEntry=spatialEntry&&!graybox&&!oldSpatial;
 const sample=spatialEntry?(chapterEntry?createCommuteChapter:scooterEntry?createScooterLevel:crossEntry?createCrosswalkLevel:towEntry?createTowStreetLevel:templateEntry?()=>createTemplatePractice('template-practice'):graybox?createSpatialLevel:oldSpatial?createCommuteLevel:layeredDemo?createLayeredLevel:busStop?createBusStopLevel:createStreetLevel):createFirstLevel;
-const sampleKey=spatialEntry?(chapterEntry?'commute:chapter:02':scooterEntry?'commute:scooter:01':crossEntry?'commute:crosswalk:01':towEntry?'commute:tow-street:01':templateEntry?'templates:practice:01':graybox?'spatial:01':oldSpatial?'commute:spatial:01':layeredDemo?'layered:graybox:01':busStop?'commute:bus-stop:03':'commute:layered:02'):'milestone:02:v017';
+const sampleKey=spatialEntry?(chapterEntry?'commute:chapter:03':scooterEntry?'commute:scooter:01':crossEntry?'commute:crosswalk:01':towEntry?'commute:tow-street:01':templateEntry?'templates:practice:01':graybox?'spatial:01':oldSpatial?'commute:spatial:01':layeredDemo?'layered:graybox:01':busStop?'commute:bus-stop:03':'commute:layered:02'):'milestone:02:v017';
 const standaloneHTML=document.getElementById('standalone-editor')?'<!doctype html>\n'+document.documentElement.outerHTML:null;
 let editor,resourceUI,bindingUI,lastDraft,loadSerial=0,preview=null,previewLevel=null,accumulator=0,last=0,debugLast=0,toastTimer,serial=0;
 let feedback=null,feedbackFrame=null,audition=null,endingTicks=0;
@@ -193,11 +194,25 @@ function frame(now){
 requestAnimationFrame(frame);
 document.addEventListener('visibilitychange',()=>{if(document.hidden){preview?.pause();sound.setPaused(true);accumulator=0;updateDebug();}});
 function download(text,name,type){const url=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
-$('open-data').addEventListener('click',()=>{preview?.pause();updateDebug();const level=editor.document();$('level-json').value=JSON.stringify(level,null,2);$('level-json-label').textContent='当前草稿 · schemaVersion '+level.schemaVersion;$('data-error').hidden=true;$('apply-level').disabled=!editor.isEditing();$('data-dialog').showModal();});
+function sourceMessage(message,error=false){$('data-error').textContent=message;$('data-error').hidden=false;$('data-error').dataset.valid=String(!error);}
+function sourcePosition(){const input=$('level-json'),text=input.value.slice(0,input.selectionStart),lines=text.split('\n');$('dsl-position').textContent='行 '+lines.length+'，列 '+(lines.at(-1).length+1);}
+$('open-data').addEventListener('click',()=>{preview?.pause();updateDebug();const level=editor.document();$('level-json').value=JSON.stringify(level,null,2);$('level-json-label').textContent='当前草稿 · JSON DSL · schemaVersion '+level.schemaVersion;$('data-error').hidden=true;
+  $('apply-level').disabled=$('apply-current').disabled=!editor.isEditing();sourcePosition();$('data-dialog').showModal();});
 $('close-data').addEventListener('click',()=>$('data-dialog').close());
 $('export-level').addEventListener('click',()=>download(JSON.stringify(editor.document(),null,2),editor.document().id+'.json','application/json'));
 $('import-level').addEventListener('click',()=>$('level-file').click());
-$('level-file').addEventListener('change',async()=>{const file=$('level-file').files[0];if(!file)return;try{if(file.size>1048576)throw new Error('JSON 文件不能超过 1 MiB。');$('level-json').value=await file.text();$('data-error').hidden=true;}catch(error){$('data-error').textContent=error.message;$('data-error').hidden=false;}finally{$('level-file').value='';}});
-$('apply-level').addEventListener('click',()=>{try{const text=$('level-json').value;if(new Blob([text]).size>1048576)throw new Error('JSON 不能超过 1 MiB。');editor.importDocument(JSON.parse(text));$('data-dialog').close();notify('已导入为新草稿。');}catch(error){$('data-error').textContent=error.message;$('data-error').hidden=false;}});
+$('level-file').addEventListener('change',async()=>{const file=$('level-file').files[0];if(!file)return;try{if(file.size>1048576)throw new Error('JSON 文件不能超过 1 MiB。');$('level-json').value=await file.text();$('data-error').hidden=true;sourcePosition();}catch(error){sourceMessage(error.message,true);}finally{$('level-file').value='';}});
+$('apply-level').addEventListener('click',()=>{try{const text=$('level-json').value;if(new Blob([text]).size>1048576)throw new Error('JSON 不能超过 1 MiB。');editor.importDocument(JSON.parse(text));$('data-dialog').close();notify('已导入为新草稿。');}catch(error){sourceMessage(error.message,true);}});
+$('validate-dsl').addEventListener('click',()=>{try{parseDSL($('level-json').value);sourceMessage('校验通过，可以应用或运行。');}catch(error){sourceMessage(error.message,true);}});
+$('format-dsl').addEventListener('click',()=>{try{const level=parseDSL($('level-json').value);$('level-json').value=JSON.stringify(level,null,2);sourcePosition();sourceMessage('已格式化，尚未修改草稿。');}catch(error){sourceMessage(error.message,true);}});
+$('apply-current').addEventListener('click',()=>{try{editor.applyDocument(parseDSL($('level-json').value));$('data-dialog').close();notify('DSL 已应用到当前草稿 · Ctrl+Z 可撤销。');}catch(error){sourceMessage(error.message,true);}});
+$('level-json').addEventListener('input',()=>{$('data-error').hidden=true;sourcePosition();});
+for(const event of ['click','keyup','select'])$('level-json').addEventListener(event,sourcePosition);
+$('level-json').addEventListener('keydown',event=>{
+  if(event.isComposing)return;
+  if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='s'){event.preventDefault();if(!$('apply-current').disabled)$('apply-current').click();return;}
+  if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();$('validate-dsl').click();return;}
+  if(event.key==='Tab'&&!event.shiftKey){event.preventDefault();const input=$('level-json');input.setRangeText('  ',input.selectionStart,input.selectionEnd,'end');input.dispatchEvent(new Event('input'));}
+});
 $('download-editor').addEventListener('click',()=>{if(standaloneHTML){download(standaloneHTML,'gothere-editor.html','text/html');}
   else{const a=document.createElement('a');a.href='gothere-editor.html';a.download='gothere-editor.html';a.click();}});
