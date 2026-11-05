@@ -1,6 +1,6 @@
 # 关卡编辑器
 
-本地开发版 v0.23.0 提供街景模板练习及「上班路 · 末班乘客」公交站片段。此前三个街口、局部连接样例、旧屋顶关和空间实验继续保留。分层、通路内物体、透视铺面与方向动画的操作和数据见 [分层 DSL 规范](layered-dsl.md)，资源分组与构图见 [公交站方向记录](bus-stop-direction.md)。公开 Pages 仍是 main 稳定版；以下也以旧屋顶关为例说明共用的编辑功能。使用者无需安装 Node.js/npm。
+本地开发版 v0.24.0 默认展示「上班路 · 借过一下」清障片段：点击「运行」，再点击车左边生气的路人，约24秒即可看完。可以只试玩，无需编辑；也可用 `?sample=tow-street` 直接进入。街景模板练习、公交站片段、三个街口、局部连接样例、旧屋顶关和空间实验继续保留。清障事件的数据与限制见 [片段记录](tow-street-direction.md)，分层、通路内物体、透视铺面与方向动画见 [分层 DSL 规范](layered-dsl.md)。公开 Pages 仍是 main 稳定版；以下也以旧屋顶关为例说明共用的编辑功能。使用者无需安装 Node.js/npm。
 
 [在线编辑器](https://fuyiweiwow.github.io/gothere/editor.html) · [离线 HTML](https://fuyiweiwow.github.io/gothere/gothere-editor.html)
 

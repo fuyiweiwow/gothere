@@ -2038,5 +2038,95 @@
     "height": 180,
     "source": "gothere-original",
     "license": "CC0-1.0"
+  },
+  {
+    "id": "towCar",
+    "label": "清障 · 占道私家车",
+    "category": "街景角色",
+    "file": "original/commute/towCar.svg",
+    "width": 255,
+    "height": 101,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "towTruck",
+    "label": "清障 · 拖车",
+    "category": "街景角色",
+    "file": "original/commute/towTruck.svg",
+    "width": 310,
+    "height": 116,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "towTruckRoll",
+    "label": "清障 · 拖车行驶帧",
+    "category": "街景角色",
+    "file": "original/commute/towTruckRoll.svg",
+    "width": 310,
+    "height": 116,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "towCallerAngry",
+    "label": "清障 · 被挡路的路人",
+    "category": "街景角色",
+    "file": "original/commute/towCallerAngry.svg",
+    "width": 52,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "towCallerPoint",
+    "label": "清障 · 指着挡路车",
+    "category": "街景角色",
+    "file": "original/commute/towCallerPoint.svg",
+    "width": 52,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "towCallerPhone",
+    "label": "清障 · 路人打电话",
+    "category": "街景角色",
+    "file": "original/commute/towCallerPhone.svg",
+    "width": 52,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "towOwnerIdle",
+    "label": "清障 · 拿着早饭的车主",
+    "category": "街景角色",
+    "file": "original/commute/towOwnerIdle.svg",
+    "width": 54,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "towOwnerRun",
+    "label": "清障 · 车主追车",
+    "category": "街景角色",
+    "file": "original/commute/towOwnerRun.svg",
+    "width": 54,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "towGround",
+    "label": "清障 · 沿街连续铺面",
+    "category": "街景构图",
+    "file": "original/commute/towGround.svg",
+    "width": 1200,
+    "height": 222,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
   }
 ]

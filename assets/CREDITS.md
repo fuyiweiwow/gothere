@@ -24,3 +24,5 @@ The layered street v0.21.0 adds project-authored SVG facades, windows, canopy, b
 The v0.21.1 crosswalk texture, carriageway and front-facing scooter are also project-authored CC0 SVGs under LICENSE-original.txt. Their perspective and movement are configurable editor data; no original-game artwork is included.
 
 The v0.22.0 bus-stop study adds 19 project-authored CC0 SVGs (`original/commute/stop*.svg`), including the continuous atmosphere/pavement, complete architectural modules, shelter, tree, bus, door, hand and character poses. They use LICENSE-original.txt; `scripts/draw-bus-stop.mjs` retains the vector source construction and shared palette. No third-party or original-game image is included in this set.
+
+The v0.24.0 towing encounter adds 9 project-authored CC0 SVGs (`original/commute/tow*.svg`): a parked car, a tow truck with rolling frame, three pedestrian poses, two car-owner poses and continuous paving. They use LICENSE-original.txt and the established street palette. `scripts/draw-tow-street.mjs` preserves their vector construction; no third-party or original-game image is included.
