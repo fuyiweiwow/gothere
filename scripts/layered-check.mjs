@@ -1,3 +1,4 @@
+import {readSourceLevel,importLevel} from './check-source-helpers.mjs';
 import assert from 'node:assert/strict';
 import {existsSync} from 'node:fs';
 import {mkdir} from 'node:fs/promises';
@@ -55,7 +56,7 @@ try{
     await p.locator('#display-mode').selectOption('logic');await p.locator('[data-space-node="front-turn"]').click({force:true});
     await p.locator('#space-node-next').selectOption('ramp-foot');assert.ok((await draft(p)).entities.some(e=>e.passage?.from==='front-turn'&&e.passage.to==='ramp-foot'),'cross-plane route creates an authorable connector');await p.locator('#editor-undo').click();
     await p.locator('#space-node-next').selectOption('finish');assert.ok((await draft(p)).entities.some(e=>e.passage?.from==='front-turn'&&e.passage.to==='finish')===false,'different elevations cannot create an inward passage');
-    await p.locator('#editor-example').selectOption('rooftop');await p.locator('#scene[data-assets=ready]').waitFor();await p.locator('#open-data').click();assert.equal(JSON.parse(await p.locator('#level-json').inputValue()).schemaVersion,1);await p.locator('#close-data').click();
+    await p.locator('#editor-example').selectOption('rooftop');await p.locator('#scene[data-assets=ready]').waitFor();assert.equal((await readSourceLevel(p)).schemaVersion,1);
     await p.locator('#editor-example').selectOption('commute');await p.locator('#scene[data-assets=ready]').waitFor();assert.deepEqual(await draft(p),before);
     await p.evaluate(()=>{const key='gothere.studio.layered.v1',s=JSON.parse(localStorage.getItem(key)),old=s.documents.find(d=>d.key===s.activeKey);
       old.key='commute:layered:01';old.level.name='My previous street draft';s.documents=[old];s.activeKey=old.key;localStorage.setItem(key,JSON.stringify(s));});

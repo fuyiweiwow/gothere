@@ -1,6 +1,6 @@
 # 画外编辑与 JavaScript 编排
 
-v0.29.0。在线开发版与单文件离线版均可使用，不需要安装 npm。所有结果仍是原有 JSON DSL。
+v0.30.0。在线开发版与单文件离线版均可使用，不需要安装 npm。JavaScript 是作者源码，运行数据继续使用原有 DSL。
 
 ## 画外入场与离场
 
@@ -16,11 +16,11 @@ v0.29.0。在线开发版与单文件离线版均可使用，不需要安装 npm
 
 ## JS 编排入口
 
-顶部「JS 编排」打开独立窗口。左边写代码，右边显示生成并校验后的 JSON。「生成并校验」不会改草稿；检查结果后，选择整体替换当前草稿（一次撤销）或另存新草稿。普通 JSON 源码入口继续保留。
+顶部「JavaScript 关卡源码」打开完整源码。首次打开或点击「从当前画布生成源码」会将当前关卡的地图、物体、规则、图层展开为 JS；「载入关卡」也接受旧 `.json` 文件并转换。「生成并校验」不会改草稿，可选择整体替换（一次撤销）或另存新草稿。
 
-`level` 是基稿的副本。第一次打开取当前草稿，之后恢复保存的基稿；「取当前草稿为基稿」显式更新它。同一脚本反复运行不会累加上次的生成结果。源码和基稿按草稿槽保存在本机，另存新草稿会复制这份编排稿；可视化修改不会反写 JavaScript，重新生成时也不会自动合并。覆盖前请查看 JSON，或选择另存。
+`level` 是基稿的副本，完整源码会主动定义自己的关卡；同一脚本反复生成不会累加。源码和基稿按草稿槽保存在本机，另存新草稿会复制源码；画布修改不会反写 JavaScript，重新应用源码也不会自动合并。重新从画布生成、载入文件或示例时保留前一份源码，可点击「恢复之前的源码」。
 
-Ctrl+Enter 生成，Ctrl+S 保存源码与基稿，Tab插入两空格。可导入／导出 `.js`；导出的文件仅含代码，若代码依赖当前关卡，请同时导出对应 JSON 作为基稿。源码上限128 KiB，输出上限1 MiB，使用原有 DSL 校验器。语法、引用和参数错误会显示在窗口中，原草稿不变。
+Ctrl+Enter 生成，Ctrl+S 保存源码。可导入／导出 `.js`；从旧版本保留的基稿补丁导出时会打包基稿。源码上限2 MiB，输出上限1 MiB。语法、引用和参数错误会显示在窗口中，原草稿不变。代码编辑器提供语法着色和 `api.`、部分对象变量的 API 提示；它不是完整 LSP，不提供全面类型推断。
 
 运行在独立 Worker 中，超过2.5秒终止，也可主动停止或关窗；循环不会阻塞编辑器主线程。这不是安全沙箱，仅执行自己信任的脚本。代码可使用该浏览器授予 Worker 的能力，不能把隔离 UI 理解为隔离网络或存储。服务器只增加 `worker-src blob:`，没有开放 `unsafe-eval`。关卡运行时不执行这些脚本，生成结果不能包含函数、异步回调或非 JSON 值。
 
@@ -31,6 +31,7 @@ Ctrl+Enter 生成，Ctrl+S 保存源码与基稿，Tab插入两空格。可导�
 | 方法 | 含义 |
 | --- | --- |
 | `api.entity(id)` | 查找现有物体，不存在时报错 |
+| `api.addObject(data)` / `api.addRule(data)` / `api.addArt(data)` | 注册完整物体、规则和图层 |
 | `api.object(id, options)` | 新建普通物体；目前快捷创建只支持 v3 分层关卡 |
 | `api.behavior(target, id, actions, label?)` | 添加命名行为，同 ID 则替换 |
 | `api.on(target, event, actions, conditions?, details?)` | 添加事件规则；details 可填 other、behavior 等事件字段 |
@@ -41,17 +42,19 @@ Ctrl+Enter 生成，Ctrl+S 保存源码与基稿，Tab插入两空格。可导�
 | `api.condition(target, state)` | 状态条件 |
 | `api.empty()` | 返回独立的空白 v3 关卡；使用 `api = createAPI(level)` 重新绑定 API |
 
-对象默认在首个行走层，可用 `plane`、`elevation` 设置层与离地高度，`height` 是物体自身高度。直接配置 contact、draggable、dropTarget 等现有能力。资源仍由 `level.scene` 数据和可视化面板编辑，目前没有自动补全、资源包 DSL 或运行中脚本。
+对象默认在首个行走层，可用 `plane`、`elevation` 设置层与离地高度，`height` 是物体自身高度。对象也可直接调用 `item.move(...)`、`item.set(...)`、`item.behavior(...)`、`item.on(...)`、`item.invoke(...)` 和 `item.condition(...)`。资源仍可在可视化面板编辑，目前没有资源包 DSL 或运行中脚本。
 
 ```js
 // 批量给已有物体添加同一个离场行为。
-for (const id of ['bus', 'tow']) {
-  const item = api.entity(id);
-  api.behavior(item, 'script-leave', [
-    api.after(0.2, [api.move(item, { x: 1400, seconds: 2 })])
-  ], '脚本编排的离场');
+function createLevel(level, api, createAPI) {
+  for (const id of ['bus', 'tow']) {
+    const item = api.entity(id);
+    item.behavior('script-leave', [
+      api.after(0.2, [item.move({ x: 1400, seconds: 2 })])
+    ], '脚本编排的离场');
+  }
+  return level;
 }
-return level;
 ```
 
 窗口内还提供不带美术的「点击离场」示例，可生成后另存。具体入场、通路进出、持有和接触仍遵循现有模拟约束；API 不推断寻路、不绕过层归属、不保证任意脚本生成的地图都有解。

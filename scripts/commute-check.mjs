@@ -1,3 +1,4 @@
+import {readSourceLevel,importLevel} from './check-source-helpers.mjs';
 import assert from 'node:assert/strict';
 import {existsSync} from 'node:fs';
 import {mkdir} from 'node:fs/promises';
@@ -44,7 +45,7 @@ try{
     await p.locator('#editor-return').click();assert.deepEqual(await draft(p),before);
     await p.reload();await p.locator('#scene[data-assets=ready]').waitFor();assert.deepEqual(await draft(p),before);
     await p.locator('#editor-example').selectOption('rooftop');await p.locator('#scene[data-assets=ready]').waitFor();
-    await p.locator('#open-data').click();const legacy=JSON.parse(await p.locator('#level-json').inputValue());assert.equal(legacy.id,'editor-first-level');assert.equal(legacy.schemaVersion,1);await p.locator('#close-data').click();
+    const legacy=await readSourceLevel(p);assert.equal(legacy.id,'editor-first-level');assert.equal(legacy.schemaVersion,1);
     await p.locator('#editor-example').selectOption('spatial-commute');await p.locator('#scene[data-assets=ready]').waitFor();assert.deepEqual(await draft(p),before);
     assert.deepEqual(requests,[]);await context.close();console.log('PASS commute '+(index?'offline':'online')+': editable movement/rotation, depth nodes, world art, resize/undo, binding, full route, sample switching and saved drafts.');
   }

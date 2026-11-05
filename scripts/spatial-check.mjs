@@ -1,3 +1,4 @@
+import {readSourceLevel,importLevel} from './check-source-helpers.mjs';
 import assert from 'node:assert/strict';
 import {existsSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
@@ -39,8 +40,7 @@ try{
    await p.clock.runFor(42000);assert.match(await p.locator('#runtime-status').textContent(),/已到达终点/);
    await p.locator('#editor-return').click();
   }
-  await p.locator('#open-data').click();const json=JSON.parse(await p.locator('#level-json').inputValue());assert.ok(json.spatial);assert.equal(json.schemaVersion,2);
-  assert.match(await p.locator('#level-json-label').textContent(),/schemaVersion 2/);await p.locator('#close-data').click();
+  const json=await readSourceLevel(p);assert.ok(json.spatial);assert.equal(json.schemaVersion,2);
   await p.reload();await p.locator('#scene[data-assets=ready]').waitFor();assert.deepEqual(await draft(p),json);
   await p.locator('#display-mode').selectOption('logic');await p.screenshot({path:'artifacts/spatial-'+(url.startsWith('file:')?'offline':'online')+'.png',fullPage:true});
   // Loading a previous spatial-preview workspace preserves the author's edits.

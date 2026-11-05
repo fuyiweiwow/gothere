@@ -1,3 +1,4 @@
+import {readSourceLevel,importLevel} from './check-source-helpers.mjs';
 import assert from 'node:assert/strict';
 import {existsSync} from 'node:fs';
 import {mkdir} from 'node:fs/promises';
@@ -12,7 +13,7 @@ const draft=p=>p.evaluate(()=>{const s=JSON.parse(localStorage.getItem('gothere.
 async function open(url){const p=await context.newPage();p.setDefaultTimeout(7000);p.on('pageerror',e=>errors.push(e.message));const target=new URL(url);target.searchParams.set('legacy','1');await p.goto(target.href);await p.locator('#scene[data-assets=ready]').waitFor();return p;}
 async function scenario(p){await p.locator('#display-mode').selectOption('logic');await p.locator('#snap-enabled').uncheck();
   const l=await draft(p);l.platforms=[{x:50,y:303,width:800}];l.entities=[];l.rules=[];l.scene=undefined;l.actor={x:100,y:303,speed:45};l.goal={x:700,y:303};
-  await p.locator('#open-data').click();await p.locator('#level-json').fill(JSON.stringify(l));await p.locator('#apply-level').click();
+  await importLevel(p,l);
   async function place(x,y,alt=false){await p.locator('[data-tool="object"]').first().click();const b=await p.locator('#editor-overlay').boundingBox();if(alt)await p.keyboard.down('Alt');await p.mouse.click(b.x+x/1200*b.width,b.y+y/640*b.height);if(alt)await p.keyboard.up('Alt');return (await draft(p)).entities.at(-1);}
   let e=await place(230,309);assert.equal(e.y,303,'continuous placement snaps onto a non-grid surface');
   await p.locator('#surface-snap').uncheck();e=await place(360,309);assert.equal(e.y,310,'toggle preserves the unsnapped placement');

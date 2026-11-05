@@ -11,7 +11,7 @@ export function generateFromJavaScript(source,base,{timeout=2500}={}){
     rejectTask=reject;
     const finish=(error,value)=>{if(settled)return;settled=true;cleanup();if(error)reject(error);else resolve(value);};
     try{
-      if(typeof source!=='string'||new TextEncoder().encode(source).length>131072)throw new Error('JS 编排源码不能超过128 KiB。');
+      if(typeof source!=='string'||new TextEncoder().encode(source).length>2097152)throw new Error('JS 源码不能超过 2 MiB。');
       const script=`"use strict";
 self.onmessage = event => {
   try {
@@ -19,6 +19,7 @@ self.onmessage = event => {
     const createAPI = level => (${createAuthoringAPI.toString()})(level,blank);
     const generate = (level,api,createAPI) => {
 ${source}
+      return typeof createLevel === 'function' ? createLevel(level,api,createAPI) : undefined;
     };
     const level = generate(base,createAPI(base),createAPI);
     if (!level || typeof level !== 'object' || typeof level.then === 'function') throw new Error('请同步 return level；运行中不支持回调或异步脚本。');

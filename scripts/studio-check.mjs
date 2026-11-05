@@ -1,3 +1,4 @@
+import {readSourceLevel,importLevel} from './check-source-helpers.mjs';
 import assert from 'node:assert/strict';
 import {existsSync} from 'node:fs';
 import {mkdir} from 'node:fs/promises';
@@ -49,7 +50,7 @@ try{
   const before=(await draft(p)).entities.find(e=>e.id==='prop'),handle=await p.locator('[data-resize="e"]').boundingBox(),map=await p.locator('#editor-overlay').boundingBox();
   await p.mouse.move(handle.x+handle.width/2,handle.y+handle.height/2);await p.mouse.down();await p.mouse.move(handle.x+handle.width/2+20/1200*map.width,handle.y+handle.height/2,{steps:6});await p.mouse.up();
   assert.equal((await draft(p)).entities.find(e=>e.id==='prop').width,before.width+20);await p.locator('#editor-undo').click();
-  await p.locator('#open-data').click();assert.deepEqual(JSON.parse(await p.locator('#level-json').inputValue()),initial);await p.locator('#close-data').click();
+  assert.deepEqual(await readSourceLevel(p),initial);
   await p.reload();await p.locator('#editor-overlay').waitFor();assert.deepEqual(await draft(p),initial);
   const logic=await play(p,'logic'),scene=await play(p,'scene');assert.equal(logic,scene,'both views run identical physics');await play(p,'scene',{early:true});
   await p.locator('#display-mode').selectOption('logic');await p.screenshot({path:'artifacts/studio-logic.png',fullPage:true});

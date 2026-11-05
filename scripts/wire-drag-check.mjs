@@ -1,3 +1,4 @@
+import {readSourceLevel,importLevel} from './check-source-helpers.mjs';
 import assert from 'node:assert/strict';
 import {existsSync} from 'node:fs';
 import {mkdir} from 'node:fs/promises';
@@ -14,7 +15,7 @@ async function scenario(p){
   await p.locator('#display-mode').selectOption('logic');const l=await draft(p);l.scene=undefined;l.rules=[];l.platforms=[{x:0,y:440,width:1200}];l.actor={x:70,y:440,speed:45};l.goal={x:1100,y:440};
   l.entities=[{id:'a',label:'按钮',kind:'object',x:220,y:440,width:40,state:'active',behaviors:[{id:'press',label:'按下',actions:[{type:'set',target:'a',state:'inactive'}]}]},
     {id:'b',label:'目标',kind:'object',x:650,y:440,width:40,state:'active',behaviors:[{id:'open',label:'打开',actions:[{type:'set',target:'b',state:'inactive'}]},{id:'close',label:'关闭',actions:[{type:'set',target:'b',state:'active'}]}]}];
-  await p.locator('#open-data').click();await p.locator('#level-json').fill(JSON.stringify(l));await p.locator('#apply-level').click();
+  await importLevel(p,l);
   await p.locator('[data-ref="entity:a"]').click();
   const from=p.locator('.event-slot[data-event=click] [data-wire-handle]');
   assert.equal(await from.count(),1,'event-slot connector is directly draggable');

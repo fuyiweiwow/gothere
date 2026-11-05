@@ -763,7 +763,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     else if(command==='help')shortcutDialog.showModal();
     else if(command==='undo'||command==='redo')history(command==='redo');
     else if(command==='new')$('editor-new').click();
-    else if(command==='data')$('open-data').click();
+    else if(command==='data')$('open-script').click();
     else if(command==='search'){showTab('library');$('library-search').focus();$('library-search').select();}
     else if(command==='rename'&&selection?.type==='entity'){showTab('object');$('object-label').focus();$('object-label').select();}
     else if(command==='copy'||command==='cut'){

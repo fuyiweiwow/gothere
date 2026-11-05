@@ -1,3 +1,4 @@
+import {readSourceLevel,importLevel} from './check-source-helpers.mjs';
 import assert from 'node:assert/strict';
 import {existsSync} from 'node:fs';
 import {mkdir} from 'node:fs/promises';
@@ -42,7 +43,7 @@ try{
       await p.locator('#editor-return').click();assert.deepEqual(await draft(p),before);
     }
     await p.locator('#preview-toggle').click();await p.clock.runFor(18000);assert.equal(await p.locator('#runtime-status').getAttribute('data-status'),'lost');await p.locator('#editor-return').click();
-    await p.locator('#open-data').click();assert.deepEqual(JSON.parse(await p.locator('#level-json').inputValue()),before);await p.locator('#close-data').click();
+    assert.deepEqual(await readSourceLevel(p),before);
     await p.reload();await p.locator('#scene[data-assets=ready]').waitFor();assert.deepEqual(await draft(p),before);
     await p.evaluate(level=>{level.name='Saved bus edit';const key='gothere.studio.layered.v1',s=JSON.parse(localStorage.getItem(key));s.documents=[{key:'commute:bus-stop:03',level}];s.activeKey='commute:bus-stop:03';localStorage.setItem(key,JSON.stringify(s));},createBusStopLevel());
     const root=new URL(url);root.search='';await p.goto(root.href);await p.locator('#scene[data-assets=ready]').waitFor();assert.equal((await draft(p)).id,'commute-chapter');

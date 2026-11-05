@@ -1,3 +1,4 @@
+import {readSourceLevel,importLevel} from './check-source-helpers.mjs';
 import assert from 'node:assert/strict';
 import {existsSync} from 'node:fs';
 import {readFile,mkdir} from 'node:fs/promises';
@@ -47,7 +48,7 @@ try{
  await p.locator('#asset-upload').setInputFiles({name:'自定义窗.png',mimeType:'image/png',buffer:await readFile(new URL('../assets/kenney/window.png',import.meta.url))});
  await p.locator('[data-asset^=custom-]').waitFor();await p.locator('[data-asset^=custom-]').click();await p.mouse.click(box.x+600/1200*box.width,box.y+80/640*box.height);
  assert.equal((await draft(p)).scene.assets.length,1);assert.equal((await draft(p)).scene.nodes.length,initial.scene.nodes.length+1);await p.keyboard.press('Escape');
- await p.locator('#open-data').click();assert.deepEqual(JSON.parse(await p.locator('#level-json').inputValue()),await draft(p));await p.locator('#close-data').click();
+ assert.deepEqual(await readSourceLevel(p),await draft(p));
  const imported=await draft(p);await p.reload();await p.locator('#scene[data-assets=ready]').waitFor();assert.deepEqual(await draft(p),imported);
  assert.equal(await p.locator('#editor-undo').isDisabled(),true,'history starts fresh after reload');
  assert.deepEqual(await draft(p),imported);
@@ -56,7 +57,7 @@ try{
  const noise=await p.evaluate(()=>{const c=document.createElement('canvas');c.width=c.height=240;const ctx=c.getContext('2d'),data=ctx.createImageData(240,240);let seed=12345;for(let i=0;i<data.data.length;i++){seed=(Math.imul(seed,1664525)+1013904223)>>>0;data.data[i]=seed>>>24;}ctx.putImageData(data,0,0);return c.toDataURL('image/png');});
  await p.locator('#resource-library-tab').click();await p.locator('#asset-upload').setInputFiles({name:'可交换图片.png',mimeType:'image/png',buffer:Buffer.from(noise.split(',')[1],'base64')});
  await p.locator('[data-asset^=custom-]').nth(1).waitFor();const withImage=await draft(p);assert.ok(JSON.stringify(withImage).length>262144);
- await p.locator('#open-data').click();await p.locator('#apply-level').click();await p.locator('#data-dialog').waitFor({state:'hidden'});assert.deepEqual(await draft(p),withImage);
+ await importLevel(p,withImage);assert.deepEqual(await draft(p),withImage);
  const built=await buildEditor(),offline=await open(pathToFileURL(built.path).href);await select(offline,'可落下花盆资源');await field(offline,'#art-width',65);assert.equal((await draft(offline)).entities.find(e=>e.id==='pot').width,30);
  await offline.locator('#display-mode').selectOption('logic');assert.equal(await offline.locator('#editor-panel').isVisible(),true);
  assert.deepEqual(errors,[]);console.log('PASS resources: visual-only resize/offset/swap, state variants, mode isolation, continuous painting, image import, undo, JSON/reload and offline authoring.');

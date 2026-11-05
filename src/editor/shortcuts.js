@@ -1,6 +1,6 @@
 /** One source for the help sheet and editor commands. Text fields keep their native editing keys. */
 export const EDITOR_SHORTCUTS = [
-  ['Ctrl+N','新建草稿'],['Ctrl+O','打开 DSL 源码 / JSON'],['Ctrl+S','保存草稿'],
+  ['Ctrl+N','新建草稿'],['Ctrl+O','打开 JavaScript 关卡源码'],['Ctrl+S','保存草稿'],
   ['Ctrl+Z','撤销'],['Ctrl+Y / Ctrl+Shift+Z','重做'],
   ['Ctrl+C / Ctrl+X / Ctrl+V','复制 / 剪切 / 粘贴物体'],['Ctrl+D','创建选中物体的副本'],
   ['Delete','删除选中物体或连线'],['F2','重命名选中物体'],

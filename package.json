@@ -1,6 +1,6 @@
 {
   "name": "gothere",
-  "version": "0.29.0",
+  "version": "0.30.0",
   "private": true,
   "type": "module",
   "description": "A lighthearted, data-driven puzzle about getting there, no matter what",
@@ -13,9 +13,15 @@
     "build": "node scripts/build.mjs",
     "test": "node --test tests/*.test.mjs",
     "test:coverage": "node --experimental-test-coverage --test --test-coverage-include=src/core/*.js --test-coverage-include=src/render/feedback.js --test-coverage-include=src/render/audio.js --test-coverage-include=src/render/depth-buffer.js --test-coverage-include=src/editor/surface-snapping.js --test-coverage-include=src/editor/spatial-snapping.js --test-coverage-include=src/editor/wire-creation.js --test-coverage-lines=80 --test-coverage-functions=80 --test-coverage-branches=80 tests/*.test.mjs",
-    "test:e2e": "node scripts/studio-check.mjs && node scripts/resources-check.mjs && node scripts/canvas-check.mjs && node scripts/feedback-check.mjs && node scripts/selection-check.mjs && node scripts/surface-snap-check.mjs && node scripts/wire-drag-check.mjs && node scripts/spatial-check.mjs && node scripts/spatial-occlusion-check.mjs && node scripts/spatial-migration-check.mjs && node scripts/commute-check.mjs && node scripts/layered-check.mjs && node scripts/bus-stop-check.mjs && node scripts/templates-check.mjs && node scripts/tow-street-check.mjs && node scripts/crosswalk-check.mjs && node scripts/scooter-check.mjs && node scripts/commute-chapter-check.mjs && node scripts/dsl-source-check.mjs && node scripts/authoring-check.mjs"
+    "test:e2e": "node scripts/studio-check.mjs && node scripts/resources-check.mjs && node scripts/canvas-check.mjs && node scripts/feedback-check.mjs && node scripts/selection-check.mjs && node scripts/surface-snap-check.mjs && node scripts/wire-drag-check.mjs && node scripts/spatial-check.mjs && node scripts/spatial-occlusion-check.mjs && node scripts/spatial-migration-check.mjs && node scripts/commute-check.mjs && node scripts/layered-check.mjs && node scripts/bus-stop-check.mjs && node scripts/templates-check.mjs && node scripts/tow-street-check.mjs && node scripts/crosswalk-check.mjs && node scripts/scooter-check.mjs && node scripts/commute-chapter-check.mjs && node scripts/javascript-editor-check.mjs && node scripts/authoring-check.mjs"
   },
   "devDependencies": {
+    "esbuild": "^0.28.2",
     "playwright": "1.64.1"
+  },
+  "dependencies": {
+    "@codemirror/lang-javascript": "^6.2.5",
+    "@codemirror/theme-one-dark": "^6.1.3",
+    "codemirror": "^6.0.2"
   }
 }

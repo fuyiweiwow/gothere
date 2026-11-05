@@ -1,3 +1,4 @@
+import {readSourceLevel,importLevel} from './check-source-helpers.mjs';
 import assert from 'node:assert/strict';
 import {existsSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
@@ -23,7 +24,7 @@ try{
       const expected={...level,schemaVersion:spatial?2:1};
       const saved=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),key);
       assert.equal(saved.activeKey,'my-draft');assert.deepEqual(saved.documents[0].level,expected,'migrated draft must be persisted on opening');
-      await page.locator('#open-data').click();assert.deepEqual(JSON.parse(await page.locator('#level-json').inputValue()),expected);
+      assert.deepEqual(await readSourceLevel(page),expected);
       assert.deepEqual(errors,[]);await context.close();
     }
   }

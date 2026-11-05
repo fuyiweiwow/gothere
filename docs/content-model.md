@@ -244,7 +244,7 @@ supportlost 从失去支撑的动态物体发出；landed 从下落后落定的�
 
 `variants` 按实际实体状态覆盖变换或图片，未设置的字段继承基础图层。编辑器可单独预览/拖动状态图片。`animation:{"frames":["travelerWalk1","travelerWalk2"],"fps":8}` 支持1～24帧及1～30 fps，按 `floor(tick*fps/60)` 选择帧；暂停和回放确定。状态可覆盖 animation，设为 null 使用静态图；状态直接换 asset 且未配置 animation 时也显示静态图。`flipWithDirection:true` 随对象实际朝向翻转。
 
-自定义图片仅接受 data:image/png、jpeg、webp 的 base64；单张最多256 KiB、2048×2048，所有图片总计512 KiB。禁止引用远程图片或导入 SVG，避免离线依赖与可执行内容。内置受信 SVG 随库内嵌。图片数据、图层及状态动画与逻辑共用历史、草稿和 JSON；离线编辑器内嵌内置素材，用户草稿需另行导出 JSON。
+自定义图片仅接受 data:image/png、jpeg、webp 的 base64；单张最多256 KiB、2048×2048，所有图片总计512 KiB。禁止引用远程图片或导入 SVG，避免离线依赖与可执行内容。内置受信 SVG 随库内嵌。图片数据、图层及状态动画与逻辑共用历史和草稿；离线编辑器内嵌内置素材，用户可将当前草稿生成完整 JS 后导出。
 
 ## 表现反馈槽
 

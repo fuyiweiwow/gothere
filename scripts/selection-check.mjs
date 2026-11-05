@@ -1,3 +1,4 @@
+import {readSourceLevel,importLevel} from './check-source-helpers.mjs';
 import assert from 'node:assert/strict';
 import {existsSync} from 'node:fs';
 import {mkdir} from 'node:fs/promises';
@@ -10,9 +11,9 @@ try{
   const p=await context.newPage();p.setDefaultTimeout(7000);p.on('pageerror',e=>errors.push(e.message));await p.goto('http://127.0.0.1:'+server.address().port+'/?legacy=1');await p.locator('#scene[data-assets=ready]').waitFor();
   await p.locator('#display-mode').selectOption('logic');
   // Put a real saved connection directly over the small item, then click the visible item.
-  await p.locator('#open-data').click();const level=JSON.parse(await p.locator('#level-json').inputValue());
+  const level=await readSourceLevel(p);
   const rule=level.rules.find(r=>r.on.source==='umbrella');rule.actions[0].editor={waypoints:[{x:235,y:165},{x:265,y:165}]};
-  await p.locator('#level-json').fill(JSON.stringify(level));await p.locator('#apply-level').click();
+  await importLevel(p,level);
   async function chooseAtZoom(){const object=await p.locator('[data-ref="entity:umbrella"]').boundingBox();await p.mouse.click(object.x+object.width/2,object.y+object.height/2);
     assert.equal(await p.locator('#editor-tab-object').getAttribute('aria-selected'),'true');assert.match(await p.locator('#object-title').textContent(),/缓降物/);}
   await chooseAtZoom();await p.locator('#zoom-in').click();await chooseAtZoom();

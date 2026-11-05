@@ -1,3 +1,4 @@
+import {readSourceLevel,importLevel} from './check-source-helpers.mjs';
 import assert from 'node:assert/strict';
 import {existsSync} from 'node:fs';
 import {mkdir} from 'node:fs/promises';
@@ -33,7 +34,7 @@ try{
     await value(p,'#art-group','街区建筑');assert.equal((await draft(p)).scene.nodes.find(n=>n.id==='stop-left').group,'街区建筑');await p.locator('#editor-undo').click();
     await p.locator('#layer-group').selectOption('乘客');await p.locator('[data-art-id=stop-person-c]').click();await p.locator('#art-state').selectOption('moving');
     assert.equal(await p.locator('#art-fps').inputValue(),'8');await value(p,'#art-fps',10);await p.locator('#editor-undo').click();assert.deepEqual(await draft(p),before);
-    await p.locator('#open-data').click();assert.deepEqual(JSON.parse(await p.locator('#level-json').inputValue()),before);await p.locator('#close-data').click();
+    assert.deepEqual(await readSourceLevel(p),before);
     for(const mode of ['scene','logic']){
       await p.locator('#display-mode').selectOption(mode);await p.locator('#preview-toggle').click();await p.clock.runFor(3000);
       if(mode==='scene'){

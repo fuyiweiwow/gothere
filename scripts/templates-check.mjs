@@ -1,3 +1,4 @@
+import {readSourceLevel,importLevel} from './check-source-helpers.mjs';
 import assert from 'node:assert/strict';
 import {existsSync} from 'node:fs';
 import {mkdir} from 'node:fs/promises';
@@ -42,7 +43,7 @@ try{
     await p.locator('[data-feedback-preview]').first().click();await p.clock.runFor(120);assert.ok(Number(await p.locator('#scene').getAttribute('data-feedback-active'))>0);await p.clock.runFor(500);
     const passenger=placed.scene.nodes.find(n=>n.asset==='stopPassengerAIdle');await p.locator('[data-art-id="'+passenger.id+'"]').click();await p.locator('#art-state').selectOption('moving');
     assert.equal(await p.locator('#art-fps').inputValue(),'8');await fill(p,'#art-fps',10);await p.locator('#editor-undo').click();assert.deepEqual(await draft(p),placed);
-    await p.locator('#open-data').click();assert.deepEqual(JSON.parse(await p.locator('#level-json').inputValue()),placed);await p.locator('#close-data').click();
+    assert.deepEqual(await readSourceLevel(p),placed);
     await p.locator('#preview-toggle').click();await p.clock.runFor(3000);await p.locator('#scene-interactions [data-source="'+bus.id+'"]').click();await p.clock.runFor(1200);
     await p.locator('#scene').screenshot({path:'artifacts/templates-boarding-'+index+'.png'});await p.locator('#preview-toggle').click();const still=await p.locator('#scene').evaluate(c=>c.toDataURL());
     await p.clock.runFor(250);assert.equal(await p.locator('#scene').evaluate(c=>c.toDataURL()),still);await p.locator('#preview-toggle').click();await p.clock.runFor(15000);

@@ -1,3 +1,4 @@
+import {readSourceLevel,importLevel} from './check-source-helpers.mjs';
 import assert from 'node:assert/strict';
 import {existsSync} from 'node:fs';
 import {mkdir} from 'node:fs/promises';
@@ -17,7 +18,7 @@ try{
  await chooseArt(p,'烟雾通路资源');const hiddenImage=await p.locator('#scene').evaluate(c=>c.toDataURL());await p.locator('[data-feedback-preview]').click();await p.clock.runFor(150);
  assert.notEqual(await p.locator('#scene').evaluate(c=>c.toDataURL()),hiddenImage,'hidden resources can be auditioned without changing their initial state');await p.locator('#feedback-stop').click();
  const imported=await draft(p);imported.entities.push({id:'feedback-zone',kind:'zone',label:'测试感应区',x:30,y:560,width:8,height:8,state:'enabled'});
- await p.locator('#open-data').click();await p.locator('#level-json').fill(JSON.stringify(imported));await p.locator('#apply-level').click();await chooseArt(p,'可落下花盆资源');
+ await importLevel(p,imported);await chooseArt(p,'可落下花盆资源');
  await p.locator('#feedback-panel').waitFor({state:'visible',timeout:3000});const initial=await draft(p);assert.ok(initial.scene.feedback.length>=12);
  await p.locator('#feedback-add').click();let slot=p.locator('.feedback-slot').last();await slot.locator('[data-feedback-field="motion"]').selectOption('shake');await slot.locator('[data-feedback-field="particles"]').selectOption('smoke');
  await slot.locator('[data-feedback-field="sound"]').selectOption('puff');const configured=await draft(p);assert.equal(configured.scene.feedback.at(-1).motion,'shake');assert.deepEqual(configured.entities,initial.entities);

@@ -1,3 +1,4 @@
+import {readSourceLevel,importLevel} from './check-source-helpers.mjs';
 import assert from 'node:assert/strict';
 import {existsSync} from 'node:fs';
 import {mkdir} from 'node:fs/promises';
@@ -49,9 +50,9 @@ try{
     await p.locator('#display-mode').selectOption('scene');await p.locator('#preview-toggle').click();await p.clock.runFor(9000);assert.equal(await p.locator('#runtime-status').getAttribute('data-status'),'lost');
     await p.locator('#scene').screenshot({path:'artifacts/scooter-failure-'+index+'.png'});await p.locator('#editor-return').click();
     await p.locator('#preview-toggle').click();await drag(p,250,0,{release:false});await p.locator('#preview-reset').evaluate(b=>b.click());await p.mouse.up();await p.locator('#preview-toggle').click();await p.clock.runFor(9000);assert.equal(await p.locator('#runtime-status').getAttribute('data-status'),'lost');await p.locator('#editor-return').click();
-    await p.locator('#open-data').click();assert.deepEqual(JSON.parse(await p.locator('#level-json').inputValue()),before);await p.locator('#close-data').click();await p.reload();await p.locator('#scene[data-assets=ready]').waitFor();assert.deepEqual(await draft(p),before);
+    assert.deepEqual(await readSourceLevel(p),before);await p.reload();await p.locator('#scene[data-assets=ready]').waitFor();assert.deepEqual(await draft(p),before);
     const both=structuredClone(before);both.rules.push({on:{source:'barrier',type:'click'},actions:[{type:'set',target:'phase',state:'active'}]});
-    await p.locator('#open-data').click();await p.locator('#level-json').fill(JSON.stringify(both));await p.locator('#apply-level').click();await p.locator('#preview-toggle').click();
+    await importLevel(p,both);await p.locator('#preview-toggle').click();
     await p.locator('#scene-interactions [data-source=barrier]').click();await p.clock.runFor(300);assert.match(await p.locator('#runtime-log').innerText(),/车辆已经靠近/);await p.locator('#editor-return').click();
     await p.evaluate(level=>{level.name='Saved crossing';const key='gothere.studio.layered.v1',s=JSON.parse(localStorage.getItem(key));s.documents=[{key:'commute:crosswalk:01',level}];s.activeKey='commute:crosswalk:01';localStorage.setItem(key,JSON.stringify(s));},createCrosswalkLevel());
     const root=new URL(url);root.search='';await p.goto(root.href);await p.locator('#scene[data-assets=ready]').waitFor();assert.equal((await draft(p)).id,'commute-chapter');assert.equal(await p.evaluate(()=>JSON.parse(localStorage.getItem('gothere.studio.layered.v1')).documents.find(d=>d.key==='commute:crosswalk:01').level.name),'Saved crossing');

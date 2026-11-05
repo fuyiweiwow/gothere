@@ -1,3 +1,4 @@
+import {readSourceLevel,importLevel} from './check-source-helpers.mjs';
 import assert from 'node:assert/strict';
 import {existsSync} from 'node:fs';
 import {mkdir} from 'node:fs/promises';
@@ -55,7 +56,7 @@ try{
     await p.locator('#editor-undo').click();assert.deepEqual(await draft(p),before);assert.deepEqual(await shelterPixel(p),[111,139,123,255]);
     await p.locator('#layer-search').fill('');await p.locator('#scene').screenshot({path:'artifacts/chapter-initial-'+index+'.png'});
     for(const mode of ['scene','logic']){await solution(p,index,mode);assert.deepEqual(await draft(p),before);}
-    await p.locator('#open-data').click();assert.deepEqual(JSON.parse(await p.locator('#level-json').inputValue()),before);await p.locator('#close-data').click();
+    assert.deepEqual(await readSourceLevel(p),before);
     await p.locator('#display-mode').selectOption('logic');await p.locator('[data-ref="entity:alley"]').click({force:true});
     assert.match(await p.locator('#editor-panel').innerText(),/窄巷/);await p.locator('#scene').screenshot({path:'artifacts/chapter-logic-'+index+'.png'});
     await p.locator('#display-mode').selectOption('scene');await p.locator('#preview-toggle').click();await until(p,380);
