@@ -6,6 +6,10 @@ export const isLayered=level=>level.spatial?.mode==='layered';
 // Ordinary object motion may leave the camera; the actor still has map bounds.
 export const SPATIAL_MOVE_X=Object.freeze({min:-1200,max:2400});
 
+export function canPlaceOffscreen(object){
+  return object?.kind==='object'&&!object.space?.passage&&!object.passage&&!object.pose&&!object.surface&&!object.collider&&!object.motion;
+}
+
 /** Static destinations describe possible ownership; runtime still requires the
  * actual endpoint. This does not authorize an arbitrary plane switch. */
 export function objectPassages(level,id){

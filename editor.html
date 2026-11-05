@@ -10,8 +10,9 @@
 </head>
 <body class="editor-app">
   <header class="app-header">
-    <div class="app-brand"><span class="brand-symbol" aria-hidden="true">▦</span><div><h1>一定要到达那里</h1><span>二维分层编辑器 <b>0.28.1</b></span></div></div>
+    <div class="app-brand"><span class="brand-symbol" aria-hidden="true">▦</span><div><h1>一定要到达那里</h1><span>二维分层编辑器 <b>0.29.0</b></span></div></div>
     <div class="document-actions"><select id="editor-example" aria-label="选择示例"><option value="chapter">上班路 · 还得去（完整街区）</option><option value="scooter">上班路 · 此路不借</option><option value="crosswalk">上班路 · 抬头看路</option><option value="tow-street">上班路 · 借过一下</option><option value="templates">模板练习 · 街景搭建</option><option value="bus-stop">上班路 · 公交站片段</option><option value="commute">上班路 · 三个街口</option><option value="layered">前街与后街 · 连接样例</option><option value="rooftop">屋顶到亮窗 · 横版兼容</option><option value="spatial-commute">上班路 · 旧空间实验</option><option value="graybox">近路与远路 · 空间灰盒</option></select><button id="reset-level" class="button secondary">新建示例副本</button><button id="open-data" class="button secondary">DSL 源码 / JSON</button><button id="download-editor" class="button secondary">下载离线编辑器</button></div>
+    <button id="open-script" class="button secondary">JS 编排</button>
   </header>
   <main id="editor-workspace">
     <section id="editor-toolbar" class="editor-toolbar" aria-label="创作工具" hidden></section>
@@ -19,14 +20,16 @@
       <div class="map-heading"><h2 id="scene-title">地图</h2><span id="scene-tag-text">正在创作</span><div class="display-controls"><label for="display-mode">编辑</label><select id="display-mode" aria-label="地图显示方式"><option value="logic">逻辑实体</option><option value="scene">美术资源</option><option value="binding">绑定校准</option></select><label title="控制资源动画；机关的真实运动和判定继续运行"><input id="animation-toggle" type="checkbox" checked>动画</label><label><input id="sound-toggle" type="checkbox" checked>声音</label></div></div>
       <div class="canvas-tools" aria-label="画布工具"><button id="zoom-out" title="缩小画布">−</button><button id="zoom-level" title="恢复100%">100%</button><button id="zoom-in" title="放大画布">＋</button><button id="zoom-fit">适合窗口</button><label><input id="snap-enabled" type="checkbox" checked>对齐吸附</label><label title="逻辑物体贴合真实路面；路面端点可衔接"><input id="surface-snap" type="checkbox" checked>路面吸附</label><span>滚轮缩放 · 空格/中键拖动画布 · Alt 暂停吸附</span></div>
       <div id="calibration-controls" class="calibration-controls" hidden><label>编辑 <select id="binding-target"><option value="art">美术资源</option><option value="logic">逻辑实体</option></select></label><label>美术 <input id="calibration-art-opacity" type="range" min="0" max="1" step="0.05" value="0.55"></label><label>逻辑 <input id="logic-opacity" type="range" min="0" max="1" step="0.05" value="1"></label><span id="binding-hint">图片与逻辑叠加校准</span><button id="cancel-binding" class="text-button">取消点选</button></div>
-      <div class="map-scroll" id="map-scroll"><div class="viewport" id="viewport">
+      <div class="map-scroll" id="map-scroll"><div id="map-workspace"><div class="viewport" id="viewport">
+        <canvas id="workspace-scene" width="3600" height="640" aria-hidden="true" hidden></canvas>
+        <div class="workspace-wing left" aria-hidden="true">左侧画外 · 入场 / 离场</div><div class="workspace-wing right" aria-hidden="true">右侧画外 · 入场 / 离场</div>
         <canvas id="scene" width="1200" height="640" aria-label="关卡地图：路面、主角、终点和机关"></canvas>
         <div id="scene-interactions" class="scene-interactions" aria-label="场景机关" hidden></div>
         <div id="editor-overlay" class="editor-overlay" aria-label="点击放置或拖动逻辑物体" hidden></div>
         <div id="resource-overlay" class="resource-overlay" aria-label="移动和缩放美术资源" hidden></div>
         <svg id="binding-overlay" viewBox="0 0 1200 640" aria-label="逻辑与图片绑定校准" hidden></svg>
         <div id="alignment-guides" aria-hidden="true"></div>
-      </div></div>
+      </div></div></div>
       <div class="preview-controls" aria-label="模拟控制"><button id="preview-toggle" class="button primary">▶ 运行</button><button id="preview-step" class="button secondary" title="暂停并推进一个 tick">单步</button><button id="preview-reset" class="button secondary" disabled>重置模拟</button><span id="runtime-status" role="status">编辑中</span><output id="runtime-tick">tick 0</output></div>
       <p class="map-note" id="stage-note"></p>
       <details class="map-note"><summary>关卡提示</summary><p id="level-hint"></p></details>
@@ -46,6 +49,13 @@
   </main>
   <footer class="app-footer"><span id="document-summary">关卡 DSL</span><span>逻辑 · 资源 · 绑定校准 · 草稿在本机保存</span></footer>
   <dialog id="data-dialog" aria-labelledby="data-title"><div class="dialog-heading"><h2 id="data-title">DSL 源码</h2><button id="close-data" class="button secondary" aria-label="关闭关卡数据">关闭</button></div><p class="panel-note">JSON 即当前 DSL。直接修改物体、行为、连线或资源，校验后应用到当前草稿，支持撤销；也可另存为新草稿。最多 1 MiB。</p><div class="dsl-tools"><button id="validate-dsl" class="button secondary">校验</button><button id="format-dsl" class="button secondary">格式化</button><span>Ctrl+Enter 校验 · Ctrl+S 应用 · Tab 缩进</span><output id="dsl-position"></output></div><label id="level-json-label" for="level-json">当前草稿</label><textarea id="level-json" spellcheck="false" maxlength="1048576" wrap="off" aria-label="关卡 DSL 源码"></textarea><p id="data-error" class="data-error" role="status" hidden></p><div class="dialog-actions"><button id="import-level" class="button secondary">选择 JSON 文件</button><button id="export-level" class="button secondary">导出当前草稿</button><button id="apply-level" class="button secondary">导入为新草稿</button><button id="apply-current" class="button primary">应用到当前草稿</button></div><input id="level-file" type="file" accept=".json,application/json" hidden></dialog>
+  <dialog id="script-dialog" aria-labelledby="script-title">
+    <div class="dialog-heading"><h2 id="script-title">JS 编排 → DSL</h2><button id="close-script" class="button secondary">关闭</button></div>
+    <p class="panel-note">用变量、函数和循环生成关卡。level 是基稿快照，api 提供物体、行为、事件和动作快捷函数。生成后校验并预览 JSON，再应用或另存；编辑器中的修改不会反写脚本。仅执行自己信任的代码。</p>
+    <div class="dsl-tools"><button id="script-base" class="button secondary">取当前草稿为基稿</button><button id="script-example" class="button secondary">载入点击离场示例</button><button id="script-load" class="button secondary">载入 JS</button><button id="script-export" class="button secondary">导出 JS</button><span>Ctrl+Enter 生成 · Ctrl+S 保存源码和基稿</span></div>
+    <div class="script-columns"><label>JavaScript<textarea id="script-source" aria-label="JS 编排源码" spellcheck="false" wrap="off" maxlength="131072"></textarea></label><label>生成的 JSON（只读）<textarea id="script-result" aria-label="生成的 DSL" readonly wrap="off" spellcheck="false"></textarea></label></div>
+    <p id="script-status" role="status"></p><div class="dialog-actions"><button id="script-generate" class="button primary">生成并校验</button><button id="script-stop" class="button secondary" disabled>停止</button><button id="script-import" class="button secondary" disabled>另存为新草稿</button><button id="script-apply" class="button secondary" disabled>替换当前草稿（可撤销）</button></div><input id="script-file" type="file" accept=".js,text/javascript" hidden>
+  </dialog>
   <div id="toast" class="toast" role="status" hidden></div>
   <script type="module" src="/src/shell/editor.js"></script>
 </body>

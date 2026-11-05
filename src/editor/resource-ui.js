@@ -8,6 +8,7 @@ import {isLayered} from '../core/spatial.js';
 import {layeredArtOrder} from '../render/layered.js';
 import {createTemplateUI} from './template-ui.js';
 import {placeTemplate,compositionBounds,moveComposition,copyComposition,removeComposition} from './templates.js';
+import {focusWorld} from './offscreen.js';
 
 const $=id=>document.getElementById(id);
 const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
@@ -35,7 +36,7 @@ export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspe
   const templateUI=createTemplateUI({editor,select:chooseComposition,choose:id=>{tool='template:'+id;selected=null;composition=null;tab='templates';render(current);},inspect:choose,
     practice:()=>{cancel();selected=null;composition=null;tool=null;tab='templates';createPractice();}});
   function chooseComposition(id){composition=id;selected=null;tool=null;variant='';tab='templates';render(editor.document());preview(current);overlay.focus({preventScroll:true});}
-  function choose(id){composition=null;selected=id;tool=null;variant='';tab='inspect';render(editor.document());preview(current);overlay.focus({preventScroll:true});}
+  function choose(id){composition=null;selected=id;tool=null;variant='';tab='inspect';render(editor.document());preview(current);const n=current.scene?.nodes.find(n=>n.id===id);if(n){const b=artBounds(n,current);if(b.x<0||b.x+b.width>1200)focusWorld(b);}overlay.focus({preventScroll:true});}
   function field(name,value,fn,{id,type='number',min,max,step=1}={}) {
     const label=el('label',undefined,'edit-field'),input=el('input');label.append(el('span',name),input);input.type=type;input.value=value;
     if(id)input.id=id;if(min!==undefined)input.min=min;if(max!==undefined)input.max=max;if(type==='number')input.step=step;

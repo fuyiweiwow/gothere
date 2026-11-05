@@ -2,6 +2,7 @@ import {projectSpace,unprojectSpace,spaceBounds,isLayered,syncPassageObject} fro
 import {moveObject,resizeObject} from './model.js';
 import {snapSpacePoint} from './spatial-snapping.js';
 import {assignWalkPlane,connectLayeredNodes,setPlaneBaseline} from './layered-editing.js';
+import {canPlaceOffscreen,offscreenX,focusWorld} from './offscreen.js';
 
 const el=(tag,text)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;return e;};
 const button=(text,fn)=>{const b=el('button',text);b.type='button';b.className='button secondary';b.onclick=fn;return b;};
@@ -78,8 +79,12 @@ export function createSpatialUI({document:current,change,preview,choose,selectio
       if(key==='x'||key==='width'||key==='height')t[key]=v;else t.space[key==='elevation'?'height':key]=v;
       if(ref.type==='actor'){const n=doc.spatial.nodes.find(n=>n.id===doc.spatial.start);n.x=t.x;n.depth=t.space.depth;n.height=t.space.height;}
     });
-    const offscreen=target.kind==='object'&&!target.passage&&!target.pose&&!target.surface&&!target.collider&&!target.motion;
+    const offscreen=canPlaceOffscreen(target);
     number(box,'位置 X','object-x',target.x,v=>update('x',v),offscreen?-1200:25,offscreen?2400-(target.width??28):1180);
+    if(offscreen){const tools=el('div');tools.className='offscreen-tools';
+      for(const [side,text] of [['left','放到左侧画外'],['right','放到右侧画外']]){const b=button(text,()=>{change(doc=>{const e=doc.entities.find(e=>e.id===target.id);e.x=offscreenX(doc,e,side);});const doc=current(),e=doc.entities.find(e=>e.id===target.id);focusWorld(spaceBounds(doc,e.kind,e));});b.dataset.offscreenPlace=side;tools.append(b);}
+      tools.append(button('定位物体',()=>focusWorld(spaceBounds(d,target.kind,target))));box.append(tools);
+    }
     if(layered)planeField(box,d,'object-space-plane',target.space.plane,v=>change(doc=>{const t=ref.type==='entity'?doc.entities.find(e=>e.id===ref.id):ref.type==='platform'?doc.platforms[ref.index]:doc[ref.type];assignWalkPlane(doc,t,v);if(ref.type==='actor'){const n=doc.spatial.nodes.find(n=>n.id===doc.spatial.start);n.plane=v;n.depth=t.space.depth;}}));
     else number(box,'地面纵深','object-space-depth',target.space.depth,v=>update('depth',v),0,600);
     number(box,'离地高度','object-space-height',target.space.height,v=>update('elevation',v),0,360);

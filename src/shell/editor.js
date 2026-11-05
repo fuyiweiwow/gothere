@@ -28,6 +28,7 @@ import {spaceBounds} from '../core/spatial.js';
 import {canDrag} from '../core/placement.js';
 import {createRuntimeDrag} from './runtime-drag.js';
 import {parseDSL} from '../editor/dsl.js';
+import {createAuthoringUI} from '../editor/authoring-ui.js';
 
 const $=id=>document.getElementById(id),canvas=$('scene'),ctx=canvas.getContext('2d');
 const params=new URLSearchParams(location.search),spatialEntry=!params.has('legacy');
@@ -60,6 +61,11 @@ function draw(level,state){
     audition?audition.player.sample({tick:Math.floor(audition.tick),status:'running',signals:[]},{enabled:$('animation-toggle').checked,audible:$('sound-toggle').checked}):null;
   canvas.dataset.feedbackActive=String(feedbackFrame?.active??0);canvas.dataset.feedbackParticles=String(feedbackFrame?.particles.length??0);canvas.dataset.feedbackEnded=String(feedbackFrame?.tailFinished??true);
   canvas.dataset.view=displayMode;
+  const wing=$('workspace-scene');
+  if(!wing.hidden&&!state){const scale=canvas.width/1200;if(wing.width!==canvas.width*3||wing.height!==canvas.height){wing.width=canvas.width*3;wing.height=canvas.height;}const w=wing.getContext('2d');w.setTransform(scale,0,0,scale,1200*scale,0);w.clearRect(-1200,0,3600,640);
+    const options={logic:displayMode==='logic',animate:false,hiddenLayers:resourceUI?.hiddenLayers(),previewVariant:resourceUI?.variant(),artOpacity:displayMode==='binding'?Number($('calibration-art-opacity').value):1};
+    if(level.spatial)drawSpatial(w,level,null,options);else if(displayMode==='logic')drawDiagram(w,level);else drawScene(w,level,null,options);
+  }
   if(level.spatial)drawSpatial(ctx,level,state,{logic:displayMode==='logic',animate:$('animation-toggle').checked,hiddenLayers:state?null:resourceUI?.hiddenLayers(),previewVariant:state?null:resourceUI?.variant(),
     feedback:feedbackFrame,previewTarget:state?null:audition?.target,artOpacity:displayMode==='binding'?Number($('calibration-art-opacity').value):1});
   else if(displayMode!=='logic')drawScene(ctx,level,state,{animate:$('animation-toggle').checked,previewVariant:state?null:resourceUI?.variant(),
@@ -69,6 +75,7 @@ function draw(level,state){
   if(state)updateInteractions(state);
 }
 function workspace(){document.body.dataset.display=displayMode;const editing=editor?.isEditing()??false,target=displayMode==='binding'?$('binding-target').value:displayMode==='logic'?'logic':'art';
+  window.dispatchEvent(new Event('editor-workspace-mode'));window.dispatchEvent(new Event('editor-cancel-destination'));
   document.body.dataset.editTarget=target;$('resource-panel').hidden=!editing||target!=='art';$('resource-overlay').hidden=!editing||target!=='art';$('editor-panel').hidden=!editing||target!=='logic';$('editor-overlay').hidden=!editing||target!=='logic';
   $('calibration-controls').hidden=displayMode!=='binding';$('binding-overlay').toggleAttribute('hidden',displayMode!=='binding');
   $('binding-target').disabled=!editing;$('cancel-binding').disabled=!editing;
@@ -194,6 +201,7 @@ function frame(now){
 requestAnimationFrame(frame);
 document.addEventListener('visibilitychange',()=>{if(document.hidden){preview?.pause();sound.setPaused(true);accumulator=0;updateDebug();}});
 function download(text,name,type){const url=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+createAuthoringUI({editor,notify,download,pause:()=>{preview?.pause();updateDebug();}});
 function sourceMessage(message,error=false){$('data-error').textContent=message;$('data-error').hidden=false;$('data-error').dataset.valid=String(!error);}
 function sourcePosition(){const input=$('level-json'),text=input.value.slice(0,input.selectionStart),lines=text.split('\n');$('dsl-position').textContent='行 '+lines.length+'，列 '+(lines.at(-1).length+1);}
 $('open-data').addEventListener('click',()=>{preview?.pause();updateDebug();const level=editor.document();$('level-json').value=JSON.stringify(level,null,2);$('level-json-label').textContent='当前草稿 · JSON DSL · schemaVersion '+level.schemaVersion;$('data-error').hidden=true;

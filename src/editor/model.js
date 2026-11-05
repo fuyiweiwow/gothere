@@ -5,7 +5,7 @@ import { surfaceEndY } from '../core/surfaces.js';
 import { posePoint, poseInBounds } from '../core/pose.js';
 import {validateScene} from '../core/scene-schema.js';
 import {pruneFeedback} from '../core/feedback-schema.js';
-import {validateSpatial,unprojectSpace,isLayered,projectSpace,syncPassageObject} from '../core/spatial.js';
+import {validateSpatial,unprojectSpace,isLayered,projectSpace,syncPassageObject,SPATIAL_MOVE_X,canPlaceOffscreen} from '../core/spatial.js';
 import {normalizeLevel,levelVersionValid} from '../core/level-version.js';
 import {pruneCompositions} from '../core/compositions.js';
 
@@ -232,8 +232,9 @@ export function resizeObject(level,ref,handle,dx,dy,{snap=true,threshold=24}={})
   const e=ref.type==='entity'?level.entities.find(e=>e.id===ref.id):ref.type==='platform'?level.platforms[ref.index]:null;
   if(!e)return;
   if(level.spatial){
-    if(handle.includes('e'))e.width=clamp(e.width+dx,8,Math.min(ref.type==='platform'?1200:600,1200-e.x));
-    if(handle.includes('w')){const shift=clamp(dx,25-e.x,e.width-8);e.x+=shift;e.width-=shift;}
+    const offscreen=canPlaceOffscreen(e),minX=offscreen?SPATIAL_MOVE_X.min:25,maxX=offscreen?SPATIAL_MOVE_X.max:1200;
+    if(handle.includes('e'))e.width=clamp(e.width+dx,8,Math.min(ref.type==='platform'?1200:600,maxX-e.x));
+    if(handle.includes('w')){const shift=clamp(dx,Math.max(minX-e.x,e.width-(ref.type==='platform'?1200:600)),e.width-8);e.x+=shift;e.width-=shift;}
     if(handle.includes('n')){
       if(isLayered(level)&&ref.type==='platform'){
         const shift=clamp(-dy,-Math.min(e.space.height,e.space.heightEnd??e.space.height),360-Math.max(e.space.height,e.space.heightEnd??e.space.height));
@@ -285,7 +286,8 @@ export function moveObject(level, ref, dx, dy=0) {
       target.space.progress=clamp(target.space.progress+(dx*x+dy*y)/(x*x+y*y),0,1);syncPassageObject(level,target);return;}
     const originalX=target.x;
     const delta=unprojectSpace(level,{x:dx,y:level.spatial.projection.originY+dy},0);
-    target.x=clamp(target.x+delta.x,25,1200-(target.width??28));
+    const offscreen=canPlaceOffscreen(target);
+    target.x=clamp(target.x+delta.x,offscreen?SPATIAL_MOVE_X.min:25,(offscreen?SPATIAL_MOVE_X.max:1200)-(target.width??28));
     if(isLayered(level)){
       const shift=clamp(-dy,-Math.min(target.space.height,target.space.heightEnd??target.space.height),360-Math.max(target.space.height,target.space.heightEnd??0));
       target.space.height+=shift;if(target.space.heightEnd!==undefined)target.space.heightEnd+=shift;

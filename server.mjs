@@ -19,7 +19,7 @@ export function makeServer({ portableOnly = false } = {}) {
         response.writeHead(200, {
           'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store',
           'X-Content-Type-Options': 'nosniff',
-          'Content-Security-Policy': "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'",
+          'Content-Security-Policy': "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; worker-src blob:; object-src 'none'; base-uri 'none'; form-action 'none'",
           ...(pathname==='/gothere-editor.html'?{'Content-Disposition':'attachment; filename="gothere-editor.html"'}:{}),
         });
         response.end(request.method === 'HEAD' ? undefined : html);
@@ -32,7 +32,7 @@ export function makeServer({ portableOnly = false } = {}) {
       if (rel.startsWith('..' + sep) || rel === '..' || resolve(ROOT, rel) !== file || !(await stat(file)).isFile()) { send(404, 'Not found'); return; }
       response.writeHead(200, { 'Content-Type':MIME[extname(file)] ?? 'application/octet-stream',
         'Cache-Control':'no-store', 'X-Content-Type-Options':'nosniff',
-        'Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'self'" });
+        'Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; worker-src blob:; object-src 'none'; base-uri 'self'" });
       response.end(request.method === 'HEAD' ? undefined : await readFile(file));
     } catch (error) {
       if (['ENOENT','ENOTDIR','URIError'].includes(error.code ?? error.name)) send(404, 'Not found');

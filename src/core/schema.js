@@ -2,7 +2,7 @@ import { verticalTransport, landingX } from './transport.js';
 import { surfaceHeight, collectSurfaces } from './surfaces.js';
 import { poseInBounds } from './pose.js';
 import {validateScene} from './scene-schema.js';
-import {validateSpatial,SPATIAL_MOVE_X} from './spatial.js';
+import {validateSpatial,SPATIAL_MOVE_X,canPlaceOffscreen} from './spatial.js';
 import {normalizeLevel,levelVersionValid} from './level-version.js';
 
 export const STATES = Object.freeze({
@@ -74,7 +74,7 @@ export function validateLevel(input,{spatialDraft=false}={}) {
       check(text(entity.id, 48) && idPattern.test(entity.id) && !byId.has(entity.id), '实体 id 无效或重复：' + String(entity.id));
       check(Object.hasOwn(STATES, entity.kind), '未知实体类型：' + String(entity.kind));
       check(Object.hasOwn(STATES, entity.kind) && STATES[entity.kind].includes(entity.state), '实体初始状态无效：' + String(entity.id));
-      const offscreen=input.spatial&&entity.kind==='object'&&!entity.passage&&!entity.pose&&!entity.surface&&!entity.collider&&!entity.motion;
+      const offscreen=input.spatial&&canPlaceOffscreen(entity);
       check(number(entity.x, offscreen?SPATIAL_MOVE_X.min:25,offscreen?SPATIAL_MOVE_X.max:1175) && (entity.width === undefined || number(entity.width, 8, 600)) &&
         entity.x + (entity.width ?? 28) <= (offscreen?SPATIAL_MOVE_X.max:1200), '实体位置或宽度无效：' + String(entity.id));
       check(text(entity.label, 30), '实体需要 1～30 字的 label：' + String(entity.id));

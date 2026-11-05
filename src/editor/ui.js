@@ -15,6 +15,7 @@ import {connectWire} from './wire-creation.js';
 import {createSpatialUI} from './spatial-ui.js';
 import {spaceBounds,unprojectSpace,isLayered,SPATIAL_MOVE_X,objectPassages} from '../core/spatial.js';
 import {replaceDSLDocument} from './dsl.js';
+import {offscreenX,pickMoveDestination,focusWorld} from './offscreen.js';
 
 const $ = id => document.getElementById(id);
 const STORAGE = 'gothere.editor.v1';
@@ -163,7 +164,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     const terms=query.trim().toLowerCase().split(/\s+/).filter(Boolean);
     const matches=d.entities.filter(e=>(category==='all'||CATALOG.find(i=>i.kind===e.kind)?.group===category)&&terms.every(t=>(e.label+' '+e.id+' '+KIND_NAMES[e.kind]).toLowerCase().includes(t)));
     $('scene-count').textContent=matches.length+'/'+d.entities.length;
-    for(const e of matches){const b=button('',()=>chooseObject({type:'entity',id:e.id}),'scene-item');b.append(element('span',e.label),element('small',KIND_NAMES[e.kind]));scene.append(b);}
+    for(const e of matches){const b=button('',()=>{chooseObject({type:'entity',id:e.id});if(d.spatial){const bounds=spaceBounds(d,e.kind,e);if(bounds.x<0||bounds.x+bounds.width>1200)focusWorld(bounds);}},'scene-item');b.append(element('span',e.label),element('small',KIND_NAMES[e.kind]));scene.append(b);}
     if(!matches.length)scene.append(element('p',d.entities.length?'没有匹配的场景物体':'场景中还没有物体','empty-state'));
   }
   function save(explicit=false) {
@@ -604,6 +605,10 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
             const control=input(key==='ticks'?action.ticks/60:action[key],label,value=>changeAction(a=>{a[key]=key==='ticks'?Math.max(1,Math.round(value*60)):value;}),{type:'number',min,max,step:'any'});
             control.setAttribute('data-move-'+(key==='ticks'?'duration':key),'');row.append(field(label,control));
           }
+          if(!onPassage||action.plane){const tools=element('div',undefined,'offscreen-tools');
+            for(const [side,text] of [['left','驶出左侧'],['right','驶出右侧']]){const b=button(text,()=>{try{const x=offscreenX(d,target,side,{depth:action.depth,height:action.height,plane:action.plane});changeAction(a=>{a.x=x;});}catch(error){notify(error.message);}},'button secondary');b.dataset.offscreenMove=side;tools.append(b);}
+            const pick=button('在画布点选目标 X',()=>pickMoveDestination(d,action,x=>changeAction(a=>{a.x=x;})),'button secondary');pick.dataset.movePick='';tools.append(pick);row.append(tools);
+          }
           if(onPassage&&action.plane)row.append(element('p','先用进度移动到对应端点，再执行本动作；未到端点会产生「位移条件未满足」事件。','panel-note'));
           if(!onPassage||action.plane){const fixed=element('input');fixed.type='checkbox';fixed.checked=Boolean(action.editor?.keepWorldX);fixed.setAttribute('data-move-world-x','');
             fixed.onchange=()=>changeAction(a=>{a.editor??={waypoints:[]};a.editor.keepWorldX=fixed.checked;});row.append(field('组合移动时固定目标 X 到地图',fixed));}
@@ -788,7 +793,7 @@ export function createEditorUI({play,leave,pause,notify,storageKey=STORAGE,diagr
     else if(command==='step')$('preview-step').click();
   });
   return {
-    active:()=>mode!=='closed',isEditing:()=>mode==='editing',document:()=>store.document(),
+    active:()=>mode!=='closed',isEditing:()=>mode==='editing',document:()=>store.document(),documentKey:()=>store.key(),
     change:edit,
     cancel:cancelGesture,
     select:chooseObject,selection:()=>selection?structuredClone(selection):null,
