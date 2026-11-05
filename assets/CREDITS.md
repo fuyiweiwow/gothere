@@ -19,6 +19,8 @@ The v0.26.0 scooter encounter adds 7 original CC0 SVGs under `original/commute/s
 
 The v0.27.0 continuous chapter adds 7 original CC0 SVGs (`original/commute/chapter*.svg`): shared three-street pavement, separate endpoint-bound crossing and alley paving, two small shop modules, company exterior and alley posts. The drawing source is `scripts/draw-commute-chapter.mjs`. They reuse the established palette and LICENSE-original.txt; no third-party or original-game artwork was added.
 
+The v0.27.1 proportion and ground-layout revision adds 11 original CC0 SVGs (`original/commute/block*.svg`): shared ground, street-corner paving and apron, alley paving, three single-story shop modules, apartment, office, low shelter and proportion-corrected rider. Source: `scripts/draw-commute-block.mjs`, under LICENSE-original.txt. The earlier `chapter*.svg` resources remain available for saved drafts. Official screenshots of Hidden Folks and Thank Goodness You're Here! informed spatial composition only; none of their artwork is included.
+
 The v0.16.0 smoke, dust and sparks are drawn procedurally; the six built-in audio cues are synthesized by project code. They add no third-party image/audio files. User-imported audio remains part of the user's level document.
 
 The spatial commute study adds modular street props in original/commute/ (bus, cars, scooters, rails, signals, road textures and office equipment), authored for this project and released under the same LICENSE-original.txt CC0 dedication. Its four worker PNGs are palette adaptations of the bundled Kenney Toon Characters, retaining that pack's CC0 license. These assets are editable library entries; they contain no original Snoozleberg artwork or in-scene text.

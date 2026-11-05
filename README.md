@@ -2,7 +2,7 @@
 
 轻松诙谐的 2D 环境解谜与关卡编辑引擎，最终目标为 Steam。主角认准目的地持续前进，玩家通过物体、行为和事件改变环境，帮助他到达那里。
 
-当前分支 `codex/spatial-2-5d` 的本地开发版为 **0.27.0 二维分层编辑器**。默认展示完整街区 [上班路 · 还得去](http://localhost:4173/?sample=chapter)：近街公交站 → 右侧向里过街 → 中街清障与车主追车 → 左侧窄巷电瓶车 → 远街早餐与狗 → 公司外门。约一分钟，使用者无需编辑。三条街均有实际赶路与互动，全部使用公共 DSL；事件由主角接近和行为完成驱动，沿用现有动画。方案与限制见 [整章记录](docs/commute-chapter-layout.md)。
+当前分支 `codex/spatial-2-5d` 的本地开发版为 **0.27.1 二维分层编辑器**。默认展示完整街区 [上班路 · 还得去](http://localhost:4173/?sample=chapter)：近街公交站 → 右侧向里过街 → 中街清障与车主追车 → 左侧窄巷电瓶车 → 远街早餐与狗 → 公司外门。约一分钟，使用者无需编辑。本轮统一轻俯视街景、等宽连接与人物/设施尺度，斑马线只跨车道。三条街均有实际赶路与互动，全部使用公共 DSL；事件由主角接近和行为完成驱动，沿用现有动画。方案与限制见 [整章记录](docs/commute-chapter-layout.md)。
 
 本地入口 [完整街区](http://localhost:4173/?sample=chapter)、[此路不借](http://localhost:4173/?sample=scooter)、[抬头看路](http://localhost:4173/?sample=crosswalk)、[借过一下](http://localhost:4173/?sample=tow-street)、[公交站片段](http://localhost:4173/?sample=bus-stop)、[模板练习](http://localhost:4173/?sample=templates)、[三个街口旧稿](http://localhost:4173/?sample=commute)、[局部连接样例](http://localhost:4173/?sample=layered)；离线文件为 `dist/gothere-editor.html`。默认新增并展示完整街区槽，已有草稿与后续编辑均保留。编辑仍分逻辑、资源与绑定校准三种视图。
 

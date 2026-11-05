@@ -2408,5 +2408,115 @@
     "height": 39,
     "source": "gothere-original",
     "license": "CC0-1.0"
+  },
+  {
+    "id": "blockStreets",
+    "label": "街区 · 同一地面上的三条街",
+    "category": "街景构图",
+    "file": "original/commute/blockStreets.svg",
+    "width": 1200,
+    "height": 640,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "blockCrossing",
+    "label": "街区 · 街角步道与局部斑马线",
+    "category": "街景构图",
+    "file": "original/commute/blockCrossing.svg",
+    "width": 185,
+    "height": 114,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "blockJunction",
+    "label": "街区 · 街角车道延伸",
+    "category": "街景构图",
+    "file": "original/commute/blockJunction.svg",
+    "width": 114,
+    "height": 60,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "blockAlley",
+    "label": "街区 · 两侧建筑间的窄巷",
+    "category": "街景构图",
+    "file": "original/commute/blockAlley.svg",
+    "width": 175,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "blockShop",
+    "label": "街区 · 露出屋顶的沿街小店",
+    "category": "街景构图",
+    "file": "original/commute/blockShop.svg",
+    "width": 200,
+    "height": 120,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "blockBreakfast",
+    "label": "街区 · 带侧墙的早餐铺",
+    "category": "街景构图",
+    "file": "original/commute/blockBreakfast.svg",
+    "width": 200,
+    "height": 120,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "blockShutter",
+    "label": "街区 · 卷帘门与小窗店面",
+    "category": "街景构图",
+    "file": "original/commute/blockShutter.svg",
+    "width": 200,
+    "height": 120,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "blockApartment",
+    "label": "街区 · 同视角的沿街公寓",
+    "category": "街景构图",
+    "file": "original/commute/blockApartment.svg",
+    "width": 222,
+    "height": 180,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "blockOffice",
+    "label": "街区 · 同视角的公司外门",
+    "category": "街景构图",
+    "file": "original/commute/blockOffice.svg",
+    "width": 178,
+    "height": 190,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "blockShelter",
+    "label": "街区 · 低矮轻薄的候车亭",
+    "category": "街景构图",
+    "file": "original/commute/blockShelter.svg",
+    "width": 158,
+    "height": 108,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "blockRider",
+    "label": "街区 · 校准成人比例的正面骑手",
+    "category": "街景构图",
+    "file": "original/commute/blockRider.svg",
+    "width": 54,
+    "height": 72,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
   }
 ]

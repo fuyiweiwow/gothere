@@ -4,34 +4,36 @@ import {createCrosswalkScene} from './crosswalk-scene.js';
 import {createScooterScene} from './scooter-scene.js';
 import {feedbackDefault} from '../content/feedback-presets.js';
 
-/** The whole block is recomposed at a common scale. The large pavement is a
- * resource; architecture, performers and props remain independent editor nodes. */
+/** One elevated parallel view: shared ground bands, shallow roofs and constant
+ * adult scale. Paving, architecture and performers remain editable resources. */
 export function createCommuteChapterScene(level){
   const scene={background:'#d7d3b5',assets:[],sounds:[],nodes:[],feedback:[]};
   const add=(id,asset,label,x,y,width,height,layer=-30,extra={})=>{
     const n={id,asset,label,group:label.split(' / ')[0],x,y,width,height,layer,...extra};scene.nodes.push(n);return n;
   };
-  add('chapter-sky','stopAtmosphere','街区 / 清晨远城',0,-40,1200,640,-100);
-  add('chapter-streets','chapterStreets','街区 / 三条道路与两个连接口',0,0,1200,640,-90);
-  add('chapter-crossing','chapterCrossing','通路 / 向里过街的斑马线',0,7,185,132,-30,{bind:{type:'entity',id:'crosswalk'},fitPassage:true,passageView:{endScale:.8}});
-  add('chapter-alley','chapterAlley','通路 / 紧凑的内外窄巷',0,32,175,128,-30,{bind:{type:'entity',id:'alley'},fitPassage:true,passageView:{endScale:.8}});
-  // Shop rows are deliberately separated from the passages. Their rooflines
-  // finish below the previous street, so the protagonist is never hidden.
+  add('chapter-streets','blockStreets','街区 / 同一地面上的三条街',0,0,1200,640,-90);
+  // Passage images follow their endpoints. Their local y offset places the
+  // actor on the sidewalk; road markings stop at the horizontal carriageway.
+  add('chapter-crossing','blockCrossing','通路 / 街角步道与局部斑马线',0,-18,185,114,-85,{bind:{type:'entity',id:'crosswalk'},fitPassage:true});
+  add('chapter-junction','blockJunction','通路 / 街角车道延伸',-18,0,114,60,-85,{bind:{type:'entity',id:'crosswalk'}});
+  add('chapter-alley','blockAlley','通路 / 建筑间的等宽窄巷',0,-20,175,96,-85,{bind:{type:'entity',id:'alley'},fitPassage:true});
+  // The roofs finish below the next walking baseline. Different storefront
+  // widths and awnings add variation without changing that ground relationship.
   for(const [row,y,blocks]of [
-    ['near',438,[[0,180],[185,165],[356,178],[540,145],[690,154],[850,136],[1140,150]]],
-    ['middle',258,[[0,110],[265,150],[420,175],[600,165],[770,162],[1148,160]]],
-  ])for(const [i,[x,w]]of blocks.entries())add('chapter-shop-'+row+'-'+i,i===2?'chapterBreakfast':'chapterShop','建筑 / '+(row==='near'?'前街店面':'早餐街店面'),x,y,w,105,-75);
-  for(const [i,[x,asset,w,h]]of [[0,'stopTenement',160,144],[170,'stopOfficeBlock',177,154],[352,'stopCorner',154,154],[511,'stopTenement',160,144],[676,'stopOfficeBlock',176,154],[860,'stopTenement',158,142]].entries())
-    add('chapter-far-building-'+i,asset,'建筑 / 外街楼房',x,170-h,w,h,-76);
-  add('chapter-office','chapterOffice','终点 / 公司外门',1042,64,150,151,-74);
-  add('chapter-office-clock','commuteClock','终点 / 门外时钟',1096,89,23,23,-65);
-  add('chapter-shelter','stopShelter','站台 / 候车亭',305,451,113,126,-40);
-  add('chapter-umbrella','crossUmbrella','路口 / 执勤遮阳伞',1094,267,102,128,-40);
+    ['near',424,[[-22,221,'blockShutter'],[195,215,'blockShop'],[407,207,'blockShop'],[610,188,'blockShutter'],[794,191,'blockShop'],[1150,200,'blockShutter']]],
+    ['middle',239,[[-25,135,'blockShutter'],[245,245,'blockBreakfast'],[487,240,'blockShop'],[724,261,'blockShutter'],[1150,200,'blockShop']]],
+  ])for(const [i,[x,w,asset]]of blocks.entries())add('chapter-shop-'+row+'-'+i,asset,'建筑 / '+(row==='near'?'前街店面':'早餐街店面'),x,y,w,120,-75);
+  for(const [i,[x,w]]of [[-25,222],[199,218],[419,222],[643,215],[862,178]].entries())
+    add('chapter-far-building-'+i,'blockApartment','建筑 / 外街公寓',x,2,w,180,-76);
+  add('chapter-office','blockOffice','终点 / 公司外门',1040,21,159,190,-74);
+  add('chapter-office-clock','commuteClock','终点 / 门外时钟',1097,48,20,20,-65);
+  add('chapter-shelter','blockShelter','站台 / 轻薄候车亭',301,486,133,90,-40);
+  add('chapter-umbrella','crossUmbrella','路口 / 执勤遮阳伞',1137,301,63,80,-40);
   add('chapter-alley-posts','chapterPosts','窄巷 / 人行空隙与路桩',-76,-33,151,39,15,{bind:{type:'entity',id:'gap'}});
-  for(const [id,x,y]of [['a',70,355],['b',911,354],['c',861,540],['d',267,169],['e',1001,169]])
-    add('chapter-tree-'+id,'stopTree','布景 / 街角树池',x,y-80,64,102,-32);
-  for(const [id,x,y]of [['a',272,327],['b',726,517],['c',548,171]])add('chapter-bikes-'+id,'scootBikes','布景 / 靠墙自行车',x,y,78,41,-31);
-  for(const [id,x,y]of [['a',15,530],['b',932,345],['c',372,172]])add('chapter-bin-'+id,'scootBins','布景 / 店边垃圾桶',x,y,38,33,-31);
+  for(const [id,x,y]of [['a',52,366],['b',929,366],['c',875,551],['d',271,191],['e',993,191]])
+    add('chapter-tree-'+id,'stopTree','布景 / 街角树池',x,y-89,57,91,-32);
+  for(const [id,x,y]of [['a',270,359],['b',785,544],['c',548,184]])add('chapter-bikes-'+id,'scootBikes','布景 / 靠墙自行车',x,y,61,32,-31);
+  for(const [id,x,y]of [['a',15,542],['b',949,357],['c',372,182]])add('chapter-bin-'+id,'scootBins','布景 / 店边垃圾桶',x,y,30,26,-31);
 
   // Reuse the tested encounter performers and feedback, not their full-width backgrounds.
   const copy=(source,entities,scale=.72)=>{
@@ -47,9 +49,10 @@ export function createCommuteChapterScene(level){
   copy(createCrosswalkScene(),['officer','jaywalker','signal']);
   copy(createScooterScene(),['barrier']);
   const barrier=scene.nodes.find(n=>n.bind?.id==='barrier');Object.assign(barrier,{x:0,y:-29,width:62,height:38,layer:45});
-  const car=scene.nodes.find(n=>n.id==='tow-car');car.variants.inactive.y=-47;
-  add('chapter-rider','streetScooterFront','骑手 / 窄巷来车',12,-58,47,63,25,{bind:{type:'entity',id:'scooter'},variants:{
-    inactive:{asset:'scootRiderPhone',x:7,y:-51,width:76,height:55}}});
+  const car=scene.nodes.find(n=>n.id==='tow-car');Object.assign(car,{x:-12,y:-53,width:150,height:60});car.variants.inactive.y=-44;
+  Object.assign(scene.nodes.find(n=>n.id==='tow-truck'),{x:60,y:-69,width:190,height:71});
+  add('chapter-rider','blockRider','骑手 / 窄巷来车',17,-48,37,50,25,{bind:{type:'entity',id:'scooter'},variants:{
+    inactive:{asset:'scootRiderPhone',x:4,y:-41,width:62,height:44}}});
   add('chapter-food','streetBreakfast','外街 / 可拖放的早餐',-2,-23,25,26,45,{bind:{type:'entity',id:'breakfast'}});
   add('chapter-bowl','streetBowl','外街 / 狗碗',-1,-9,31,12,15,{bind:{type:'entity',id:'bowl'}});
   add('chapter-dog','streetDog','外街 / 守路与吃早餐的狗',-3,-32,48,35,25,{bind:{type:'entity',id:'dog'},variants:{inactive:{rotation:8,y:-28}}});
