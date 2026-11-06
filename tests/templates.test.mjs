@@ -24,7 +24,7 @@ test('background and building templates remain broad editable art with no inferr
 
 test('template placement remaps internal rules, nested behaviors, art and animation/sound subscriptions',()=>{
   const l=createTemplatePractice('practice'),id=placeTemplate(l,encounter()),c=l.scene.compositions.find(c=>c.id===id),bus=l.entities.find(e=>e.behaviors?.some(b=>b.id==='open'));
-  assert.equal(validateLevel(l).valid,true);assert.equal(c.entities.length,7);assert.equal(c.nodes.length,5);
+  assert.equal(validateLevel(l).valid,true);assert.equal(c.entities.length,8);assert.equal(c.nodes.length,5);
   assert.ok(l.scene.feedback.some(f=>f.trigger.source===bus.id&&f.sound==='clack'));
   const person=l.scene.nodes.find(n=>n.asset==='stopPassengerAIdle'),e=l.entities.find(e=>e.id===person.bind.id);
   assert.equal(artTransform(person,l,{tick:10,entities:{[e.id]:{...e,translation:{}}}}).asset,'stopPassengerAWalk');
@@ -108,4 +108,22 @@ test('wire routing edits preserve the independent map-coordinate destination ann
   l.rules=[{on:{source:'mover',type:'click'},actions:[{type:'move',target:'mover',x:1240,depth:130,height:0,ticks:60,editor:{waypoints:[],keepWorldX:true}}]}];
   setWirePoints(l,{rule:0,path:[0]},[{x:100,y:200}]);assert.equal(l.rules[0].actions[0].editor.keepWorldX,true);
   setWirePoints(l,{rule:0,path:[0]},[]);assert.equal(l.rules[0].actions[0].editor.keepWorldX,true);assert.equal(validateLevel(l).valid,true);
+});
+
+test('failure clips travel with imported frames and remap their actual cause when copied',()=>{
+  const source=createTemplatePractice('source');
+  source.entities.push({id:'person',label:'person',kind:'object',x:400,width:20,height:20,state:'active',space:{plane:'street',depth:130,depthSize:20,height:0}});
+  source.scene.assets.push({id:'clip-only',label:'clip frame',src:'data:image/png;base64,AAAA',width:1,height:1});
+  source.scene.nodes.push({id:'person-art',label:'person',asset:'stopPassengerAIdle',x:0,y:-20,width:20,height:20,layer:10,bind:{type:'entity',id:'person'}});
+  source.scene.feedback.push({...feedbackDefault('person-art','shove'),trigger:{type:'lost',cause:'person'},animation:{frames:['clip-only'],fps:10}});
+  const selection={id:'shove',label:'shove',nodes:['person-art'],entities:['person'],origin:{x:400,y:490}};
+  assert.throws(()=>captureTemplate(source,{...selection,entities:[]}),/组合外/);
+  const template=captureTemplate(source,selection);assert.equal(template.assets[0]?.id,'clip-only');
+  const dest=createTemplatePractice('dest');placeTemplate(dest,template);
+  const cause=dest.entities[0].id,cue=dest.scene.feedback.at(-1);
+  assert.equal(cue.trigger.cause,cause);assert.notEqual(cause,'person');
+  assert.equal(cue.animation.frames[0],dest.scene.assets[0].id);assert.notEqual(cue.animation.frames[0],'clip-only');
+  assert.equal(validateLevel(dest).valid,true);
+  const bad=structuredClone(template);bad.feedback[0].trigger.cause='outsider';
+  const before=structuredClone(dest);assert.throws(()=>placeTemplate(dest,bad),/组合外/);assert.deepEqual(dest,before);
 });
