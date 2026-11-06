@@ -1,0 +1,115 @@
+import assert from 'node:assert/strict';
+import {existsSync} from 'node:fs';
+import {mkdir,readFile} from 'node:fs/promises';
+import {pathToFileURL} from 'node:url';
+import {chromium} from 'playwright';
+import {makeServer} from '../server.mjs';
+import {buildEditor} from './build.mjs';
+
+await mkdir('artifacts',{recursive:true});
+const server=makeServer(),publicServer=makeServer({portableOnly:true});
+await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));await new Promise(resolve=>publicServer.listen(0,'127.0.0.1',resolve));
+const browser=await chromium.launch({headless:true,args:['--mute-audio'],...(!existsSync(chromium.executablePath())?{channel:'msedge'}:{})});
+const workspace=p=>p.evaluate(()=>JSON.parse(localStorage.getItem('gothere.studio.layered.v1'))),current=s=>s.documents.find(d=>d.key===s.activeKey).level;
+const path=p=>p.locator('#script-current-path').innerText();
+async function select(p,file){await p.locator('#script-files-mode').click();await p.locator('#script-search').fill('');await p.locator('[data-script-path="'+file+'"]').click();}
+async function edit(p,text){await p.locator('.cm-content').click();await p.keyboard.press('Control+a');await p.keyboard.insertText(text);}
+async function generate(p,play=false){await p.locator(play?'#script-play':'#script-generate').click();await p.waitForFunction(()=>!document.getElementById('script-generate').disabled);assert.equal(await p.locator('#script-status').getAttribute('data-error'),'false',await p.locator('#script-status').innerText());}
+try{
+  const offline=pathToFileURL((await buildEditor()).path).href;
+  for(const [index,url]of ['http://127.0.0.1:'+server.address().port+'/',offline,'http://127.0.0.1:'+publicServer.address().port+'/'].entries()){
+    const context=await browser.newContext({viewport:{width:1650,height:1050}}),p=await context.newPage(),errors=[],external=[];
+    p.on('pageerror',error=>errors.push(error.message));p.on('request',request=>{if(index===1&&/^https?:/.test(request.url()))external.push(request.url());});
+    try{
+      await p.goto(url);await p.locator('#scene[data-assets=ready]').waitFor();const original=await workspace(p);
+      await p.locator('#display-mode').selectOption('logic');await p.locator('#editor-tab-library').click();
+      await p.locator('#scene-items button').filter({hasText:'等着队伍上车的公交'}).click();await p.locator('#open-script').click();
+      await p.waitForFunction(()=>document.getElementById('script-current-path').textContent==='objects/bus.ts');
+      assert.match(await p.locator('#script-save-state').innerText(),/尚未保存/);
+      await p.locator('#script-search').fill('开门');await p.locator('#script-outline button').filter({hasText:'行为 · 开门让队伍上车'}).click();
+      assert.equal(await path(p),'objects/bus.ts');assert.ok(await p.locator('[data-search-path="objects/bus.ts"]').count());
+      const source=await p.locator('#script-source').inputValue();
+      await p.locator('.cm-content').click();await p.keyboard.press('Control+Home');await p.keyboard.press('Tab');
+      assert.ok((await p.locator('#script-source').inputValue()).startsWith('  import'));await p.keyboard.press('Control+z');
+      assert.equal(await p.locator('#script-source').inputValue(),source);
+      await edit(p,source.replace('seconds: 3','seconds: 4'));await generate(p);
+      assert.match(await p.locator('#script-generation-state').innerText(),/通过校验/);
+      assert.match(await p.locator('#script-application-state').innerText(),/尚未应用/);
+      await p.locator('#script-changes').evaluate(element=>element.open=true);
+      assert.match(await p.locator('#script-change-list').innerText(),/3 秒.*4 秒/);
+      assert.deepEqual(current(await workspace(p)),current(original));
+      await p.locator('#script-preview-canvas[data-assets=ready]').waitFor();
+      await p.locator('#script-preview-run').click();await p.waitForFunction(()=>Number(document.getElementById('script-preview-canvas').dataset.tick)>5);
+      await p.locator('#script-preview-run').click();const tick=await p.locator('#script-preview-canvas').getAttribute('data-tick');
+      await p.waitForTimeout(120);assert.equal(await p.locator('#script-preview-canvas').getAttribute('data-tick'),tick);
+      await p.locator('#script-preview-reset').click();assert.equal(await p.locator('#script-preview-canvas').getAttribute('data-tick'),'0');
+      await p.locator('#script-preview-step').click();assert.equal(await p.locator('#script-preview-canvas').getAttribute('data-tick'),'1');
+      await p.locator('#script-preview-reset').click();await p.locator('#script-preview-view').selectOption('logic');
+      await p.locator('#script-preview-targets [data-source=bus]').click();await p.locator('#script-preview-step').click();
+      assert.equal(await p.locator('#script-preview-targets [data-source=bus]').isDisabled(),true,'the click really closes its conditional input');
+      await p.locator('#script-preview-reset').click();await p.locator('#script-preview-run').click();
+      const barrier=p.locator('#script-preview-targets [data-source=barrier]'),gap=p.locator('#script-preview-targets [data-source=gap]');
+      const beforeDrop=await barrier.boundingBox(),receiver=await gap.boundingBox();assert.equal(await barrier.isEnabled(),true);
+      await p.mouse.move(beforeDrop.x+beforeDrop.width/2,beforeDrop.y+beforeDrop.height/2);await p.mouse.down();
+      await p.mouse.move(receiver.x+receiver.width/2,receiver.y+receiver.height/2,{steps:8});await p.mouse.up();
+      await p.waitForFunction(()=>document.querySelector('#script-preview-targets [data-source=barrier]').disabled);
+      assert.ok((await barrier.boundingBox()).x<beforeDrop.x-15,'runtime placement changes the temporary object');
+      await p.locator('#script-preview-reset').click();assert.ok(Math.abs((await barrier.boundingBox()).x-beforeDrop.x)<1);
+      await p.locator('#script-preview-inspect').check();await p.locator('#script-preview-targets [data-source=bus]').click();
+      assert.equal(await path(p),'objects/bus.ts');assert.match(await p.locator('#script-object-details').innerText(),/开门让队伍上车/);
+      assert.deepEqual(current(await workspace(p)),current(original),'temporary clicks and steps never change the canvas');
+      await select(p,'scene.ts');await p.getByRole('button',{name:'关闭 scene.ts',exact:true}).click();assert.equal(await p.locator('[data-script-tab="scene.ts"]').count(),0);
+      await select(p,'objects/bus.ts');await p.setViewportSize({width:1280,height:800});
+      const footer=await p.locator('#script-apply').boundingBox();assert.ok(footer.y+footer.height<=800,'apply controls stay on screen');
+      await p.screenshot({path:`artifacts/authoring-workflow-${index}.png`});await p.setViewportSize({width:1650,height:1050});
+      await p.locator('#script-apply').click();assert.equal(current(await workspace(p)).entities.find(e=>e.id==='bus').behaviors.find(b=>b.id==='leave').actions.at(-1).ticks,240);
+      await p.locator('#editor-tab-library').click();await p.locator('#scene-items button').filter({hasText:'等着队伍上车的公交'}).click();
+      await p.locator('#object-x').fill('520');await p.locator('#object-x').press('Tab');
+      await p.locator('#open-script').click();assert.equal(await p.locator('#script-drift').isVisible(),true);
+      await generate(p);assert.match(await p.locator('#script-change-list').innerText(),/520.*500/);
+      await p.locator('#script-apply').click();assert.equal(await p.locator('#script-dialog').isVisible(),true);
+      assert.equal(current(await workspace(p)).entities.find(e=>e.id==='bus').x,520,'unacknowledged drift is preserved');
+      await p.locator('#script-overwrite-confirm').check();await select(p,'objects/bus.ts');
+      await edit(p,(await p.locator('#script-source').inputValue())+'\n// refresh the review');
+      assert.equal(await p.locator('#script-overwrite-confirm').isChecked(),false);await generate(p);
+      await p.locator('#script-apply').click();assert.equal(current(await workspace(p)).entities.find(e=>e.id==='bus').x,520,'a new generation needs its own acknowledgement');
+      await p.locator('#script-overwrite-confirm').check();
+      await p.evaluate(()=>{const setItem=Storage.prototype.setItem;window.restoreAuthoringStorage=()=>{Storage.prototype.setItem=setItem;};Storage.prototype.setItem=function(key,value){if(key.endsWith('.canvas.previous'))throw new DOMException('test storage full','QuotaExceededError');return setItem.call(this,key,value);};});
+      await p.locator('#script-apply').click();assert.match(await p.locator('#script-status').innerText(),/无法备份.*尚未应用/);
+      assert.equal(current(await workspace(p)).entities.find(e=>e.id==='bus').x,520);await p.evaluate(()=>window.restoreAuthoringStorage());
+      await p.locator('#script-apply').click();
+      assert.equal(current(await workspace(p)).entities.find(e=>e.id==='bus').x,500);
+      const backup=await p.evaluate(()=>JSON.parse(localStorage.getItem('gothere.authoring.'+JSON.parse(localStorage.getItem('gothere.studio.layered.v1')).activeKey+'.canvas.previous')));
+      assert.equal(backup.level.entities.find(e=>e.id==='bus').x,520);
+      await p.locator('#editor-undo').click();assert.equal(current(await workspace(p)).entities.find(e=>e.id==='bus').x,520);
+      await p.locator('#open-script').click();await select(p,'objects/bus.ts');const modified=await p.locator('#script-source').inputValue();
+      await edit(p,modified+'\n// stale preview check');await p.keyboard.press('F5');
+      await p.waitForFunction(()=>document.getElementById('script-preview-canvas').dataset.status==='running');
+      assert.equal(current(await workspace(p)).entities.find(e=>e.id==='bus').x,520);
+      await p.locator('#script-preview-run').click();await edit(p,modified+'\n// changed again');
+      assert.equal(await p.locator('#script-preview-stale').isVisible(),true);assert.equal(await p.locator('#script-apply').isDisabled(),true);
+      await p.evaluate(()=>{const decode=HTMLImageElement.prototype.decode;const gate=new Promise(resolve=>window.releasePreviewImages=resolve);window.restorePreviewImages=()=>{HTMLImageElement.prototype.decode=decode;window.releasePreviewImages();};HTMLImageElement.prototype.decode=function(){return gate.then(()=>decode.call(this));};});
+      await generate(p,true);assert.equal(await p.locator('#script-preview-canvas').getAttribute('data-assets'),'loading');
+      await edit(p,(await p.locator('#script-source').inputValue())+'\n// edited while images were loading');await p.evaluate(()=>window.restorePreviewImages());
+      await p.locator('#script-preview-canvas[data-assets=ready]').waitFor();assert.notEqual(await p.locator('#script-preview-canvas').getAttribute('data-status'),'running','late image loading cannot restart an invalidated preview');
+      const download=p.waitForEvent('download');await p.locator('#script-canvas-backup').click();
+      assert.equal(JSON.parse(await readFile(await (await download).path(),'utf8')).entities.find(e=>e.id==='bus').x,520);
+      await p.locator('#script-rename').click();await p.locator('#script-path').fill('vehicles/transit.ts');await p.locator('#script-file-form button[type=submit]').click();
+      await p.locator('#script-objects-mode').click();await p.locator('#script-search').fill('等着队伍上车的公交');
+      await p.waitForFunction(()=>[...document.querySelectorAll('#script-outline button')].some(b=>b.textContent==='定义 · ItemBus'&&b.title.startsWith('vehicles/transit.ts:')));
+      await select(p,'level.ts');await p.locator('#script-objects-mode').click();await p.locator('#script-search').fill('等着队伍上车的公交');
+      await p.locator('#script-outline button').filter({hasText:'定义 · ItemBus'}).click();assert.equal(await path(p),'vehicles/transit.ts');
+      await p.locator('#script-outline button').filter({hasText:'行为 · 开门让队伍上车'}).click();assert.equal(await path(p),'vehicles/transit.ts');
+      await p.locator('#close-script').click();await p.reload();await p.locator('#scene[data-assets=ready]').waitFor();await p.locator('#open-script').click();
+      assert.match(await p.locator('#script-save-state').innerText(),/已保存/);assert.equal(await p.locator('#script-drift').isVisible(),true);
+      await generate(p);const beforeImport=await workspace(p);
+      await p.locator('#script-import').click();const imported=await workspace(p);
+      assert.equal(imported.documents.length,beforeImport.documents.length+1);assert.notEqual(imported.activeKey,beforeImport.activeKey);
+      assert.deepEqual(imported.documents.find(d=>d.key===beforeImport.activeKey),beforeImport.documents.find(d=>d.key===beforeImport.activeKey),'save as a new draft preserves all original canvas edits');
+      assert.equal(current(imported).entities.find(e=>e.id==='bus').x,500);
+      await p.locator('#open-script').click();assert.equal(await p.locator('#script-drift').isVisible(),false);assert.equal(await p.locator('#script-canvas-backup').isVisible(),false);
+      await p.locator('#close-script').click();assert.deepEqual(errors,[]);assert.deepEqual(external,[]);
+    }finally{await context.close();}
+  }
+  console.log('PASS authoring workflow online/offline/public: selected object, Chinese search, renamed object index, Tab/undo, close tabs, field diff, isolated click/drag preview, pause/step/reset/inspect, late assets cannot restart stale preview, fresh overwrite acknowledgement, blocked backup failure, backup export/undo, F5, persistence and separate drafts.');
+}finally{await browser.close();await new Promise(resolve=>server.close(resolve));await new Promise(resolve=>publicServer.close(resolve));}

@@ -170,3 +170,28 @@ test('resource references reject foreign scenes and type confusion without chang
   assert.equal(a.data.rules[0].on.source,'bound');assert.equal(a.data.rules[0].on.type,'click');
   assert.equal(a.data.scene.nodes[0].bind.id,'bound');assert.equal(a.data.scene.nodes[0].asset,'crate');
 });
+
+test('project outline follows typed objects, behavior implementations and art bindings across renamed files',async()=>{
+  const project=levelToProject(createCommuteChapter(),{typescript:true}),service=await typeService();
+  const outline=service.outline(project),bus=outline.find(item=>item.id==='bus');
+  assert.equal(bus.label,'等着队伍上车的公交');assert.equal(bus.path,'objects/bus.ts');
+  const leave=bus.behaviors.find(b=>b.id==='leave');
+  assert.ok(project.files[leave.path].slice(leave.start).startsWith('this.doLeave.actions'));
+  assert.ok(bus.references.some(ref=>ref.category==='事件'&&ref.path==='events.ts'));
+  assert.ok(bus.references.some(ref=>ref.category==='资源'&&ref.path.includes('scene/')));
+  const refs=service.analyzeFiles(project),renamed=renameProjectFile(project,'objects/bus.ts','shared/traffic/vehicle.ts',(_,path)=>refs[path]);
+  assert.equal(service.outline(renamed).find(item=>item.id==='bus').path,'shared/traffic/vehicle.ts');
+});
+
+test('project outline leaves dynamic IDs unresolved and never executes author source',async()=>{
+  const service=await typeService(),project={version:1,entry:'dynamic.ts',files:{'dynamic.ts':`
+    import { Entity } from '@gothere/core';
+    throw new Error('Indexing must not execute this');
+    export class Dynamic extends Entity {
+      constructor(context: any, id: string) { super(context, id, {label:'自定义对象'}); }
+    }
+    export class Unrelated { constructor() {} }
+  `}};
+  const items=service.outline(project);assert.equal(items.length,1);assert.equal(items[0].id,null);
+  assert.equal(items[0].className,'Dynamic');assert.equal(items[0].label,'自定义对象');
+});

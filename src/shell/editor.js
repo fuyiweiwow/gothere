@@ -43,7 +43,7 @@ const layeredEntry=spatialEntry&&!graybox&&!oldSpatial;
 const sample=spatialEntry?(chapterEntry?createCommuteChapter:scooterEntry?createScooterLevel:crossEntry?createCrosswalkLevel:towEntry?createTowStreetLevel:templateEntry?()=>createTemplatePractice('template-practice'):graybox?createSpatialLevel:oldSpatial?createCommuteLevel:layeredDemo?createLayeredLevel:busStop?createBusStopLevel:createStreetLevel):createFirstLevel;
 const sampleKey=spatialEntry?(chapterEntry?'commute:chapter:04':scooterEntry?'commute:scooter:01':crossEntry?'commute:crosswalk:01':towEntry?'commute:tow-street:01':templateEntry?'templates:practice:01':graybox?'spatial:01':oldSpatial?'commute:spatial:01':layeredDemo?'layered:graybox:01':busStop?'commute:bus-stop:03':'commute:layered:02'):'milestone:02:v017';
 const standaloneHTML=document.getElementById('standalone-editor')?'<!doctype html>\n'+document.documentElement.outerHTML:null;
-let editor,resourceUI,bindingUI,lastDraft,loadSerial=0,preview=null,previewLevel=null,accumulator=0,last=0,debugLast=0,toastTimer,serial=0;
+let editor,resourceUI,bindingUI,authoringUI,lastDraft,loadSerial=0,preview=null,previewLevel=null,accumulator=0,last=0,debugLast=0,toastTimer,serial=0;
 let feedback=null,feedbackFrame=null,audition=null,endingTicks=0;
 const sound=createSoundPlayer({notify,onPlay:()=>{canvas.dataset.audioPlayed=String(Number(canvas.dataset.audioPlayed??0)+1);}});
 const runtimeDrag=createRuntimeDrag({overlay:$('scene-interactions'),viewport:$('viewport'),session:()=>({preview,level:previewLevel}),
@@ -88,7 +88,7 @@ $('animation-toggle').addEventListener('change',()=>{if(preview)draw(previewLeve
 $('sound-toggle').addEventListener('change',()=>{sound.setMuted(!$('sound-toggle').checked);if($('sound-toggle').checked)sound.unlock();});
 const labels={ready:'准备运行',running:'运行中',paused:'已暂停',won:'已到达终点',lost:'模拟结束'};
 function notify(message){clearTimeout(toastTimer);$('toast').textContent=message;$('toast').hidden=false;toastTimer=setTimeout(()=>{$('toast').hidden=true;},4200);}
-function drawDocument(level){if(audition){audition=null;sound.stop();}bindingUI?.cancel();draw(level);resourceUI?.render(level);workspace();const request=++loadSerial;canvas.dataset.assets='loading';loadResources(level).then(()=>{if(request!==loadSerial)return;canvas.dataset.assets='ready';if(editor?.isEditing())draw(lastDraft);});$('stage-note').textContent=level.description;$('level-hint').textContent=level.hint??'自由编辑地图和物体，运行查看效果。';$('document-summary').textContent=`${level.entities.length} 个逻辑物体 · ${level.scene?.nodes.length??0} 个资源图层 · ${level.rules.length} 条规则`;}
+function drawDocument(level){if(audition){audition=null;sound.stop();}bindingUI?.cancel();draw(level);resourceUI?.render(level);workspace();const request=++loadSerial;canvas.dataset.assets='loading';loadResources(level).then(()=>{if(request!==loadSerial)return;canvas.dataset.assets='ready';if(editor?.isEditing())draw(lastDraft);});$('stage-note').textContent=level.description;$('level-hint').textContent=level.hint??'自由编辑地图和物体，运行查看效果。';$('document-summary').textContent=`${level.entities.length} 个逻辑物体 · ${level.scene?.nodes.length??0} 个资源图层 · ${level.rules.length} 条规则`;authoringUI?.canvasChanged();}
 function canClick(id,state){return previewLevel.rules.some(r=>r.on.source===id&&r.on.type==='click'&&(r.if??[]).every(c=>Object.hasOwn(c,'holding')?state.actor.holding===c.holding:state.entities[c.entity].state===c.state));}
 function updateInteractions(state){
   for(const button of document.querySelectorAll('#scene-interactions button,#runtime-inputs button')){
@@ -201,6 +201,6 @@ function frame(now){
 requestAnimationFrame(frame);
 document.addEventListener('visibilitychange',()=>{if(document.hidden){preview?.pause();sound.setPaused(true);accumulator=0;updateDebug();}});
 function download(text,name,type){const url=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
-createAuthoringUI({editor,notify,download,pause:()=>{preview?.pause();updateDebug();}});
+authoringUI=createAuthoringUI({editor,notify,download,pause:()=>{preview?.pause();updateDebug();}});
 $('download-editor').addEventListener('click',()=>{if(standaloneHTML){download(standaloneHTML,'gothere-editor.html','text/html');}
   else{const a=document.createElement('a');a.href='gothere-editor.html';a.download='gothere-editor.html';a.click();}});

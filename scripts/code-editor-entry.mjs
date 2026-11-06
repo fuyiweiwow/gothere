@@ -5,6 +5,7 @@ import {autocompletion} from '@codemirror/autocomplete';
 import {hoverTooltip,keymap} from '@codemirror/view';
 import {setDiagnostics,lintGutter} from '@codemirror/lint';
 import {oneDark} from '@codemirror/theme-one-dark';
+import {indentWithTab} from '@codemirror/commands';
 import {analyzeModule,isModule,zipProject,unzipProject} from './project-code-tools.mjs';
 import {typeScriptClient} from '../src/editor/typescript-client.js';
 
@@ -73,7 +74,7 @@ globalThis.createGothereCodeEditor=(parent,onChange,{project:getProject,onDiagno
   });
   function state(text,readOnly,path=''){
     return EditorState.create({doc:text,extensions:[basicSetup,javascript({typescript:path.endsWith('.ts')||path==='@gothere/core'}),oneDark,
-      Prec.high(keymap.of([{key:'F12',run:()=>{void definition();return true;}},{key:'Alt-ArrowLeft',run:back}])),
+      Prec.high(keymap.of([indentWithTab,{key:'F12',run:()=>{void definition();return true;}},{key:'Alt-ArrowLeft',run:back}])),
       Prec.high(EditorView.domEventHandlers({mousedown(event,view){
         if(event.button!==0||!event.ctrlKey&&!event.metaKey)return false;
         const position=view.posAtCoords({x:event.clientX,y:event.clientY});if(position===null)return false;

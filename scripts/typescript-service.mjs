@@ -1,4 +1,5 @@
 import ts from 'typescript';
+import {projectOutline} from './project-outline.mjs';
 
 /** Virtual project; no filesystem, network, evaluation or user code execution. */
 export function createTypeScriptService(libraries, declarations) {
@@ -70,6 +71,7 @@ export function createTypeScriptService(libraries, declarations) {
       return {...project,files:result};
     },
     analyzeFiles(project) { return Object.fromEntries(Object.entries(project.files).map(([path,source])=>[path,analyze(source,path)])); },
+    outline(project) { update(project);return projectOutline(service.getProgram()); },
     isModule({source,path}) { const refs=analyze(source,path);return refs.length>0||ts.createSourceFile(path,source,ts.ScriptTarget.ES2022).statements.some(s=>s.modifiers?.some(m=>m.kind===ts.SyntaxKind.ExportKeyword)||ts.isExportAssignment(s)); },
     completions(project,path,position) {
       update(project);const full='/project/'+path,info=service.getCompletionsAtPosition(full,position,{includeCompletionsForModuleExports:false});

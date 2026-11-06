@@ -10,7 +10,7 @@
 </head>
 <body class="editor-app">
   <header class="app-header">
-    <div class="app-brand"><span class="brand-symbol" aria-hidden="true">▦</span><div><h1>一定要到达那里</h1><span>二维分层编辑器 <b>0.33.0</b></span></div></div>
+    <div class="app-brand"><span class="brand-symbol" aria-hidden="true">▦</span><div><h1>一定要到达那里</h1><span>二维分层编辑器 <b>0.34.0</b></span></div></div>
     <div class="document-actions"><select id="editor-example" aria-label="选择示例"><option value="chapter">上班路 · 还得去（完整街区）</option><option value="scooter">上班路 · 此路不借</option><option value="crosswalk">上班路 · 抬头看路</option><option value="tow-street">上班路 · 借过一下</option><option value="templates">模板练习 · 街景搭建</option><option value="bus-stop">上班路 · 公交站片段</option><option value="commute">上班路 · 三个街口</option><option value="layered">前街与后街 · 连接样例</option><option value="rooftop">屋顶到亮窗 · 横版兼容</option><option value="spatial-commute">上班路 · 旧空间实验</option><option value="graybox">近路与远路 · 空间灰盒</option></select><button id="reset-level" class="button secondary">新建示例副本</button><button id="open-script" class="button secondary">关卡源码</button><button id="download-editor" class="button secondary">下载离线编辑器</button></div>
   </header>
   <main id="editor-workspace">
@@ -53,15 +53,27 @@
     <div class="script-workbench">
       <aside class="script-explorer" aria-label="项目文件">
         <div class="script-explorer-heading"><strong>项目文件</strong><span id="script-file-count"></span></div>
-        <input id="script-search" type="search" placeholder="查找文件…" aria-label="查找源码文件">
+        <div class="script-explorer-modes" role="group" aria-label="源码导航"><button id="script-files-mode" aria-pressed="true">文件</button><button id="script-objects-mode" aria-pressed="false">关卡对象</button></div>
+        <input id="script-search" type="search" placeholder="搜索名称、行为或源码…" aria-label="搜索源码项目">
         <div class="script-file-tools"><button id="script-new" title="新建 TypeScript 文件">＋ 新建</button><button id="script-rename">重命名</button><button id="script-delete">删除</button></div>
         <form id="script-file-form" hidden><label id="script-path-label" for="script-path">文件路径</label><input id="script-path" placeholder="objects/cart.ts" autocomplete="off" required><div><button type="submit" class="text-button">确定</button><button id="script-file-cancel" type="button" class="text-button">取消</button></div></form>
         <nav id="script-tree" aria-label="项目源码文件"></nav>
+        <nav id="script-outline" aria-label="关卡对象和行为" hidden></nav><nav id="script-search-results" aria-label="项目内容搜索结果" hidden></nav>
         <div class="script-library"><strong>基础库 API 类型</strong><button id="script-core"><span class="script-js-icon">TS</span><span>@gothere/core</span><small>只读</small></button><p>Level · Layer · Position · Entity<br>通过 import 引入，也可继承 Entity。</p></div>
       </aside>
-      <section class="script-editor-pane" aria-label="代码编辑区"><div id="script-tabs" role="tablist" aria-label="已打开的文件"></div><div class="script-breadcrumb"><span id="script-current-path"></span><span id="script-readonly" hidden>内置基础库 · 只读</span><button id="script-back" title="Alt+← 返回源码位置">← 返回</button><button id="script-definition" title="F12 / Ctrl+点击">转到定义</button><button id="script-export-file">导出此文件</button></div><div id="code-editor"></div><textarea id="script-source" aria-label="关卡 TypeScript / JavaScript 源码" spellcheck="false" wrap="off" maxlength="2097152"></textarea><details id="script-problems" hidden open><summary id="script-problem-count">问题 0</summary><div id="script-problem-list"></div></details><div class="script-editor-footer"><span id="script-save-state"></span><span>TypeScript / JS · F12 定义 · Alt+← 返回 · Ctrl+Space 提示 · Ctrl+S 保存</span></div></section>
+      <section class="script-editor-pane" aria-label="代码编辑区"><div id="script-tabs" role="tablist" aria-label="已打开的文件"></div><div class="script-breadcrumb"><span id="script-current-path"></span><span id="script-readonly" hidden>内置基础库 · 只读</span><button id="script-back" title="Alt+← 返回源码位置">← 返回</button><button id="script-definition" title="F12 / Ctrl+点击">转到定义</button><button id="script-export-file">导出此文件</button></div><div id="code-editor"></div><textarea id="script-source" aria-label="关卡 TypeScript / JavaScript 源码" spellcheck="false" wrap="off" maxlength="2097152"></textarea><details id="script-problems" hidden open><summary id="script-problem-count">问题 0</summary><div id="script-problem-list"></div></details><div class="script-editor-footer"><span id="script-save-state"></span><span>Tab 缩进 · Esc 后 Tab 离开 · F12 定义 · Ctrl+Enter 校验 · F5 试玩</span></div></section>
+      <section id="script-preview" class="script-preview" aria-label="源码临时试玩" hidden>
+        <div class="script-preview-heading"><strong>临时试玩</strong><button id="script-preview-close" aria-label="收起临时试玩">×</button></div>
+        <div class="script-preview-options"><select id="script-preview-view" aria-label="试玩显示方式"><option value="scene">美术资源</option><option value="logic">纯逻辑</option></select><label><input id="script-preview-inspect" type="checkbox">点选查源码</label><label><input id="script-preview-sound" type="checkbox">声音</label></div>
+        <div id="script-preview-viewport"><canvas id="script-preview-canvas" width="1200" height="640" aria-label="生成结果的临时关卡"></canvas><div id="script-preview-targets" class="scene-interactions"></div></div>
+        <div class="script-preview-controls"><button id="script-preview-run">▶ 运行</button><button id="script-preview-step">单步</button><button id="script-preview-reset">重置</button><output id="script-preview-status"></output></div>
+        <p id="script-preview-notice">临时结果 · 尚未应用到画布</p><p id="script-preview-stale" hidden>源码已修改，当前试玩仍是上次生成结果。按 F5 重新生成。</p>
+        <div id="script-object-details" aria-label="选中对象的相关源码"></div>
+      </section>
     </div>
-    <p id="script-status" role="status"></p><div class="dialog-actions"><button id="script-generate" class="button primary">生成并校验</button><button id="script-stop" class="button secondary" disabled>停止</button><button id="script-import" class="button secondary" disabled>另存为新草稿</button><button id="script-apply" class="button secondary" disabled>替换当前草稿（可撤销）</button></div><input id="script-file" type="file" accept=".zip,.ts,.js,.json,application/zip,text/javascript,application/json" hidden>
+    <div class="script-lifecycle"><span id="script-generation-state">尚未生成</span><span id="script-application-state">尚未应用</span><button id="script-canvas-backup" hidden>导出替换前画布</button></div><p id="script-drift" role="status" hidden></p>
+    <details id="script-changes" hidden><summary id="script-change-count">相对当前画布的变更</summary><div id="script-change-list"></div></details><label id="script-overwrite" hidden><input id="script-overwrite-confirm" type="checkbox">已查看差异，允许生成结果替换画布中的后续修改</label>
+    <p id="script-status" role="status"></p><div class="dialog-actions"><button id="script-generate" class="button primary">生成并校验</button><button id="script-play" class="button secondary" title="F5 · 不修改画布">生成并试玩</button><button id="script-stop" class="button secondary" disabled>停止</button><button id="script-import" class="button secondary" disabled>另存为新草稿</button><button id="script-apply" class="button secondary" disabled>替换当前草稿（可撤销）</button></div><input id="script-file" type="file" accept=".zip,.ts,.js,.json,application/zip,text/javascript,application/json" hidden>
   </dialog>
   <div id="toast" class="toast" role="status" hidden></div>
   <script src="/src/vendor/code-editor.js"></script>
