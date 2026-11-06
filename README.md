@@ -2,9 +2,9 @@
 
 轻松诙谐的 2D 环境解谜与关卡编辑引擎，最终目标为 Steam。主角认准目的地持续前进，玩家通过物体、行为和事件改变环境，帮助他到达那里。
 
-当前分支 `codex/spatial-2-5d` 的本地开发版为 **0.31.0 二维分层编辑器**。默认展示完整街区 [上班路 · 还得去](http://localhost:4173/?sample=chapter)：近街公交站 → 右侧向里过街 → 中街清障与车主追车 → 左侧窄巷电瓶车 → 远街早餐与狗 → 公司外门。约一分钟，使用者无需编辑。方案与限制见 [整章记录](docs/commute-chapter-layout.md)。
+当前分支 `codex/spatial-2-5d` 的本地开发版为 **0.32.0 二维分层编辑器**。默认展示完整街区 [上班路 · 还得去](http://localhost:4173/?sample=chapter)：近街公交站 → 右侧向里过街 → 中街清障与车主追车 → 左侧窄巷电瓶车 → 远街早餐与狗 → 公司外门。约一分钟，使用者无需编辑。方案与限制见 [整章记录](docs/commute-chapter-layout.md)。
 
-顶部「JavaScript 关卡源码」打开左文件树、右代码区：地图、每个物体、事件与美术分文件，入口只组织搭建。支持 `import { Level, Entity, Actions } from '@gothere/core'`，继承与复用自定义类；语法着色、限定 API/路径提示、文件独立撤销、重命名更新引用、ZIP 项目导入导出均可离线使用。旧 JS 与 JSON 可导入转换。见 [源码操作](docs/javascript-authoring.md)。
+顶部「关卡源码」打开左文件树、右代码区。新生成项目使用 TypeScript，以 `Level`、行走层、位置、路线点和通路搭建地图，省去反复填写 depth/space；物体通过能力与动作组合，也可继承和 import 自定义类。内置 TypeScript 语言服务提供跨文件类型检查、推断补全、悬停签名与可点击的错误列表。文件独立撤销、重命名更新引用、ZIP 导入导出均可离线使用，旧 JS 源码原样保留。见 [源码操作](docs/javascript-authoring.md)。
 
 「画外工作区」可见左右留白，直接选中、拖动、拉伸画外物体；属性一键摆到画外，移动动作一键驶离或点选目标 X，按绑定图片大小计算离场范围。见 [操作和 API](docs/javascript-authoring.md)。
 

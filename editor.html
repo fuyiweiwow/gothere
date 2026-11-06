@@ -10,8 +10,8 @@
 </head>
 <body class="editor-app">
   <header class="app-header">
-    <div class="app-brand"><span class="brand-symbol" aria-hidden="true">▦</span><div><h1>一定要到达那里</h1><span>二维分层编辑器 <b>0.31.0</b></span></div></div>
-    <div class="document-actions"><select id="editor-example" aria-label="选择示例"><option value="chapter">上班路 · 还得去（完整街区）</option><option value="scooter">上班路 · 此路不借</option><option value="crosswalk">上班路 · 抬头看路</option><option value="tow-street">上班路 · 借过一下</option><option value="templates">模板练习 · 街景搭建</option><option value="bus-stop">上班路 · 公交站片段</option><option value="commute">上班路 · 三个街口</option><option value="layered">前街与后街 · 连接样例</option><option value="rooftop">屋顶到亮窗 · 横版兼容</option><option value="spatial-commute">上班路 · 旧空间实验</option><option value="graybox">近路与远路 · 空间灰盒</option></select><button id="reset-level" class="button secondary">新建示例副本</button><button id="open-script" class="button secondary">JavaScript 关卡源码</button><button id="download-editor" class="button secondary">下载离线编辑器</button></div>
+    <div class="app-brand"><span class="brand-symbol" aria-hidden="true">▦</span><div><h1>一定要到达那里</h1><span>二维分层编辑器 <b>0.32.0</b></span></div></div>
+    <div class="document-actions"><select id="editor-example" aria-label="选择示例"><option value="chapter">上班路 · 还得去（完整街区）</option><option value="scooter">上班路 · 此路不借</option><option value="crosswalk">上班路 · 抬头看路</option><option value="tow-street">上班路 · 借过一下</option><option value="templates">模板练习 · 街景搭建</option><option value="bus-stop">上班路 · 公交站片段</option><option value="commute">上班路 · 三个街口</option><option value="layered">前街与后街 · 连接样例</option><option value="rooftop">屋顶到亮窗 · 横版兼容</option><option value="spatial-commute">上班路 · 旧空间实验</option><option value="graybox">近路与远路 · 空间灰盒</option></select><button id="reset-level" class="button secondary">新建示例副本</button><button id="open-script" class="button secondary">关卡源码</button><button id="download-editor" class="button secondary">下载离线编辑器</button></div>
   </header>
   <main id="editor-workspace">
     <section id="editor-toolbar" class="editor-toolbar" aria-label="创作工具" hidden></section>
@@ -48,23 +48,24 @@
   </main>
   <footer class="app-footer"><span id="document-summary">关卡 DSL</span><span>逻辑 · 资源 · 绑定校准 · 草稿在本机保存</span></footer>
   <dialog id="script-dialog" aria-labelledby="script-title">
-    <div class="dialog-heading"><div><h2 id="script-title">JavaScript 关卡项目</h2><p class="panel-note">画布与源码分别保存 · 仅运行信任的代码</p></div><button id="close-script" class="button secondary">返回画布</button></div>
+    <div class="dialog-heading"><div><h2 id="script-title">TypeScript 关卡项目</h2><p class="panel-note">画布与源码分别保存 · 兼容 JavaScript · 仅运行信任的代码</p></div><button id="close-script" class="button secondary">返回画布</button></div>
     <div class="dsl-tools script-project-tools"><button id="script-base" class="button secondary">从当前画布生成源码</button><button id="script-restore" class="button secondary">恢复之前的项目</button><button id="script-example" class="button secondary">类复用示例</button><button id="script-load" class="button secondary">载入项目 / 关卡</button><button id="script-export" class="button secondary">导出项目 ZIP</button><label>入口 <select id="script-entry" aria-label="项目入口文件"></select></label></div>
     <div class="script-workbench">
       <aside class="script-explorer" aria-label="项目文件">
         <div class="script-explorer-heading"><strong>项目文件</strong><span id="script-file-count"></span></div>
         <input id="script-search" type="search" placeholder="查找文件…" aria-label="查找源码文件">
-        <div class="script-file-tools"><button id="script-new" title="新建 JavaScript 文件">＋ 新建</button><button id="script-rename">重命名</button><button id="script-delete">删除</button></div>
-        <form id="script-file-form" hidden><label id="script-path-label" for="script-path">文件路径</label><input id="script-path" placeholder="objects/cart.js" autocomplete="off" required><div><button type="submit" class="text-button">确定</button><button id="script-file-cancel" type="button" class="text-button">取消</button></div></form>
+        <div class="script-file-tools"><button id="script-new" title="新建 TypeScript 文件">＋ 新建</button><button id="script-rename">重命名</button><button id="script-delete">删除</button></div>
+        <form id="script-file-form" hidden><label id="script-path-label" for="script-path">文件路径</label><input id="script-path" placeholder="objects/cart.ts" autocomplete="off" required><div><button type="submit" class="text-button">确定</button><button id="script-file-cancel" type="button" class="text-button">取消</button></div></form>
         <nav id="script-tree" aria-label="项目源码文件"></nav>
-        <div class="script-library"><strong>基础库</strong><button id="script-core"><span class="script-js-icon">JS</span><span>@gothere/core</span><small>只读</small></button><p>Level · Entity · Actions<br>通过 import 引入，也可继承 Entity。</p></div>
+        <div class="script-library"><strong>基础库 API 类型</strong><button id="script-core"><span class="script-js-icon">TS</span><span>@gothere/core</span><small>只读</small></button><p>Level · Layer · Position · Entity<br>通过 import 引入，也可继承 Entity。</p></div>
       </aside>
-      <section class="script-editor-pane" aria-label="代码编辑区"><div id="script-tabs" role="tablist" aria-label="已打开的文件"></div><div class="script-breadcrumb"><span id="script-current-path"></span><span id="script-readonly" hidden>内置基础库 · 只读</span><button id="script-export-file">导出此文件</button></div><div id="code-editor"></div><textarea id="script-source" aria-label="关卡 JavaScript 源码" spellcheck="false" wrap="off" maxlength="2097152"></textarea><div class="script-editor-footer"><span id="script-save-state"></span><span>JavaScript · Ctrl+Space 提示 · Ctrl+S 保存 · Ctrl+Enter 校验</span></div></section>
+      <section class="script-editor-pane" aria-label="代码编辑区"><div id="script-tabs" role="tablist" aria-label="已打开的文件"></div><div class="script-breadcrumb"><span id="script-current-path"></span><span id="script-readonly" hidden>内置基础库 · 只读</span><button id="script-export-file">导出此文件</button></div><div id="code-editor"></div><textarea id="script-source" aria-label="关卡 TypeScript / JavaScript 源码" spellcheck="false" wrap="off" maxlength="2097152"></textarea><details id="script-problems" hidden open><summary id="script-problem-count">问题 0</summary><div id="script-problem-list"></div></details><div class="script-editor-footer"><span id="script-save-state"></span><span>TypeScript / JS · Ctrl+Space 提示 · Ctrl+S 保存 · Ctrl+Enter 校验</span></div></section>
     </div>
-    <p id="script-status" role="status"></p><div class="dialog-actions"><button id="script-generate" class="button primary">生成并校验</button><button id="script-stop" class="button secondary" disabled>停止</button><button id="script-import" class="button secondary" disabled>另存为新草稿</button><button id="script-apply" class="button secondary" disabled>替换当前草稿（可撤销）</button></div><input id="script-file" type="file" accept=".zip,.js,.json,application/zip,text/javascript,application/json" hidden>
+    <p id="script-status" role="status"></p><div class="dialog-actions"><button id="script-generate" class="button primary">生成并校验</button><button id="script-stop" class="button secondary" disabled>停止</button><button id="script-import" class="button secondary" disabled>另存为新草稿</button><button id="script-apply" class="button secondary" disabled>替换当前草稿（可撤销）</button></div><input id="script-file" type="file" accept=".zip,.ts,.js,.json,application/zip,text/javascript,application/json" hidden>
   </dialog>
   <div id="toast" class="toast" role="status" hidden></div>
   <script src="/src/vendor/code-editor.js"></script>
+  <script src="/src/vendor/typescript-service.js"></script>
   <script type="module" src="/src/shell/editor.js"></script>
 </body>
 </html>

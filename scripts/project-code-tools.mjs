@@ -30,7 +30,7 @@ export function analyzeModule(source, filename) {
 }
 
 export function zipProject(files, entry) {
-  // The first JS entry in the archive is the entry point; no JSON manifest or code execution.
+  // The first source file in the archive is the entry point; no code execution.
   const ordered = [entry, ...Object.keys(files).filter(path => path !== entry)];
   return zipSync(Object.fromEntries(ordered.map(path => [path, strToU8(files[path])])), {level: 6});
 }
@@ -39,11 +39,11 @@ export function unzipProject(bytes) {
   let count = 0, total = 0;
   const files = unzipSync(bytes, {filter(file) {
     if (file.name.endsWith('/')) return false;
-    if (!file.name.endsWith('.js')) throw new Error('项目 ZIP 只能包含 .js 文件。');
+    if (!/\.(ts|js)$/.test(file.name)) throw new Error('项目 ZIP 只能包含 .ts 或 .js 文件。');
     if (++count > 256 || (total += file.originalSize) > 2097152) throw new Error('项目最多256个文件，解压后的源码不能超过2 MiB。');
     return true;
   }});
   const entries = Object.entries(files).map(([path, data]) => [path, strFromU8(data)]);
-  if (!entries.length) throw new Error('项目中没有 JavaScript 文件。');
+  if (!entries.length) throw new Error('项目中没有 TypeScript / JavaScript 文件。');
   return {version: 1, entry: entries[0][0], active: entries[0][0], files: Object.fromEntries(entries)};
 }

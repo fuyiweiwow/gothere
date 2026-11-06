@@ -2,63 +2,70 @@ import {basicSetup,EditorView} from 'codemirror';
 import {EditorState} from '@codemirror/state';
 import {javascript} from '@codemirror/lang-javascript';
 import {autocompletion} from '@codemirror/autocomplete';
+import {hoverTooltip} from '@codemirror/view';
+import {setDiagnostics,lintGutter} from '@codemirror/lint';
 import {oneDark} from '@codemirror/theme-one-dark';
 import {analyzeModule,isModule,zipProject,unzipProject} from './project-code-tools.mjs';
+import {typeScriptClient} from '../src/editor/typescript-client.js';
 
 globalThis.gothereProjectTools={analyzeModule,isModule,zipProject,unzipProject};
 
-const entityMethods={
-  move:'move({ x, seconds, plane?, progress? }) → 移动动作',
-  set:'set(状态) → 改变状态动作',invoke:'invoke(行为名) → 调用行为动作',
-  behavior:'behavior(id, 动作数组, 名称?) → 定义行为，返回此对象',
-  on:'on(事件名, 动作数组, 条件数组?, 详情?) → 注册事件，返回此对象',
-  condition:'condition(状态) → 状态条件',data:'data → 物体的定义数据',id:'id → 物体标识',
-};
-const levelMethods={
-  object:'object(id, { plane, x, width, height, ... }, Type?) → 新物体',
-  addObject:'addObject(完整物体定义, Type?) → Entity',entity:'entity(id) → 查找物体',
-  rule:'rule(完整事件规则) → 规则',art:'art(图层定义) → 图层',
-  toJSON:'toJSON() → 关卡数据',data:'data → 地图、主角、终点与资源数据',api:'api → 底层编排 API',
-};
-const legacyMethods={
-  addObject:'addObject(data) → 物体',addRule:'addRule(data) → 规则',addArt:'addArt(data) → 图层',
-  entity:'entity(id) → 已有物体',object:'object(id, options) → 新物体',empty:'empty() → 空白关卡',
-  behavior:'behavior(物体, id, 动作数组, 名称?) → 行为',on:'on(物体, 事件名, 动作数组, 条件数组?, 详情?) → 规则',
-  set:'set(物体, 状态) → 状态动作',invoke:'invoke(物体, 行为名) → 调用动作',
-  after:'after(秒数, 动作数组) → 延迟动作',move:'move(物体, 位置) → 移动动作',condition:'condition(物体, 状态) → 条件',
-};
-const actionMethods={after:'after(秒数, 动作数组) → 延迟动作',set:'set(物体或ID, 状态) → 状态动作',invoke:'invoke(物体或ID, 行为名) → 调用动作'};
 function relative(from,target){
   const parent=from.split('/').slice(0,-1),parts=target.split('/');
   while(parent.length&&parent[0]===parts[0]){parent.shift();parts.shift();}
   const value='../'.repeat(parent.length)+parts.join('/');return value.startsWith('../')?value:'./'+value;
 }
 
-globalThis.createGothereCodeEditor=(parent,onChange)=>{
-  let current=null,files=[];const states=new Map();
-  function completeAPI(context){
+globalThis.createGothereCodeEditor=(parent,onChange,{project:getProject,onDiagnostics=()=>{}}={})=>{
+  let current=null,files=[],timer,revision=0,destroyed=false;const states=new Map();
+  const snapshot=()=>getProject?.();
+  function check(){
+    clearTimeout(timer);const ticket=++revision;
+    timer=setTimeout(async()=>{
+      const project=snapshot();if(!project||destroyed)return;
+      try{
+        const diagnostics=await typeScriptClient().request('diagnostics',project);
+        if(destroyed||ticket!==revision)return;
+        onDiagnostics(diagnostics);
+        const size=view.state.doc.length;
+        view.dispatch(setDiagnostics(view.state,diagnostics.filter(d=>d.path===current).map(d=>({
+          from:Math.min(d.start,size),to:Math.min(d.start+Math.max(1,d.length),size),severity:d.severity,
+          message:`TS${d.code} ${d.message}`,source:'TypeScript'
+        }))));
+      }catch(error){if(!destroyed&&ticket===revision)onDiagnostics([],error.message);}
+    },350);
+  }
+  async function complete(context){
     const quote=context.matchBefore(/['"][^'"\n]*/);
     if(quote&&/\b(?:from|import)\s*$/.test(context.state.sliceDoc(Math.max(0,quote.from-30),quote.from))){
       return {from:quote.from+1,options:['@gothere/core',...files.filter(p=>p!==current).map(p=>relative(current,p))].map(label=>({label,type:'module'})),validFor:/^[\w@./-]*$/};
     }
-    const match=context.matchBefore(/\b[a-zA-Z_$][\w$]*\.[\w]*/);
-    if(!match)return null;
-    const owner=match.text.slice(0,match.text.indexOf('.')),doc=context.state.doc.toString();let items;
-    if(owner==='api')items=legacyMethods;
-    else if(owner==='Actions')items=actionMethods;
-    else if(owner==='level'||new RegExp('\\b(?:const|let|var)\\s+'+owner+'\\s*=\\s*new\\s+Level\\s*\\(').test(doc))items=levelMethods;
-    else if(owner==='this'&&/extends\s+Entity\b/.test(doc))items=entityMethods;
-    else{
-      const declarations=doc.matchAll(/\b(?:const|let|var)\s+([\w$]+)\s*=\s*(?:[\w$]+\.(?:entity|object|addObject)\s*\(|new\s+[A-Z][\w$]*\s*\()/g);
-      if(![...declarations].some(m=>m[1]===owner))return null;items=entityMethods;
-    }
-    return {from:match.from+owner.length+1,options:Object.entries(items).map(([label,info])=>({label,type:['data','id','api'].includes(label)?'property':'method',info})),validFor:/^\w*$/};
+    const word=context.matchBefore(/[\w$]*/),project=snapshot(),path=current;
+    if(!project||!Object.hasOwn(project.files,path)||!context.explicit&&!word?.text&&!context.matchBefore(/\.$/))return null;
+    const options=await typeScriptClient().request('completions',project,path,context.pos);
+    if(context.aborted||destroyed||current!==path)return null;
+    return {from:word?.from??context.pos,options,validFor:/^[\w$]*$/};
   }
-  function state(text,readOnly){
-    return EditorState.create({doc:text,extensions:[basicSetup,javascript(),oneDark,autocompletion({override:[completeAPI]}),
+  const hover=hoverTooltip(async(view,pos)=>{
+    const project=snapshot(),path=current,doc=view.state.doc;
+    if(!project||!Object.hasOwn(project.files,path))return null;
+    try{
+      const info=await typeScriptClient().request('hover',project,path,pos);
+      if(!info||destroyed||current!==path||view.state.doc!==doc)return null;
+      return {pos:info.start,end:info.start+info.length,create(){
+        const dom=document.createElement('div');dom.className='script-type-tooltip';
+        const code=document.createElement('pre');code.textContent=info.text;dom.append(code);
+        if(info.documentation){const p=document.createElement('p');p.textContent=info.documentation;dom.append(p);}
+        return {dom};
+      }};
+    }catch{return null;}
+  });
+  function state(text,readOnly,path=''){
+    return EditorState.create({doc:text,extensions:[basicSetup,javascript({typescript:path.endsWith('.ts')||path==='@gothere/core'}),oneDark,
+      autocompletion({override:[context=>complete(context).catch(()=>null)]}),lintGutter(),hover,
       EditorView.lineWrapping,EditorState.readOnly.of(readOnly),EditorView.editable.of(!readOnly),
-      EditorView.contentAttributes.of({'aria-label':'关卡 JavaScript 源码'}),
-      EditorView.updateListener.of(update=>{if(current)states.set(current,update.state);if(update.docChanged)onChange(update.state.doc.toString());})]});
+      EditorView.contentAttributes.of({'aria-label':'关卡 TypeScript / JavaScript 源码'}),
+      EditorView.updateListener.of(update=>{if(current)states.set(current,update.state);if(update.docChanged){onChange(update.state.doc.toString());check();}})]});
   }
   const view=new EditorView({parent,state:state('',false)});
   return {
@@ -66,8 +73,12 @@ globalThis.createGothereCodeEditor=(parent,onChange)=>{
     set:text=>view.dispatch({changes:{from:0,to:view.state.doc.length,insert:text}}),
     open(path,text,{readOnly=false,files:paths=[]}={}){
       if(current)states.set(current,view.state);current=path;files=paths;
-      const saved=states.get(path);view.setState(saved&&saved.doc.toString()===text?saved:state(text,readOnly));
+      const saved=states.get(path);view.setState(saved&&saved.doc.toString()===text?saved:state(text,readOnly,path));check();
     },
-    reset(){states.clear();current=null;},focus:()=>view.focus(),refresh:()=>view.requestMeasure(),destroy:()=>view.destroy(),
+    jump(position){const at=Math.min(position,view.state.doc.length);view.dispatch({selection:{anchor:at},effects:EditorView.scrollIntoView(at,{y:'center'})});view.focus();},
+    check,
+    reset(){states.clear();current=null;clearTimeout(timer);revision++;},
+    focus:()=>view.focus(),refresh:()=>view.requestMeasure(),
+    destroy(){destroyed=true;clearTimeout(timer);revision++;view.destroy();},
   };
 };

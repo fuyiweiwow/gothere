@@ -1,8 +1,17 @@
 import {projectModuleGraph,rewriteModuleImports,authoringLibrarySource,CORE_MODULE} from '../../src/editor/javascript-project.js';
 import {analyzeModule} from '../../scripts/project-code-tools.mjs';
+import {readFile} from 'node:fs/promises';
+import {typeScriptLibraries} from '../../scripts/typescript-libraries.mjs';
+import {createTypeScriptService} from '../../scripts/typescript-service.mjs';
+
+let types;
+export async function typeService(){
+  return types??=(async()=>createTypeScriptService(await typeScriptLibraries(),await readFile(new URL('../../src/editor/authoring-types.d.ts',import.meta.url),'utf8')))();
+}
 
 let run=0;
 export async function executeProject(project){
+  if(Object.keys(project.files).some(path=>path.endsWith('.ts')))project=(await typeService()).compile(project);
   const urls=new Map(),nonce=++run;
   const url=(path,text)=>{const value='data:text/javascript;base64,'+Buffer.from(text+'\n// run '+nonce+' '+path).toString('base64');urls.set(path,value);return value;};
   url(CORE_MODULE,authoringLibrarySource());

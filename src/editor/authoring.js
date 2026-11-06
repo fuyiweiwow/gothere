@@ -1,7 +1,8 @@
 import {createAuthoringAPI} from './authoring-api.js';
 import {createBlankLevel} from './model.js';
 import {parseDSL} from './dsl.js';
-import {authoringLibrarySource,projectModuleGraph,rewriteModuleImports,CORE_MODULE} from './javascript-project.js';
+import {authoringLibrarySource,projectModuleGraph,rewriteModuleImports,validateProject,CORE_MODULE} from './javascript-project.js';
+import {typeScriptClient} from './typescript-client.js';
 
 /** Native ES modules resolve only against files in this project and the bundled core. */
 export function generateFromProject(project,{timeout=2500}={}) {
@@ -11,8 +12,11 @@ export function generateFromProject(project,{timeout=2500}={}) {
   const promise=new Promise((resolve,reject)=>{
     rejectTask=reject;
     const finish=(error,value)=>{if(settled)return;settled=true;cleanup();if(error)reject(error);else resolve(value);};
-    try {
-      const graph=projectModuleGraph(project);
+    const start=async()=>{try {
+      const snapshot=structuredClone(validateProject(project));
+      const compiled=Object.keys(snapshot.files).some(path=>path.endsWith('.ts'))?await typeScriptClient().request('compile',snapshot):snapshot;
+      if(settled)return;
+      const graph=projectModuleGraph(compiled);
       // Create module URLs inside the Worker. An offline file has an opaque origin,
       // so modules created in the parent page cannot be fetched by its Worker.
       const bootstrap=`self.onmessage = async event => {
@@ -53,8 +57,9 @@ export function generateFromProject(project,{timeout=2500}={}) {
       };
       worker.onerror=event=>{event.preventDefault();finish(new Error('JS 模块错误：'+event.message));};
       timer=setTimeout(()=>finish(new Error('生成超过'+timeout/1000+'秒，已停止。请检查无限循环或过大的生成量。')),timeout);
-      worker.postMessage({graph,core:authoringLibrarySource(),entry:project.entry});
+      worker.postMessage({graph,core:authoringLibrarySource(),entry:compiled.entry});
     }catch(error){finish(error);}
+    };void start();
   });
   return {promise,cancel(){if(settled)return;settled=true;cleanup();rejectTask(new Error('已取消生成。'));}};
 }

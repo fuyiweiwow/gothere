@@ -2,6 +2,7 @@ import {createAuthoringAPI} from './authoring-api.js';
 import {createAuthoringLibrary} from './authoring-library.js';
 import {createBlankLevel} from './model.js';
 import {levelToJavaScript} from './javascript-source.js';
+import {semanticMapSource,actionsSource} from './semantic-source.js';
 
 export const CORE_MODULE = '@gothere/core';
 export const PROJECT_LIMIT = 2097152;
@@ -12,16 +13,16 @@ function literal(value) {
 function note(value) { return String(value ?? '').replace(/[\r\n\u2028\u2029]/g, ' ').slice(0, 100); }
 
 export function projectPath(path) {
-  if (typeof path !== 'string' || path.length > 180 || !path.endsWith('.js') || /[\\\x00-\x1f:#?@]/.test(path)) throw new Error('文件名须为项目内的 .js 路径，例如 objects/cart.js。');
+  if (typeof path !== 'string' || path.length > 180 || !/\.(?:js|ts)$/.test(path) || /[\\\x00-\x1f:#?@]/.test(path)) throw new Error('文件名须为项目内的 .ts 或 .js 路径，例如 objects/cart.ts。');
   const parts = path.split('/');
   if (parts.some(part => !part || part === '.' || part === '..' || /[<>"|*]/.test(part))) throw new Error('文件路径不能包含空段或越出项目。');
   return path;
 }
 
 export function validateProject(project) {
-  if (project?.version !== 1 || !project.files || typeof project.files !== 'object' || Array.isArray(project.files)) throw new Error('JavaScript 项目格式不正确。');
+  if (project?.version !== 1 || !project.files || typeof project.files !== 'object' || Array.isArray(project.files)) throw new Error('源码项目格式不正确。');
   const entries = Object.entries(project.files);
-  if (!entries.length || entries.length > 256) throw new Error('项目需要1～256个 JavaScript 文件。');
+  if (!entries.length || entries.length > 256) throw new Error('项目需要1～256个 TypeScript / JavaScript 文件。');
   let size = 0;
   for (const [path, source] of entries) {
     projectPath(path);
@@ -92,10 +93,10 @@ export function authoringLibrarySource() {
   return '// 内置基础库 · 随编辑器提供；项目中使用 import { Level, Entity, Actions } from "@gothere/core"。\n' +
     'const blank = ' + literal(blank) + ';\n\n' +
     'export const createAPI = level => (' + createAuthoringAPI.toString() + ')(level, blank);\n\n' +
-    'export const { Level, Entity, Actions } = (' + createAuthoringLibrary.toString() + ')(createAPI, blank);\n';
+    'export const { Level, Entity, Actions, Layer, Position, RoutePoint, Passage } = (' + createAuthoringLibrary.toString() + ')(createAPI, blank);\n';
 }
 
-export function levelToProject(level) {
+export function levelToProject(level, {typescript = false} = {}) {
   const map = structuredClone(level), files = {}, objectImports = [], objectCalls = [];
   map.entities = []; map.rules = [];
   const scene = map.scene; delete map.scene;
@@ -108,8 +109,9 @@ export default function buildLevel() {
   return level;
 }
 `;
-  files['map.js'] = `import { Level } from '@gothere/core';\n\n// 地图、行走层、主角与终点。\nexport function createMap() {\n  return new Level(${literal(map)});\n}\n`;
-  const used = new Set(), bindings = new Set();
+  const semanticMap=semanticMapSource(level);
+  files['map.js'] = semanticMap ? semanticMap.replace('(): Level','()') : `import { Level } from '@gothere/core';\n\n// 旧版或扩展地图的完整兼容定义。\nexport function createMap() {\n  return new Level(${literal(map)});\n}\n`;
+  const used = new Set(), bindings = new Set(['Level']);
   level.entities.forEach((definition, index) => {
     let name = String(definition.id).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 80) || 'object';
     while (used.has(name.toLowerCase()) || name.toLowerCase() === 'index') name += '_' + index;
@@ -121,20 +123,46 @@ export default function buildLevel() {
     const path = 'objects/' + name + '.js', data = structuredClone(definition);
     const behaviors = data.behaviors?.length && data.behaviors.every(b => Object.keys(b).every(key => ['id', 'label', 'actions'].includes(key)) && Object.hasOwn(b, 'label')) ? data.behaviors : [];
     if (behaviors.length) delete data.behaviors;
-    files[path] = `import { Entity } from '@gothere/core';\n\n// ${note(definition.label)}\nexport default class extends Entity {\n  constructor(level) {\n    super(level, ${literal(data)});\n` +
-      behaviors.map(b => `    this.behavior(${literal(b.id)}, ${literal(b.actions)}, ${literal(b.label)});\n`).join('') + '  }\n}\n';
+    const capabilities=[];
+    for(const capability of ['contact','draggable','dropTarget','carriedPhysics'])if(data[capability]){capabilities.push(`    this.${capability}(${literal(data[capability])});`);delete data[capability];}
+    if(data.surface&&data.pose){capabilities.push(`    this.surface(${literal(data.surface)});`);delete data.surface;}
+    if(data.passage&&Object.keys(data.passage).every(k=>['from','to','distance','enabled'].includes(k))){
+      const {from,to,...options}=data.passage;capabilities.push(`    this.connect(level.point(${literal(from)}), level.point(${literal(to)}), ${literal(options)});`);delete data.passage;
+    }
+    const basicKeys=['id','label','kind','x','width','height','state','space'];
+    let constructor=`super(level, ${literal(data)});`;
+    if(level.schemaVersion===3&&basicKeys.every(key=>Object.hasOwn(data,key))&&data.space.plane&&data.space.depth===level.spatial.planes.find(p=>p.id===data.space.plane)?.depth&&
+        Object.keys(data).every(key=>basicKeys.includes(key))&&Object.keys(data.space).every(k=>['plane','depth','height','depthSize'].includes(k))){
+      const {id,label,kind,x,width,height,state,space}=data;
+      const atOptions={...(space.height?{height:space.height}:{}),...(space.depthSize!==undefined?{depthSize:space.depthSize}:{})};
+      const at=`level.layer(${literal(space.plane)}).at(${x}${Object.keys(atOptions).length?', '+JSON.stringify(atOptions):''})`;
+      constructor=`super(level, ${literal(id)}, { label: ${literal(label)}, at: ${at}, size: { width: ${width}, height: ${height} }, kind: ${literal(kind)}, state: ${literal(state)} });`;
+    }
+    files[path] = `import { Entity, Actions } from '@gothere/core';\n\n// ${note(definition.label)}\nexport default class extends Entity {\n  constructor(level) {\n    ${constructor}\n` +
+      capabilities.join('\n')+'\n'+behaviors.map(b => `    this.behavior(${literal(b.id)}, ${actionsSource(b.actions)}, ${literal(b.label)});\n`).join('') + '  }\n}\n';
     objectImports.push(`import ${binding} from './${name}.js';`);
     objectCalls.push(`  new ${binding}(level); // ${note(definition.label)}`);
   });
   files['objects/index.js'] = objectImports.join('\n') + '\n\nexport function addObjects(level) {\n' + objectCalls.join('\n') + '\n}\n';
-  files['events.js'] = '// 物体已全部创建，可在此跨物体连线。on() 注册事件，动作不在编辑时执行。\nexport function addEvents(level) {\n' + level.rules.map(rule => {
+  files['events.js'] = "import { Actions } from '@gothere/core';\n\n// 物体已全部创建，可在此跨物体连线。on() 注册事件，动作不在编辑时执行。\nexport function addEvents(level) {\n" + level.rules.map(rule => {
     if (level.entities.some(e => e.id === rule.on.source) && Object.keys(rule).every(key => ['on', 'if', 'actions'].includes(key)) && (!Object.hasOwn(rule, 'if') || rule.if.length)) {
       const {source, type, ...details} = rule.on;
-      return `  level.entity(${literal(source)}).on(${literal(type)}, ${literal(rule.actions)}, ${literal(rule.if ?? [])}, ${literal(details)});`;
+      return `  level.entity(${literal(source)}).on(${literal(type)}, ${actionsSource(rule.actions)}, ${literal(rule.if ?? [])}, ${literal(details)});`;
     }
     return '  level.rule(' + literal(rule) + ');';
   }).join('\n') + '\n}\n';
   if (scene) files['scene.js'] = '// 美术、动画与声音只描述表现，逻辑实体在 objects 中定义。\nexport function addScene(level) {\n  level.data.scene = ' + literal(scene) + ';\n}\n';
+  if(typescript){
+    const typed={};for(const [path,source]of Object.entries(files)){
+      let text=source.replace(/^import (.+) from '(\.\.?\/[^']+)\.js';$/gm,"import $1 from '$2.ts';");
+      if(path==='map.js'&&semanticMap)text=semanticMap;
+      else if(path==='map.js')text=text.replace('createMap()','createMap(): Level');
+      if(path.startsWith('objects/')&&path!=='objects/index.js')text=text.replace('{ Entity, Actions }','{ Entity, Actions, type Level }').replace('constructor(level)','constructor(level: Level)');
+      else if(['objects/index.js','events.js','scene.js'].includes(path))text="import type { Level } from '@gothere/core';\n"+text.replace('(level) {','(level: Level) {');
+      typed[path.replace(/\.js$/,'.ts')]=text;
+    }
+    return validateProject({version:1,entry:'level.ts',active:'level.ts',files:typed});
+  }
   return validateProject({version: 1, entry: 'level.js', active: 'level.js', files});
 }
 
@@ -146,7 +174,40 @@ export function legacyToProject(source, base) {
     `import { createAPI } from '@gothere/core';\n\n// 原有手写源码保留在此，可逐步提取为模块。\nexport default function buildLevel() {\n  const base = ${literal(base)};\n  const generate = (level, api, createAPI) => {\n${source}\n    return typeof createLevel === 'function' ? createLevel(level, api, createAPI) : undefined;\n  };\n  return generate(base, createAPI(base), createAPI);\n}\n`}});
 }
 
-export function createProjectExample() {
+export function createProjectExample({typescript=false}={}) {
+  if(typescript)return {version:1,entry:'level.ts',active:'level.ts',files:{
+    'level.ts':`import { Level } from '@gothere/core';
+import { DepartingObject } from './objects/departing-object.ts';
+
+export default function buildLevel(): Level {
+  const level = new Level('模块示例 · 点击让路');
+  const street = level.layer('street', { screenY: 500 });
+  street.ground({ from: 20, to: 1180 });
+  const start = level.point('start', street.at(60));
+  const finish = level.point('finish', street.at(1100));
+  level.route(start, finish);
+  level.traveler({ start, speed: 70 });
+  level.destination(finish);
+  new DepartingObject(level, 'cart', street.at(520));
+  return level;
+}
+`,
+    'objects/departing-object.ts':`import { Entity, Actions, type Level, type Position } from '@gothere/core';
+
+// 任意贴图均可搭配这种能力；可在其他关卡中重复使用。
+export class DepartingObject extends Entity {
+  constructor(level: Level, id: string, at: Position) {
+    super(level, id, { at, label: '点击让路的物体', size: { width: 64, height: 44 } });
+    this.contact({ effect: 'lethal', message: '撞上了挡路物。' });
+    this.behavior('leave', [
+      this.set('inactive'),
+      Actions.after(0.2, [this.move({ to: at.layer.at(1350), seconds: 2 })])
+    ], '向右驶离');
+    this.on('click', [this.invoke('leave')], [this.condition('active')]);
+  }
+}
+`
+  }};
   return {version: 1, entry: 'level.js', active: 'level.js', files: {
     'level.js': `import { Level } from '@gothere/core';
 import { DepartingObject } from './objects/departing-object.js';

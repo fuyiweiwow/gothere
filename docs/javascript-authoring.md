@@ -1,122 +1,130 @@
-# 画外编辑与 JavaScript 编排
+# TypeScript 关卡项目与画外编辑
 
-v0.31.0。在线开发版与单文件离线版均可使用，不需要安装 npm。JavaScript 是作者源码，运行数据继续使用原有 DSL。
+v0.32.0。在线、静态预览与单文件离线版共用同一套工具，使用者不需要安装 npm。新项目使用 TypeScript；旧 JavaScript 和 JSON 仍可导入，运行时继续使用原有数据、校验器与确定性模拟。
 
-## 画外入场与离场
+## 从哪里开始
 
-画布工具栏勾选「画外工作区」，用空格或中键拖动画布查看左右留白。留白只是编辑区域，实际游戏画面仍为 1200×640，主角越界规则不变。「适合窗口」回到游戏画面。
-
-- 从仓库的场景物体列表选择画外物体时，会自动展开留白并定位；资源图层列表也可定位画外图片。
-- 普通物体的属性中有「放到左侧画外」「放到右侧画外」「定位物体」。位置可以继续拖动、拉伸或数值微调，每次操作独立撤销。
-- 行为中的 move 动作有「驶出左侧」「驶出右侧」，自动设置目标 X。计算包含逻辑范围、绑定图片及其状态变体，留出24像素，不只检查碰撞体。
-- 「在画布点选目标 X」进入点选模式；点击后保存目的地，Esc取消。仅改变 X，保留所属层、离地高度和持续时间。需要改变层或进入内外通路时，仍在动作属性中明确设置。
-- 入场：把初始位置放到画外，再将普通移动动作目标放回画内；事件可来自区域接近、点击或其他物体的行为完成。离场使用同一种 move。
-
-初始画外摆放适用于没有承托、旋转、巡逻和通路位置的普通空间物体。路面、路线节点、主角与终点仍保留原有边界；不在画外创建新的可行走世界。空间物体 X 范围为 -1200～2400（右端计入逻辑宽度）。图片过大、偏移过远导致快捷摆放超限时，提示调整资源，不静默截断。移动结束仍以 moved 事件连接；done / after 不会等待真实移动完成。
-
-## 文件树与源码项目
-
-顶部「JavaScript 关卡源码」打开左侧文件树、右侧编辑区。首次打开或点击「从当前画布生成源码」，将关卡拆成下面的项目，保留物体、规则和美术数据。入口仅十几行，具体物体不再挤在同一个文件中。
+顶部「关卡源码」（Ctrl+O）打开左侧文件树、右侧代码区。点击「从当前画布生成源码」会得到：
 
 ```text
-level.js            入口：搭建地图、添加物体、连接事件和美术
-map.js              地图、行走层、主角和终点
-events.js           跨物体事件与动作
-scene.js            图片、动画、音效与图层（有关卡美术时）
+level.ts            入口：调用地图、物体、事件和美术模块
+map.ts              行走层、路面、路线、主角和终点
+events.ts           跨物体事件与动作
+scene.ts            图片、动画、音效与图层
 objects/
-  index.js          创建所有物体
-  bus.js            一个物体的类、属性与行为
+  index.ts          创建所有物体
+  bus.ts            一个物体的类、能力与行为
   ...
-@gothere/core       编辑器提供的基础库，可只读查看
+@gothere/core       内置基础库，可查看 API 类型声明
 ```
 
-- 文件树可搜索、展开和折叠；点击文件打开页签。各文件保留自己的撤销记录，切换文件不会互相覆盖。
-- 「新建」填写 `shared/cart.js` 这样的路径即可建目录和文件。「重命名」同时更新项目内的静态 import 和 re-export；存在语法错误时先修正再重命名。
-- 删除前会备份项目；入口需先改选才能删除。删除不会自动删除其他文件的引用，校验会指出缺失模块。
-- Ctrl+S 保存整个项目到当前草稿槽，Ctrl+Enter 生成并校验。生成成功后可整体替换画布（一次撤销），或另存为新草稿。
-- 「导出项目 ZIP」保存全部 `.js` 源文件与目录；重新载入 ZIP 可继续编辑。ZIP 的首个 JS 文件为入口，不需要作者维护 JSON 清单。「导出此文件」只导出正在看的文件，它的依赖需另行保留。
-- 「载入项目 / 关卡」也接受旧 `.js`、旧 `.json`：旧手写函数和循环保留在兼容入口，旧数据转成分文件项目。加载项目不会执行源码。
-- 画布与源码分别保存，重新应用源码不自动合并画布修改。重新从画布生成、载入文件或示例前保留一份源码项目，可「恢复之前的项目」。
+首次打开新源码槽会生成 TS 项目。已保存的 JS 项目保持原样；要迁移时显式点击「从当前画布生成源码」，旧源码会备份，可「恢复之前的项目」。这会重新生成代码，不能自动保留自定义类、函数和注释，手写库请先导出 ZIP。
 
-源码最多256个文件、合计2 MiB，生成结果最多1 MiB。CodeMirror 提供语法着色、文件路径提示和 `level.`、`this.`、`Actions.`、`api.` 及部分对象变量的 API 提示；Ctrl+Space 主动调用。当前是限定补全，不是完整 LSP，没有全面类型推断、跳转定义或智能重构。
+- 文件树可搜索、折叠；各文件有独立页签和撤销历史。
+- 「新建」填写 `shared/cart.ts`，自动形成目录；也支持 `.js`。重命名会解析并更新静态 import、type import 和 re-export；有语法错误时先修正。删除前备份，入口文件需先更换入口再删除。
+- Ctrl+S 保存整个源码项目，Ctrl+Enter 生成并校验。生成成功后可替换画布（一次撤销）或另存为新草稿。
+- ZIP 保留所有源文件与目录，首个源文件是入口；可重新载入继续编辑，无需维护 JSON 清单。导出单文件时，其依赖需自行保留。
+- 载入支持 `.zip`、模块 `.ts`、旧 `.js` 和 `.json`。旧手写 JS 保存在兼容入口中，不执行迁移脚本，也不自动拆解手写函数。
 
-## 面向对象的基础库
+画布与源码分别保存。生成、类型检查和错误修正不会改变画布，应用才会改变；源码变化会使旧生成结果失效。源码项目上限256个文件、合计2 MiB，生成数据上限1 MiB。
 
-支持真正的 ES module 静态 import/export、别名、命名空间及再导出。基础库由编辑器提供，在线和离线均不访问 CDN。项目内用 `./`、`../` 引入文件，核心库用 `@gothere/core`。暂不支持 npm 包、外部 URL、动态 import、循环依赖或异步关卡入口。
+## 用领域对象描述地图
 
-```js
-// level.js
+```ts
 import { Level } from '@gothere/core';
-import { DepartingObject } from './objects/departing-object.js';
 
-export default function buildLevel() {
-  const level = new Level();
-  new DepartingObject(level, 'cart', { x: 520 });
+export function createMap(): Level {
+  const level = new Level('前街到后街', {
+    id: 'my-street', description: '帮他走到后街。'
+  });
+  const front = level.layer('front', { screenY: 550, order: 1 });
+  const back = level.layer('back', { screenY: 320, order: 0 });
+  front.ground({ from: 20, to: 1180 });
+  back.ground({ from: 20, to: 1180 });
+
+  const start = level.point('start', front.at(60));
+  const entry = level.point('entry', front.at(800));
+  const exit = level.point('exit', back.at(800));
+  const finish = level.point('finish', back.at(1100));
+  const alley = level.passage('alley', entry, exit, {
+    label: '窄巷', distance: 260, size: { width: 40, height: 12 }
+  });
+  level.route(start, entry, alley, exit, finish);
+  level.traveler({ start, speed: 70 });
+  level.destination(finish);
   return level;
 }
 ```
 
-```js
-// objects/departing-object.js
-import { Entity, Actions } from '@gothere/core';
+`screenY` 是路面的画面基线，由库推导旧数据中的深度；`front.at(x, {height})` 是所属层上的位置，height 是真实离地高度。斜路可用 `ground({from,to,height,endHeight})` 设置两端高度。内外行走与真实升降仍是两种空间含义，不因画面纵坐标变化自动变成斜坡。
+
+`level.route()` 连接同层位置或命名路线点；跨层必须经过显式通路。`level.passage()` 创建普通物体的通路能力并返回路线引用；也可用 `level.through('alley')` 引用稍后在物体文件中创建的通路，最终检查其存在性。路线不负责寻路、修路或保证有解。
+
+已有层与点用 `level.layer(id)`、`level.point(id)` 取回。Layer、Position、RoutePoint、Passage 在类型系统中区分；不能把 Layer 当作 Position。跨关卡引用还会在生成时拒绝。
+
+## 组合物体能力与可复用类
+
+```ts
+// shared/departing-object.ts
+import { Entity, Actions, type Level, type Position } from '@gothere/core';
 
 export class DepartingObject extends Entity {
-  constructor(level, id, { x = 500 } = {}) {
-    const object = level.api.object(id, {
-      x, width: 64, height: 44,
-      contact: { effect: 'lethal', message: '撞上了挡路物。' }
-    });
-    super(level, object.id);
+  constructor(level: Level, id: string, at: Position) {
+    super(level, id, { at, size: { width: 64, height: 44 } });
+    this.contact({ effect: 'lethal', message: '撞上了挡路物。' });
     this.behavior('leave', [
       this.set('inactive'),
-      Actions.after(0.2, [this.move({ x: 1350, seconds: 2 })])
+      Actions.after(0.2, [this.move({ to: at.layer.at(1350), seconds: 2 })])
     ]);
     this.on('click', [this.invoke('leave')], [this.condition('active')]);
   }
 }
 ```
 
-窗口的「类复用示例」可以直接载入这两个文件。自定义类放进 `shared/` 等目录，再由多个文件 import，类不按贴图或名称决定玩法。
+在其他文件中 import 后 `new DepartingObject(level, 'cart', street.at(520))`。编辑器的「类复用示例」可直接试玩。类只组织创作代码；物体不因名字或贴图被赋予隐藏规则。
 
-| 对象 | 用法 |
+| API | 用途 |
 | --- | --- |
-| `new Level()` / `new Level(definition)` | 创建空白分层关卡，或从完整地图定义创建；复制输入，不修改基稿 |
-| `level.data` / `level.api` | 原有数据与底层编排 API；定义结构和动作继续共用旧 DSL |
-| `level.object(id, options, Type?)` | 快捷创建物体，可指定继承 Entity 的类；快捷几何只支持 v3 |
-| `level.addObject(data, Type?)` / `new Entity(level, data)` | 注册已有的完整物体定义，兼容 v1/v2/v3 |
-| `level.entity(id)` / `new Entity(level, id)` | 引用已有物体，不重复添加；不存在时报错 |
-| `level.rule(data)` / `level.art(data)` | 注册完整规则和资源图层 |
-| `item.data` / `item.id` | 物体属性和标识 |
-| `item.behavior(...)` / `item.on(...)` | 注册行为与事件，可链式调用，返回该物体 |
-| `item.move(...)` / `item.set(...)` / `item.invoke(...)` / `item.condition(...)` | 构造动作或条件，语义沿用下表 |
-| `Actions.after(seconds, actions)` / `.set(target, state)` / `.invoke(target, behavior)` | 通用动作，target 可为物体或 ID |
+| `level.object(id, {at,size,...})` / `new Entity(level,id,options)` | 创建物体；默认普通物体、active 状态 |
+| `level.entity(id)` / `new Entity(level,id)` | 引用已有物体，不重复创建 |
+| `item.contact({effect:'lethal'})` | 接触造成致死伤害 |
+| `item.surface({enabled:true})` | 添加承托面与默认旋转姿态 |
+| `item.draggable({targets:['bowl']})` | 玩家可拖放到指定物体 |
+| `item.dropTarget({radius:32})` | 添加接收拖放能力 |
+| `item.connect(fromPoint,toPoint,{distance})` | 添加通路能力 |
+| `item.behavior(id,actions,label?)` / `.on(event,actions,conditions?,details?)` | 注册行为与事件，返回物体，可链式调用 |
+| `item.move({to:position,seconds})` | 构造移动动作，目的地明确所属层和高度 |
+| `item.set(state)` / `.invoke(behavior)` / `.condition(state)` | 状态动作、调用行为和状态条件 |
+| `item.hold()` / `Actions.drop()` | 构造持有或放下动作，无须专用物品类型 |
+| `Actions.after(seconds,actions)` / `.set(target,state)` / `.invoke(target,behavior)` / `.move(target,options)` | 通用动作；target 可为物体或 ID |
+| `level.data` / `item.data` / `level.api` | 完整数据与兼容入口；用于还未封装的字段 |
 
-类、函数和循环仅用于生成普通数据。`on` 接收动作数组，不接收运行中回调；同一核心校验、模拟、存档与回放继续使用生成结果。美术和动画仍可在画布编辑。
+事件接收动作数组，不接收运行时函数。通路上的移动用既有 `passage`、`progress` 参数；当前层移动可用 `to`。能力组合仍须遵守引擎约束：拖放物不同时承托/旋转/巡逻；通路物体不同时承托；跨层移动须符合现有端点规则。`carriedPhysics` 仅为旧 v1 兼容接口，v3 不支持，不把它描述为新能力。
 
-## 执行与兼容
+地图生成器为可保真的 v3 数据输出上述 API。旧 v1/v2 或含不能保真表示的扩展数据使用 `new Level(完整定义)`。资源目前仍是 `scene.ts` 中的完整图层定义；没有声称图片和动画也已全部语义化。`Level.data` 与完整物体定义允许兼容数据，类型约束重点在语义 API，所有输出仍需运行校验。
 
-生成在可停止的独立 Worker 中执行，超过2.5秒终止。模块源码通过 Acorn 解析真实语法，字符串和注释中的 import 不当作依赖；浏览器执行原生 ES module，不靠正则改写类或 export。模块 URL 在 Worker 内创建，确保双击离线 HTML 同样可以使用。静态服务为此允许 `script-src blob:` 和 `worker-src blob:`，未开启 `unsafe-eval`。
+## 类型提示和错误定位
 
-Worker 隔离阻塞，但不是安全沙箱：只执行信任的代码；它仍具有浏览器允许的网络与存储等能力。运行时不执行作者脚本，生成结果不能包含函数、异步回调或非 JSON 值。错误显示文件、行号或运行调用位置；未使用的文件不会随入口执行，需按需 import。
+内置 TypeScript 5.9.3 Language Service 在独立后台 Worker 中运行，离线无需 LSP 服务或 CDN。Ctrl+Space 获取实际推断的补全，包括跨文件自定义子类方法；悬停显示类型签名和文档。TS 错误有源码波浪线及底部问题列表，点击问题跳到文件位置。
 
-## 小型 API
+生成前对全部 TS 文件做语法与严格语义检查，包括入口未引用的文件；错误时不执行生成器。旧 JS 保留兼容，只做语法检查，不强制添加类型。物体 ID 是否存在、动作是否可组合、状态是否有效和关卡能否通关不是 TS 能完全保证的，继续由运行校验和试玩验证。
 
-在新项目中通过 `level.api` 调用；旧脚本的 `level` 仍是数据，`api` 是原先的 API。也可 `import { createAPI } from '@gothere/core'` 绑定到已有数据。物体引用可传 ID 或 `api.entity()` 返回的对象。
+这是嵌入语言服务，没有实现外部 LSP 协议、跳转定义、自动导入或 IDE 级重构。静态模块支持相对完整文件名（`.ts` / `.js`）、核心库、别名、命名空间和再导出；不支持 npm 包、外部 URL、动态 import、循环依赖与异步入口。更改底层引擎仍需修改应用代码，作者代码不能凭空定义新的运行时动作。
 
-| 方法 | 含义 |
-| --- | --- |
-| `api.entity(id)` | 查找现有物体，不存在时报错 |
-| `api.addObject(data)` / `api.addRule(data)` / `api.addArt(data)` | 注册完整物体、规则和图层 |
-| `api.object(id, options)` | 新建普通物体；目前快捷创建只支持 v3 分层关卡 |
-| `api.behavior(target, id, actions, label?)` | 添加命名行为，同 ID 则替换 |
-| `api.on(target, event, actions, conditions?, details?)` | 添加事件规则；details 可填 other、behavior 等事件字段 |
-| `api.set(target, state)` | 状态动作 |
-| `api.invoke(target, behavior)` | 调用行为动作 |
-| `api.after(seconds, actions)` | 延迟动作；秒数转换为60 tick/秒 |
-| `api.move(target, {x, seconds, ...})` | 移动动作，默认保留当前位置的深度和高度；支持 plane、passage、progress |
-| `api.condition(target, state)` | 状态条件 |
-| `api.empty()` | 返回独立的空白 v3 关卡；使用 `api = createAPI(level)` 重新绑定 API |
+## 画外入场与离场
 
-对象默认在首个行走层，可用 `plane`、`elevation` 设置层与离地高度，`height` 是物体自身高度。对象也可直接调用 `item.move(...)`、`item.set(...)`、`item.behavior(...)`、`item.on(...)`、`item.invoke(...)` 和 `item.condition(...)`。资源仍可在可视化面板编辑，目前没有资源包 DSL 或运行中脚本。
+工具栏勾选「画外工作区」，空格或中键拖动查看左右留白；「适合窗口」回到1200×640游戏画面。主角越界规则不变。
 
-具体入场、通路进出、持有和接触仍遵循现有模拟约束；API 不推断寻路、不绕过层归属、不保证任意脚本生成的地图都有解。工具实现依据 [Acorn 官方文档](https://github.com/acornjs/acorn/blob/master/acorn/README.md) 与 [fflate 官方文档](https://github.com/101arrowz/fflate)，第三方许可随编辑器打包。
+- 仓库选择画外物体或图片时会自动展开留白并定位；普通物体属性可「放到左侧画外」「放到右侧画外」「定位物体」。
+- move 动作可「驶出左侧」「驶出右侧」或「在画布点选目标 X」，Esc取消。快捷目的地计入逻辑与所有绑定图片的大小及偏移，留24像素，不只检查碰撞体。
+- 入场：初始放到画外，再由区域、点击或行为完成事件调用普通移动。离场使用同一种 move。`moved` 事件表示真实移动完成，`done` / `after` 不会等待移动。
+
+仅适用于无承托、旋转、巡逻或通路位置的普通空间物体。物体 X 范围 -1200～2400（右端计逻辑宽度），超出范围会提示，不能借留白扩展主角世界。地面、路线点、主角与终点保留原有边界。
+
+## 执行边界与实现资料
+
+类型检查最多等待20秒，作者代码执行超时2.5秒，可停止。编译和生成都在后台 Worker，地图 UI 不解析编译器。离线 HTML 因打包编译器与标准库增至约6 MiB，首次检查需初始化语言服务。
+
+浏览器执行编译后的原生 ES modules；Acorn 解析真实模块引用，模块 URL 在生成 Worker 内创建以兼容 `file://`。Worker 可终止阻塞，但不是安全沙箱；只执行信任的代码。生成数据不得含函数、异步值或非 JSON 值。运行时和回放不执行作者源码。类型错误定位到原 TS 行列；执行异常显示原文件名，但行号可能对应编译后 JS，暂未接入 source map。
+
+依据 [TypeScript Language Service API](https://github.com/microsoft/TypeScript/wiki/Using-the-Language-Service-API)、[TypeScript 扩展导入选项](https://www.typescriptlang.org/tsconfig/allowImportingTsExtensions.html)、[Acorn 官方说明](https://github.com/acornjs/acorn/blob/master/acorn/README.md)与 [fflate 官方说明](https://github.com/101arrowz/fflate)。许可随编辑器打包。
