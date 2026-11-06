@@ -1,13 +1,12 @@
-import {runInNewContext} from 'node:vm';
-import {createAuthoringAPI} from '../src/editor/authoring-api.js';
-import {createBlankLevel} from '../src/editor/model.js';
+import {readFile} from 'node:fs/promises';
+import {unzipProject} from './project-code-tools.mjs';
+import {executeProject} from '../tests/helpers/project.mjs';
 
 export async function readSourceLevel(page){
   await page.locator('#open-script').click();await page.locator('#script-base').click();
-  const source=await page.locator('#script-source').inputValue(),blank=createBlankLevel('check',{layered:true});
-  const createAPI=level=>createAuthoringAPI(level,blank);
-  const result=runInNewContext('(function(level,api,createAPI){'+source+';return createLevel(level,api,createAPI)})(level,api,createAPI)',{level:blank,api:createAPI(blank),createAPI,structuredClone});
-  await page.locator('#close-script').click();return JSON.parse(JSON.stringify(result));
+  const pending=page.waitForEvent('download');await page.locator('#script-export').click();const file=await pending;
+  const result=await executeProject(unzipProject(new Uint8Array(await readFile(await file.path()))));
+  await page.locator('#close-script').click();return result;
 }
 export async function importLevel(page,level){
   await page.locator('#open-script').click();

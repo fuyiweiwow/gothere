@@ -1,53 +1,157 @@
-import {AUTHORING_EXAMPLE} from './authoring-api.js';
-import {generateFromJavaScript} from './authoring.js';
-import {levelToJavaScript,portableJavaScript} from './javascript-source.js';
+import {generateFromProject} from './authoring.js';
+import {levelToProject,legacyToProject,createProjectExample,authoringLibrarySource,validateProject,projectPath,renameProjectFile,CORE_MODULE} from './javascript-project.js';
 import {parseDSL} from './dsl.js';
 
-export function createAuthoringUI({editor,notify,download,pause}){
+export function createAuthoringUI({editor,notify,download,pause}) {
   const $=id=>document.getElementById(id),dialog=$('script-dialog'),source=$('script-source');
-  let base=null,result=null,task=null,storageKey=null,programmatic=false,codeEditor=null,dirty=false;
+  let base,project,active,storageKey,result,task,codeEditor,programmatic=false,dirty=false;
+  const changedFiles=new Set(),opened=new Set(),collapsed=new Set();
+  const core=authoringLibrarySource();
   const getSource=()=>codeEditor?codeEditor.get():source.value;
-  function setSource(value){programmatic=true;source.value=value;if(codeEditor)codeEditor.set(value);programmatic=false;}
+  function message(text,error=false){$('script-status').textContent=text;$('script-status').dataset.error=String(error);}
   function invalidate(){result=null;$('script-apply').disabled=$('script-import').disabled=true;}
-  function message(text,error=false){const output=$('script-status');output.textContent=text;output.dataset.error=String(error);}
   function stop(){task?.cancel();task=null;$('script-generate').disabled=false;$('script-stop').disabled=true;}
-  function save(){try{localStorage.setItem(storageKey,JSON.stringify({source:getSource(),base}));dirty=false;return true;}catch{dirty=true;message('本地存储空间不足，请导出 JS 备份。',true);return false;}}
-  function backup(){try{localStorage.setItem(storageKey+'.previous',JSON.stringify({source:getSource(),base}));return true;}catch{message('未能备份当前源码，请先导出后再试。',true);return false;}}
-  function changed(text){source.value=text;if(programmatic)return;dirty=true;stop();invalidate();}
-  function initEditor(){if(typeof globalThis.createGothereCodeEditor==='function'){
-    codeEditor=globalThis.createGothereCodeEditor($('code-editor'),changed);source.hidden=true;$('code-editor').hidden=false;
-  }else $('code-editor').hidden=true;}
-  function load(){
-    base=editor.document();let text=levelToJavaScript(base);
-    try{const raw=localStorage.getItem(storageKey);if(raw){const saved=JSON.parse(raw);if(typeof saved?.source!=='string'||!saved?.base)throw new Error('源码草稿格式不正确。');text=saved.source;base=saved.base;}}catch{throw new Error('读取源码草稿失败；已保留原存储，无法打开以免覆盖。');}
-    setSource(text);dirty=false;
+  function save(){try{validateProject(project);localStorage.setItem(storageKey,JSON.stringify({project,base}));dirty=false;changedFiles.clear();renderTabs();return true;}catch(error){dirty=true;message('保存失败：'+error.message+' 请导出项目备份。',true);return false;}}
+  function backup(){try{localStorage.setItem(storageKey+'.previous',JSON.stringify({project,base}));return true;}catch{message('未能备份当前项目，请先导出后再试。',true);return false;}}
+  function decode(saved){
+    if(!saved?.base)throw new Error('缺少源码基稿。');
+    if(saved.project)return {base:saved.base,project:validateProject(saved.project)};
+    if(typeof saved.source==='string')return {base:saved.base,project:legacyToProject(saved.source,saved.base)};
+    throw new Error('源码草稿格式不正确。');
   }
-  $('open-script').onclick=()=>{pause();storageKey='gothere.authoring.'+editor.documentKey();initEditor();try{load();}catch(error){codeEditor?.destroy?.();codeEditor=null;notify(error.message);return;}invalidate();message('源码和关卡可分别保存；重新从画布生成源码会替换当前源码，请先导出需要保留的版本。');$('script-base').disabled=$('script-example').disabled=!editor.isEditing();dialog.showModal();codeEditor?.refresh();};
-  $('script-base').onclick=()=>{stop();if(!backup())return;base=editor.document();setSource(levelToJavaScript(base));dirty=true;invalidate();if(save())message('已从当前画布生成完整 JS；可以恢复之前的源码。');};
-  $('script-example').onclick=()=>{stop();if(!backup())return;setSource(portableJavaScript(AUTHORING_EXAMPLE,base));dirty=true;invalidate();if(save())message('已载入点击离场示例；可以恢复之前的源码。');};
-  $('script-restore').onclick=()=>{stop();try{const previous=JSON.parse(localStorage.getItem(storageKey+'.previous'));if(!previous?.base||typeof previous.source!=='string')throw new Error('没有可恢复的源码。');if(!backup())return;base=previous.base;setSource(previous.source);dirty=true;invalidate();if(save())message('已恢复之前的源码。');}catch(error){message(error.message,true);}};
+  function changed(text){
+    source.value=text;if(programmatic||active===CORE_MODULE)return;
+    project.files[active]=text;dirty=true;changedFiles.add(active);stop();invalidate();renderTabs();
+  }
+  function showFile(path){
+    if(path!==CORE_MODULE&&!Object.hasOwn(project.files,path))return;
+    active=path;opened.add(path);if(path!==CORE_MODULE)project.active=path;
+    programmatic=true;const text=path===CORE_MODULE?core:project.files[path];source.value=text;source.readOnly=path===CORE_MODULE;
+    if(codeEditor)codeEditor.open(path,text,{readOnly:path===CORE_MODULE,files:Object.keys(project.files)});
+    programmatic=false;
+    $('script-current-path').textContent=path;$('script-readonly').hidden=path!==CORE_MODULE;
+    $('script-rename').disabled=$('script-delete').disabled=path===CORE_MODULE;
+    $('script-file-form').hidden=true;renderTree();renderTabs();codeEditor?.refresh();
+  }
+  function renderTabs(){
+    $('script-tabs').replaceChildren();
+    for(const path of opened){
+      const button=document.createElement('button');button.type='button';button.role='tab';button.dataset.scriptTab=path;
+      button.setAttribute('aria-selected',String(path===active));button.title=path;
+      button.textContent=(path===CORE_MODULE?'core.js':path.split('/').at(-1))+(changedFiles.has(path)?' •':'');button.onclick=()=>showFile(path);$('script-tabs').append(button);
+    }
+    $('script-save-state').textContent=dirty?'有未保存修改':'已保存在本机';
+  }
+  function renderTree(){
+    const tree=$('script-tree'),filter=$('script-search').value.trim().toLowerCase();tree.replaceChildren();
+    const root={folders:new Map(),files:[]};
+    for(const path of Object.keys(project.files).sort()){
+      if(filter&&!path.toLowerCase().includes(filter))continue;
+      const parts=path.split('/');let folder=root;
+      for(const part of parts.slice(0,-1)){if(!folder.folders.has(part))folder.folders.set(part,{folders:new Map(),files:[]});folder=folder.folders.get(part);}
+      folder.files.push(path);
+    }
+    function draw(folder,prefix='',depth=0){
+      for(const path of folder.files){
+        const button=document.createElement('button');button.type='button';button.className='script-tree-file';button.dataset.scriptPath=path;button.style.paddingLeft=(12+depth*14)+'px';button.title=path;
+        button.setAttribute('aria-current',String(path===active));
+        const icon=document.createElement('span');icon.className='script-js-icon';icon.textContent='JS';
+        const name=document.createElement('span');name.textContent=path.split('/').at(-1);button.append(icon,name);
+        if(path===project.entry){const badge=document.createElement('small');badge.textContent='入口';button.append(badge);}
+        button.onclick=()=>showFile(path);tree.append(button);
+      }
+      for(const [name,child]of folder.folders){
+        const path=prefix+name+'/',button=document.createElement('button');button.type='button';button.className='script-folder';button.style.paddingLeft=(12+depth*14)+'px';
+        button.textContent=(collapsed.has(path)&&!filter?'▸ ':'▾ ')+name;button.setAttribute('aria-expanded',String(!collapsed.has(path)||!!filter));
+        button.onclick=()=>{if(collapsed.has(path))collapsed.delete(path);else collapsed.add(path);renderTree();};tree.append(button);
+        if(!collapsed.has(path)||filter)draw(child,path,depth+1);
+      }
+    }
+    draw(root);
+    if(!tree.childElementCount){const empty=document.createElement('p');empty.className='panel-note';empty.textContent='没有匹配的文件';tree.append(empty);}
+    $('script-core').setAttribute('aria-current',String(active===CORE_MODULE));
+    const entry=$('script-entry');entry.replaceChildren();for(const path of Object.keys(project.files)){const option=document.createElement('option');option.value=path;option.textContent=path;entry.append(option);}entry.value=project.entry;
+    $('script-file-count').textContent=Object.keys(project.files).length+' 个文件';
+  }
+  function replaceProject(next){
+    validateProject(next);project=structuredClone(next);opened.clear();changedFiles.clear();collapsed.clear();$('script-search').value='';codeEditor?.reset();
+    dirty=true;showFile(Object.hasOwn(project.files,project.active)?project.active:project.entry);invalidate();
+  }
+  $('open-script').onclick=()=>{
+    pause();storageKey='gothere.authoring.'+editor.documentKey();base=editor.document();
+    try{const raw=localStorage.getItem(storageKey);if(raw){const saved=decode(JSON.parse(raw));base=saved.base;project=saved.project;}else project=levelToProject(base);}
+    catch(error){notify('读取源码项目失败，原存储已保留：'+error.message);return;}
+    if(typeof globalThis.createGothereCodeEditor==='function'){codeEditor=globalThis.createGothereCodeEditor($('code-editor'),changed);source.hidden=true;$('code-editor').hidden=false;}
+    else{source.hidden=false;$('code-editor').hidden=true;}
+    replaceProject(project);dirty=false;changedFiles.clear();renderTabs();
+    invalidate();message('入口组织关卡；左侧选择物体、事件或美术文件。基础库可查看，使用 import 引用。');
+    $('script-base').disabled=$('script-example').disabled=!editor.isEditing();dialog.showModal();codeEditor?.refresh();
+  };
+  $('script-search').oninput=renderTree;$('script-core').onclick=()=>showFile(CORE_MODULE);
+  $('script-entry').onchange=()=>{project.entry=$('script-entry').value;dirty=true;stop();invalidate();renderTree();renderTabs();};
+  $('script-base').onclick=()=>{stop();if(!backup())return;base=editor.document();replaceProject(levelToProject(base));if(save())message('已从画布生成分文件项目；之前的源码项目可恢复。');};
+  $('script-example').onclick=()=>{stop();if(!backup())return;replaceProject(createProjectExample());if(save())message('已载入两个文件的类复用示例；之前的项目可恢复。');};
+  $('script-restore').onclick=()=>{stop();try{const previous=decode(JSON.parse(localStorage.getItem(storageKey+'.previous')));if(!backup())return;base=previous.base;replaceProject(previous.project);if(save())message('已恢复之前的源码项目。');}catch(error){message(error.message,true);}};
+  function fileForm(mode){
+    $('script-file-form').dataset.mode=mode;$('script-file-form').hidden=false;$('script-path-label').textContent=mode==='rename'?'重命名并更新 import':'新建 JavaScript 文件';
+    $('script-path').value=mode==='rename'?active:'';$('script-path').focus();
+  }
+  $('script-new').onclick=()=>fileForm('new');$('script-rename').onclick=()=>fileForm('rename');
+  $('script-file-cancel').onclick=()=>$('script-file-form').hidden=true;
+  $('script-file-form').onsubmit=e=>{
+    e.preventDefault();try{
+      const path=projectPath($('script-path').value.trim());
+      if($('script-file-form').dataset.mode==='rename'){
+        const next=renameProjectFile(project,active,path);if(!backup())return;project=next;opened.delete(active);changedFiles.delete(active);codeEditor?.reset();
+      }else{
+        if(Object.hasOwn(project.files,path))throw new Error('文件已存在：'+path);
+        const next={...project,files:{...project.files,[path]:"import { Entity } from '@gothere/core';\n\n// 在这里定义可复用的类或函数。\n"}};validateProject(next);if(!backup())return;project=next;
+      }
+      stop();invalidate();dirty=true;changedFiles.add(path);showFile(path);message('文件已更新；Ctrl+S 保存项目，Ctrl+Enter 校验入口。');
+    }catch(error){message(error.message,true);}
+  };
+  $('script-delete').onclick=()=>{
+    if(active===CORE_MODULE)return;
+    if(active===project.entry){message('请先在上方选择其他入口文件，再删除此文件。',true);return;}
+    if(!backup())return;delete project.files[active];opened.delete(active);changedFiles.delete(active);dirty=true;stop();invalidate();showFile(project.entry);message('文件已删除，引用它的 import 需调整；可恢复之前的项目。');
+  };
   source.oninput=()=>changed(source.value);
   dialog.addEventListener('keydown',e=>{
     if(e.isComposing)return;
     if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();$('script-generate').click();}
-    else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();if(save())message('源码已保存，尚未应用到画布。');}
-    else if(e.target===source&&e.key==='Tab'&&!e.shiftKey){e.preventDefault();source.setRangeText('  ',source.selectionStart,source.selectionEnd,'end');source.dispatchEvent(new Event('input'));}
+    else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();if(save())message('整个源码项目已保存，尚未应用到画布。');}
+    else if(e.target===source&&e.key==='Tab'&&!e.shiftKey&&!source.readOnly){e.preventDefault();source.setRangeText('  ',source.selectionStart,source.selectionEnd,'end');source.dispatchEvent(new Event('input'));}
   },true);
   $('script-generate').onclick=async()=>{
-    stop();invalidate();if(!save())return;const running=generateFromJavaScript(getSource(),base);task=running;$('script-generate').disabled=true;$('script-stop').disabled=false;message('生成中…');
+    stop();invalidate();if(!save())return;const running=generateFromProject(project);task=running;$('script-generate').disabled=true;$('script-stop').disabled=false;message('正在生成 '+project.entry+'…');
     try{const level=await running.promise;if(task!==running)return;result=level;
       message(`校验通过 · 物体 ${base.entities.length} → ${level.entities.length} · 规则 ${base.rules.length} → ${level.rules.length} · 图层 ${base.scene?.nodes.length??0} → ${level.scene?.nodes.length??0}。可应用或另存。`);
       $('script-apply').disabled=$('script-import').disabled=!editor.isEditing();
     }catch(error){if(task===running)message(error.message,true);}
     finally{if(task===running){task=null;$('script-generate').disabled=false;$('script-stop').disabled=true;}}
   };
-  $('script-stop').onclick=()=>{stop();message('已停止，草稿未改变。');};
-  const apply=separate=>{try{if(!result)return;let saved=true;if(separate){editor.importDocument(result);storageKey='gothere.authoring.'+editor.documentKey();saved=save();}else editor.applyDocument(result);if(saved){dialog.close();notify(separate?'已另存为新草稿。':'已应用 · Ctrl+Z 可撤销。');}else message('关卡已另存，但源码未能保存；请导出 JS 备份。',true);}catch(error){message(error.message,true);}};
+  $('script-stop').onclick=()=>{stop();message('已停止，画布未改变。');};
+  const apply=separate=>{try{if(!result)return;let saved=true;if(separate){editor.importDocument(result);storageKey='gothere.authoring.'+editor.documentKey();saved=save();}else editor.applyDocument(result);if(saved){dialog.close();notify(separate?'已另存为新草稿。':'已应用 · Ctrl+Z 可撤销。');}else message('关卡已另存，但源码未能保存；请导出项目备份。',true);}catch(error){message(error.message,true);}};
   $('script-apply').onclick=()=>apply(false);$('script-import').onclick=()=>apply(true);
-  $('script-export').onclick=()=>{const text=portableJavaScript(getSource(),base);if(new TextEncoder().encode(text).length>2097152){message('导出的源码超过 2 MiB，请减少资源或从画布重新生成。',true);return;}download(text,'level.js','text/javascript');if(dirty&&save())message('源码已导出并保存。');};
+  $('script-export').onclick=()=>{try{validateProject(project);const bytes=globalThis.gothereProjectTools.zipProject(project.files,project.entry);download(bytes,'gothere-project.zip','application/zip');if(save())message('整个项目已导出，包含所有手写文件；重新载入 ZIP 可继续编辑。');}catch(error){message(error.message,true);}};
+  $('script-export-file').onclick=()=>download(getSource(),active===CORE_MODULE?'gothere-core.js':active.split('/').at(-1),'text/javascript');
   $('script-load').onclick=()=>$('script-file').click();
-  $('script-file').onchange=async()=>{const file=$('script-file').files[0];try{if(!file)return;if(file.size>2097152)throw new Error('文件不能超过 2 MiB。');stop();const text=await file.text(),next=/\.json$/i.test(file.name)?levelToJavaScript(parseDSL(text)):text;if(!backup())return;setSource(next);dirty=true;invalidate();if(save())message('文件已载入；可以恢复之前的源码。');}catch(error){message(error.message,true);}finally{$('script-file').value='';}};
-  $('close-script').onclick=()=>dialog.close();dialog.addEventListener('cancel',e=>{if(dirty&&!save())e.preventDefault();});
-  $('close-script').onclick=()=>{if(!dirty||save())dialog.close();};
-  dialog.addEventListener('close',()=>{stop();if(dirty)save();codeEditor?.destroy?.();codeEditor=null;});
+  $('script-file').onchange=async()=>{
+    const file=$('script-file').files[0];
+    try{
+      if(!file)return;if(file.size>3145728)throw new Error('导入文件不能超过3 MiB。');stop();
+      let next;
+      if(/\.zip$/i.test(file.name))next=globalThis.gothereProjectTools.unzipProject(new Uint8Array(await file.arrayBuffer()));
+      else{
+        const text=await file.text();
+        if(/\.json$/i.test(file.name))next=levelToProject(parseDSL(text));
+        else if(globalThis.gothereProjectTools.isModule(text))next={version:1,entry:file.name,active:file.name,files:{[file.name]:text}};
+        else next=legacyToProject(text,base);
+      }
+      validateProject(next);if(!backup())return;replaceProject(next);if(save())message('项目已载入；之前的源码项目可恢复。');
+    }catch(error){message(error.message,true);}finally{$('script-file').value='';}
+  };
+  $('close-script').onclick=()=>{if(save())dialog.close();};
+  dialog.addEventListener('cancel',e=>{if(!save())e.preventDefault();});
+  dialog.addEventListener('close',()=>{stop();codeEditor?.destroy();codeEditor=null;});
 }
