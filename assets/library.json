@@ -2538,5 +2538,635 @@
     "height": 8,
     "source": "gothere-original",
     "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterWalk1",
+    "label": "赶路职员 · 横走 1",
+    "category": "街景角色",
+    "file": "original/commute/commuterWalk1.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterWalk2",
+    "label": "赶路职员 · 横走 2",
+    "category": "街景角色",
+    "file": "original/commute/commuterWalk2.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterWalk3",
+    "label": "赶路职员 · 横走 3",
+    "category": "街景角色",
+    "file": "original/commute/commuterWalk3.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterWalk4",
+    "label": "赶路职员 · 横走 4",
+    "category": "街景角色",
+    "file": "original/commute/commuterWalk4.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterWalk5",
+    "label": "赶路职员 · 横走 5",
+    "category": "街景角色",
+    "file": "original/commute/commuterWalk5.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterWalk6",
+    "label": "赶路职员 · 横走 6",
+    "category": "街景角色",
+    "file": "original/commute/commuterWalk6.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterWalk7",
+    "label": "赶路职员 · 横走 7",
+    "category": "街景角色",
+    "file": "original/commute/commuterWalk7.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterWalk8",
+    "label": "赶路职员 · 横走 8",
+    "category": "街景角色",
+    "file": "original/commute/commuterWalk8.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterIdle",
+    "label": "赶路职员 · 厚镜片与工牌",
+    "category": "街景角色",
+    "file": "original/commute/commuterIdle.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterIn1",
+    "label": "赶路职员 · 向里 1",
+    "category": "街景角色",
+    "file": "original/commute/commuterIn1.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterIn2",
+    "label": "赶路职员 · 向里 2",
+    "category": "街景角色",
+    "file": "original/commute/commuterIn2.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterIn3",
+    "label": "赶路职员 · 向里 3",
+    "category": "街景角色",
+    "file": "original/commute/commuterIn3.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterIn4",
+    "label": "赶路职员 · 向里 4",
+    "category": "街景角色",
+    "file": "original/commute/commuterIn4.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterIn5",
+    "label": "赶路职员 · 向里 5",
+    "category": "街景角色",
+    "file": "original/commute/commuterIn5.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterIn6",
+    "label": "赶路职员 · 向里 6",
+    "category": "街景角色",
+    "file": "original/commute/commuterIn6.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterIn7",
+    "label": "赶路职员 · 向里 7",
+    "category": "街景角色",
+    "file": "original/commute/commuterIn7.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterIn8",
+    "label": "赶路职员 · 向里 8",
+    "category": "街景角色",
+    "file": "original/commute/commuterIn8.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterOut1",
+    "label": "赶路职员 · 向外 1",
+    "category": "街景角色",
+    "file": "original/commute/commuterOut1.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterOut2",
+    "label": "赶路职员 · 向外 2",
+    "category": "街景角色",
+    "file": "original/commute/commuterOut2.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterOut3",
+    "label": "赶路职员 · 向外 3",
+    "category": "街景角色",
+    "file": "original/commute/commuterOut3.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterOut4",
+    "label": "赶路职员 · 向外 4",
+    "category": "街景角色",
+    "file": "original/commute/commuterOut4.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterOut5",
+    "label": "赶路职员 · 向外 5",
+    "category": "街景角色",
+    "file": "original/commute/commuterOut5.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterOut6",
+    "label": "赶路职员 · 向外 6",
+    "category": "街景角色",
+    "file": "original/commute/commuterOut6.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterOut7",
+    "label": "赶路职员 · 向外 7",
+    "category": "街景角色",
+    "file": "original/commute/commuterOut7.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterOut8",
+    "label": "赶路职员 · 向外 8",
+    "category": "街景角色",
+    "file": "original/commute/commuterOut8.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterFall1",
+    "label": "赶路职员 · 失衡倒地 1",
+    "category": "街景角色",
+    "file": "original/commute/commuterFall1.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterFall2",
+    "label": "赶路职员 · 失衡倒地 2",
+    "category": "街景角色",
+    "file": "original/commute/commuterFall2.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterFall3",
+    "label": "赶路职员 · 失衡倒地 3",
+    "category": "街景角色",
+    "file": "original/commute/commuterFall3.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterFall4",
+    "label": "赶路职员 · 失衡倒地 4",
+    "category": "街景角色",
+    "file": "original/commute/commuterFall4.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterFall5",
+    "label": "赶路职员 · 失衡倒地 5",
+    "category": "街景角色",
+    "file": "original/commute/commuterFall5.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterFall6",
+    "label": "赶路职员 · 失衡倒地 6",
+    "category": "街景角色",
+    "file": "original/commute/commuterFall6.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterFall7",
+    "label": "赶路职员 · 失衡倒地 7",
+    "category": "街景角色",
+    "file": "original/commute/commuterFall7.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "commuterFall8",
+    "label": "赶路职员 · 失衡倒地 8",
+    "category": "街景角色",
+    "file": "original/commute/commuterFall8.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueAReady1",
+    "label": "候车乘客 A · 留意队尾 1",
+    "category": "街景角色",
+    "file": "original/commute/queueAReady1.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueAReady2",
+    "label": "候车乘客 A · 留意队尾 2",
+    "category": "街景角色",
+    "file": "original/commute/queueAReady2.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueAReady3",
+    "label": "候车乘客 A · 留意队尾 3",
+    "category": "街景角色",
+    "file": "original/commute/queueAReady3.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueAReady4",
+    "label": "候车乘客 A · 留意队尾 4",
+    "category": "街景角色",
+    "file": "original/commute/queueAReady4.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueAShove1",
+    "label": "候车乘客 A · 挤开赶路者 1",
+    "category": "街景角色",
+    "file": "original/commute/queueAShove1.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueAShove2",
+    "label": "候车乘客 A · 挤开赶路者 2",
+    "category": "街景角色",
+    "file": "original/commute/queueAShove2.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueAShove3",
+    "label": "候车乘客 A · 挤开赶路者 3",
+    "category": "街景角色",
+    "file": "original/commute/queueAShove3.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueAShove4",
+    "label": "候车乘客 A · 挤开赶路者 4",
+    "category": "街景角色",
+    "file": "original/commute/queueAShove4.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueAShove5",
+    "label": "候车乘客 A · 挤开赶路者 5",
+    "category": "街景角色",
+    "file": "original/commute/queueAShove5.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueAShove6",
+    "label": "候车乘客 A · 挤开赶路者 6",
+    "category": "街景角色",
+    "file": "original/commute/queueAShove6.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueBReady1",
+    "label": "候车乘客 B · 留意队尾 1",
+    "category": "街景角色",
+    "file": "original/commute/queueBReady1.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueBReady2",
+    "label": "候车乘客 B · 留意队尾 2",
+    "category": "街景角色",
+    "file": "original/commute/queueBReady2.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueBReady3",
+    "label": "候车乘客 B · 留意队尾 3",
+    "category": "街景角色",
+    "file": "original/commute/queueBReady3.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueBReady4",
+    "label": "候车乘客 B · 留意队尾 4",
+    "category": "街景角色",
+    "file": "original/commute/queueBReady4.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueBShove1",
+    "label": "候车乘客 B · 挤开赶路者 1",
+    "category": "街景角色",
+    "file": "original/commute/queueBShove1.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueBShove2",
+    "label": "候车乘客 B · 挤开赶路者 2",
+    "category": "街景角色",
+    "file": "original/commute/queueBShove2.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueBShove3",
+    "label": "候车乘客 B · 挤开赶路者 3",
+    "category": "街景角色",
+    "file": "original/commute/queueBShove3.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueBShove4",
+    "label": "候车乘客 B · 挤开赶路者 4",
+    "category": "街景角色",
+    "file": "original/commute/queueBShove4.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueBShove5",
+    "label": "候车乘客 B · 挤开赶路者 5",
+    "category": "街景角色",
+    "file": "original/commute/queueBShove5.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueBShove6",
+    "label": "候车乘客 B · 挤开赶路者 6",
+    "category": "街景角色",
+    "file": "original/commute/queueBShove6.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueCReady1",
+    "label": "候车乘客 C · 留意队尾 1",
+    "category": "街景角色",
+    "file": "original/commute/queueCReady1.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueCReady2",
+    "label": "候车乘客 C · 留意队尾 2",
+    "category": "街景角色",
+    "file": "original/commute/queueCReady2.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueCReady3",
+    "label": "候车乘客 C · 留意队尾 3",
+    "category": "街景角色",
+    "file": "original/commute/queueCReady3.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueCReady4",
+    "label": "候车乘客 C · 留意队尾 4",
+    "category": "街景角色",
+    "file": "original/commute/queueCReady4.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueCShove1",
+    "label": "候车乘客 C · 挤开赶路者 1",
+    "category": "街景角色",
+    "file": "original/commute/queueCShove1.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueCShove2",
+    "label": "候车乘客 C · 挤开赶路者 2",
+    "category": "街景角色",
+    "file": "original/commute/queueCShove2.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueCShove3",
+    "label": "候车乘客 C · 挤开赶路者 3",
+    "category": "街景角色",
+    "file": "original/commute/queueCShove3.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueCShove4",
+    "label": "候车乘客 C · 挤开赶路者 4",
+    "category": "街景角色",
+    "file": "original/commute/queueCShove4.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueCShove5",
+    "label": "候车乘客 C · 挤开赶路者 5",
+    "category": "街景角色",
+    "file": "original/commute/queueCShove5.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "queueCShove6",
+    "label": "候车乘客 C · 挤开赶路者 6",
+    "category": "街景角色",
+    "file": "original/commute/queueCShove6.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
   }
 ]

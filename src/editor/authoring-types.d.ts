@@ -177,11 +177,12 @@ export type FeedbackTrigger =
   {type:'behavior';behavior:BehaviorRef} |
   {type:'state';source:Entity;state:string} |
   {type:'event';source:Entity;event:EventName;behavior?:string|BehaviorRef} |
-  {type:'start'|'lost'|'won';source?:string;reason?:string};
+  {type:'start'|'won';source?:string;reason?:string} |
+  {type:'lost';source?:string;reason?:string;cause?:Entity};
 export interface FeedbackOptions {
   label?:string;motion?:typeof Motions[keyof typeof Motions];particles?:typeof Particles[keyof typeof Particles];
   sound?:typeof Sounds[keyof typeof Sounds]|SoundAsset;policy?:'restart'|'overlay';
-  duration?:number;delay?:number;strength?:number;loop?:boolean;hold?:boolean;
+  duration?:number;delay?:number;strength?:number;loop?:boolean;hold?:boolean;animation?:Animation;
   anchor?:{x:number;y:number};count?:number;color?:string;direction?:number;volume?:number;[key:string]:unknown;
 }
 export interface Scene {

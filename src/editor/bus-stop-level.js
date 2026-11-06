@@ -31,6 +31,7 @@ export function createBusStopLevel(){
       object('passenger-b','队伍中间的乘客',580,26,60,{contact:{effect:'lethal',message:'撞进了候车队伍。'},behaviors:[{id:'board',label:'跟上前一位乘客',actions:[move('passenger-b',771,100,7)]}]}),
       object('passenger-c','车门前的乘客',620,26,60,{contact:{effect:'lethal',message:'撞进了候车队伍。'},behaviors:[{id:'board',label:'先上车',actions:[move('passenger-c',771,82,7)]}]}),
       {...object('approach','赶路者接近公交',655,12,8),kind:'zone',state:'enabled'},
+      {...object('queue-approach','赶路者靠近队尾',492,10,8),kind:'zone',state:'enabled'},
     ],rules:[
       {on:{source:'bus',type:'click'},if:[{entity:'boarding',state:'active'}],actions:[invoke('bus','open')]},
       {on:{source:'passenger-c',type:'moved'},actions:[set('passenger-c','inactive'),invoke('passenger-b','board')]},
@@ -39,6 +40,7 @@ export function createBusStopLevel(){
       {on:{source:'approach',type:'enter'},if:[{entity:'depart-ready',state:'active'}],actions:[invoke('bus','leave')]},
       {on:{source:'approach',type:'enter'},actions:[set('approach','disabled')]},
       {on:{source:'bus',type:'done',behavior:'close'},if:[{entity:'approach',state:'disabled'},{entity:'depart-ready',state:'active'}],actions:[invoke('bus','leave')]},
+      {on:{source:'queue-approach',type:'enter'},actions:[set('queue-approach','disabled')]},
     ]};
   l.scene=createBusStopScene(l);return l;
 }

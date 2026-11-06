@@ -5,7 +5,7 @@ import {createCommuteChapter} from '../src/editor/commute-chapter.js';
 import {createSimulation,replayRecording,validateLevel} from '../src/core/engine.js';
 import {createFeedbackPlayer} from '../src/render/feedback.js';
 import {artTransform} from '../src/render/resources.js';
-import {deleteObject} from '../src/editor/model.js';
+import {deleteObject,createEditorStore} from '../src/editor/model.js';
 import {feedbackDefault} from '../src/content/feedback-presets.js';
 import {levelToProject} from '../src/editor/javascript-project.js';
 import {executeProject} from './helpers/project.mjs';
@@ -43,7 +43,8 @@ test('cause filters do not animate unrelated objects and bad frame/cause referen
   for(const mutate of [f=>f.trigger.cause='missing',f=>f.animation.frames=['missing'],f=>f.animation.fps=0,f=>f.animation.frames=[],f=>f.trigger.type='won']){
     const copy=structuredClone(level);mutate(copy.scene.feedback[0]);assert.equal(validateLevel(copy).valid,false);
   }
-  deleteObject(level,{type:'entity',id:'passenger-a'});assert.equal(level.scene.feedback.length,0);assert.equal(validateLevel(level).valid,true);
+  const store=createEditorStore();store.open('clip',level);store.change(d=>deleteObject(d,{type:'entity',id:'passenger-a'}));
+  assert.equal(store.document().scene.feedback.length,0);assert.equal(validateLevel(store.document()).valid,true);
   assert.ok(actor.id);
 });
 

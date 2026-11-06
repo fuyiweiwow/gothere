@@ -42,7 +42,7 @@ export function createSimulation(input) {
     updateSupportProbes(level,state.entities,null,true);
     return api;
   };
-  const actions = (list, invocation=null) => {
+  const actions = (list, invocation=null, cause=null) => {
     for (const action of list) {
       if (state.status !== 'running') return;
       if (--actionBudget < 0 || (action.type === 'after' && state.timers.length >= 256)) {
@@ -81,7 +81,7 @@ export function createSimulation(input) {
         e.x=receiver.x;e.space={...e.space,depth:receiver.space.depth,height:receiver.space.height,...(receiver.space.plane?{plane:receiver.space.plane}:{})};
         delete e.translation;delete e.rotation;a.holding=null;emit('把'+e.label+'放到'+receiver.label+'处。');trigger('placed',e.id,undefined,receiver.id);
       } else if (action.type==='hurt') {
-        lose('hurt', action.message??'碰上了一个不太友好的东西。下次换个办法打招呼。');
+        lose('hurt', action.message??'碰上了一个不太友好的东西。下次换个办法打招呼。',invocation?.source??cause);
       } else if (action.type==='turn') {
         state.actor.direction=action.direction;
       } else if (action.type==='invoke') {
@@ -103,7 +103,7 @@ export function createSimulation(input) {
         emit(e.label+' · '+({collider:'碰撞',passage:'通路',surface:'承托',draggable:'拖放',dropTarget:'接收'})[action.capability]+(action.enabled?'启用':'停用'));
       } else if (action.type==='after') {
         if(invocation)invocation.remaining++;
-        state.timers.push({ due: state.tick + action.ticks, order: serial++, actions: clone(action.actions), ...(invocation?{invocation}:{}) });
+        state.timers.push({ due: state.tick + action.ticks, order: serial++, actions: clone(action.actions), ...(invocation?{invocation}:{}),...(cause?{cause}:{}) });
       }
     }
   };
@@ -113,8 +113,8 @@ export function createSimulation(input) {
       complete(invocation.parent);
     }
   };
-  const execute=(list,invocation=null)=>{
-    actions(list,invocation);
+  const execute=(list,invocation=null,cause=null)=>{
+    actions(list,invocation,cause);
     complete(invocation);
   };
   const trigger = (type, source, behavior, other) => {
@@ -126,7 +126,7 @@ export function createSimulation(input) {
         (rule.on.other===undefined||rule.on.other===other) &&
         (rule.if ?? []).every((condition) => Object.hasOwn(condition,'holding') ? state.actor.holding===condition.holding :
           state.entities[condition.entity].state === condition.state)) {
-        actions(rule.actions);
+        actions(rule.actions,null,source);
       }
     }
   };
@@ -145,7 +145,7 @@ export function createSimulation(input) {
     }
     return false;
   };
-  const lose = (reason, message) => { state.status = 'lost'; state.reason = reason; signal('lost','actor',{reason});emit(message, 'lost'); };
+  const lose = (reason, message, cause=null) => { state.status = 'lost'; state.reason = reason; signal('lost','actor',{reason,...(cause?{cause}:{})});emit(message, 'lost'); };
   const approach=(from,to,amount)=>from<to?Math.min(to,from+amount):Math.max(to,from-amount);
   const syncHeld=()=>{const a=state.actor,e=a.holding===null?null:state.entities[a.holding];if(e){e.x=a.x+a.direction*18-e.width/2;const t=verticalTransport(e);if(t)t.toY+=a.y-e.y;e.y=a.y;if(level.spatial)e.space={...e.space,depth:a.space.depth,height:a.space.height,...(a.space.plane?{plane:a.space.plane}:{})};}};
   function updateMotion() {
@@ -298,7 +298,7 @@ export function createSimulation(input) {
     const due = state.timers.filter((timer) => timer.due <= state.tick)
       .sort((a, b) => a.due - b.due || a.order - b.order);
     state.timers = state.timers.filter((timer) => timer.due > state.tick);
-    for (const timer of due) execute(timer.actions,timer.invocation);
+    for (const timer of due) execute(timer.actions,timer.invocation,timer.cause);
     if (state.status !== 'running') { pending = []; return; }
     for (const input of pending) {
       if (state.status !== 'running') break;
@@ -332,7 +332,7 @@ export function createSimulation(input) {
         if(!contacts.has(e.id))trigger(e.kind==='zone'?'enter':'contact',e.id);
         if(e.kind==='plate'&&e.state==='idle'){e.state='pressed';signal('state',e.id,{state:e.state});trigger('enter',e.id);}
         if(state.status!=='running')return;
-        if(e.id!==state.actor.holding&&!['inactive','disabled','stopped','open'].includes(e.state)&&(e.contact?.effect==='lethal'||e.kind==='gate'&&e.state==='closed')){lose('hurt',e.contact?.message??'碰到了危险物。');return;}
+        if(e.id!==state.actor.holding&&!['inactive','disabled','stopped','open'].includes(e.state)&&(e.contact?.effect==='lethal'||e.kind==='gate'&&e.state==='closed')){lose('hurt',e.contact?.message??'碰到了危险物。',e.id);return;}
       }
       contacts=touching;
       syncHeld();
@@ -365,7 +365,7 @@ export function createSimulation(input) {
       if(!contacts.has(entity.id) && entity.kind==='zone')trigger('enter',entity.id);
       if(state.status!=='running')return;
       if(entity.id!==a.holding && !['inactive','disabled','stopped'].includes(entity.state) && entity.contact?.effect==='lethal'){
-        lose('hurt',entity.contact.message??'碰到了危险物。');return;
+        lose('hurt',entity.contact.message??'碰到了危险物。',entity.id);return;
       }
       if(entity.kind==='zone'){
         continue;
@@ -385,7 +385,7 @@ export function createSimulation(input) {
       if(movementTrace){if(!touchesFootPath(movementTrace,entity.x-10,entity.x+entity.width+10,entity.y))continue;}
       else if (entity.y!==a.y || Math.max(from,to) + 10 < entity.x || Math.min(from,to) - 10 > entity.x + entity.width) continue;
       if (entity.kind === 'gate' && entity.state === 'closed') {
-        lose('gate', '门：此路暂时不通。先找个办法打开它。'); return;
+        lose('gate', '门：此路暂时不通。先找个办法打开它。',entity.id); return;
       }
     }
     syncHeld();

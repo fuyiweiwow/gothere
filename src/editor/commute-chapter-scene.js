@@ -4,6 +4,7 @@ import {createCrosswalkScene} from './crosswalk-scene.js';
 import {createScooterScene} from './scooter-scene.js';
 import {feedbackDefault} from '../content/feedback-presets.js';
 import {projectSpace} from '../core/spatial.js';
+import {commuterVisual,commuterFeedback} from './commuter-presentation.js';
 
 /** One elevated parallel view: shared ground bands, shallow roofs and constant
  * adult scale. Paving, architecture and performers remain editable resources. */
@@ -72,11 +73,9 @@ export function createCommuteChapterScene(level){
   add('chapter-food','streetBreakfast','外街 / 可拖放的早餐',-2,-23,25,26,45,{bind:{type:'entity',id:'breakfast'},variants:{inactive:{asset:'blockMeal',x:5,y:-13,width:20,height:8}}});
   add('chapter-bowl','streetBowl','外街 / 狗碗',-1,-9,31,12,44,{bind:{type:'entity',id:'bowl'}});
   add('chapter-dog','streetDog','外街 / 守路与吃早餐的狗',-3,-32,48,35,40,{bind:{type:'entity',id:'dog'},variants:{inactive:{rotation:12,y:-28}}});
-  const player=structuredClone(createCrosswalkScene().nodes.find(n=>n.bind?.type==='actor'));
-  Object.assign(player,{id:'chapter-player',x:-13,y:-49,width:31,height:50});scene.nodes.push(player);
+  const player=commuterVisual('chapter-player',50);scene.nodes.push(player);
   const cue=(target,trigger,extra)=>scene.feedback.push({...feedbackDefault(target,'chapter-cue-'+scene.feedback.length),trigger,...extra});
-  cue(player.id,{type:'lost'},{motion:'fall',particles:'dust',sound:'thud',duration:70,hold:true,strength:.6});
-  cue(player.id,{type:'won'},{motion:'hop',sound:'success',duration:40,strength:.15});
+  scene.feedback.push(...commuterFeedback(player.id));
   cue('chapter-rider',{type:'behavior',source:'scooter',behavior:'give-way'},{motion:'recoil',sound:'pop',duration:24,strength:.16});
   cue('chapter-food',{type:'event',source:'breakfast',event:'placed'},{motion:'hop',sound:'pop',duration:20,strength:.12});
   scene.compositions=[

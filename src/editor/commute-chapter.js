@@ -41,6 +41,7 @@ export function createCommuteChapter(){
         width:18,height:44,contact:{effect:'lethal',message:'撞进了候车队伍。'},
         behaviors:[{id:'board',label:'依次走进车门',actions:[move('passenger-'+id,566,ticks,'front',5)]}]})),
       zone('bus-approach','走近公交车门',540,'front'),
+      zone('queue-approach','赶路者靠近队尾',307,'front'),
 
       obj('crosswalk','向里过街的斑马线',1050,'front',{height:8,passage:{from:'front-curb',to:'middle-entry',distance:160,enabled:true}}),
       zone('cross-approach','走近右侧路口',800,'front'),
@@ -104,6 +105,7 @@ export function createCommuteChapter(){
       rule('bus-approach','enter',[invoke('bus','leave')],[is('depart-ready')]),
       rule('bus-approach','enter',[set('bus-approach','disabled')]),
       {on:{source:'bus',type:'done',behavior:'close'},if:[is('bus-approach','disabled'),is('depart-ready')],actions:[invoke('bus','leave')]},
+      rule('queue-approach','enter',[set('queue-approach','disabled')]),
 
       rule('cross-approach','enter',[set('cross-approach','disabled'),set('intrusion','active'),invoke('jaywalker','cross')]),
       rule('officer','click',[invoke('officer','notice')],[is('intrusion'),is('noticed','inactive')]),

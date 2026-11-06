@@ -11,6 +11,7 @@ export function sceneProjectSource(level,{objects,layers,ref,behavior,state,cons
   const image=id=>'assets.'+directory.references.get(id),sound=id=>soundNames.has(id)?'assets.'+directory.soundReferences.get(id):constant('Sounds',id);
   function scanStyle(style){if(style.asset)imageNames.set(style.asset,imageNames.get(style.asset)??sourceName(style.asset,'image',used));for(const id of style.animation?.frames??[])imageNames.set(id,imageNames.get(id)??sourceName(id,'image',used));}
   for(const node of scene?.nodes??[]){scanStyle(node);Object.values(node.variants??{}).forEach(scanStyle);visualNames.set(node.id,sourceName(node.id,'view',used));}
+  for(const cue of scene?.feedback??[])scanStyle(cue);
   for(const asset of scene?.assets??[])if(!imageNames.has(asset.id))imageNames.set(asset.id,sourceName(asset.id,'image',used));
   for(const s of scene?.sounds??[])soundNames.set(s.id,sourceName(s.id,'sound',used));
   const directory=sceneDirectoryAssets(scene,imageNames.keys());
@@ -57,7 +58,7 @@ export function sceneProjectSource(level,{objects,layers,ref,behavior,state,cons
   const trigger=t=>{
     const {type,source,behavior:slot,...rest}=t;
     if(type==='behavior'&&behavior(source,slot))return `{ type: FeedbackTriggers.Behavior, behavior: ${behavior(source,slot)}${Object.keys(rest).length?', ...'+json(rest):''} }`;
-    const fields=Object.entries(rest).map(([key,value])=>json(key)+': '+(key==='event'?constant('Events',value):key==='state'?state(value):json(value)));
+    const fields=Object.entries(rest).map(([key,value])=>(key==='cause'?'cause':json(key))+': '+(key==='cause'&&objects.has(value)?ref(value):key==='event'?constant('Events',value):key==='state'?state(value):json(value)));
     if(source!==undefined)fields.unshift('source: '+(objects.has(source)?ref(source):json(source)));
     if(slot!==undefined)fields.push('behavior: '+(type==='event'&&behavior(source,slot)?behavior(source,slot):json(slot)));
     return `{ type: ${constant('FeedbackTriggers',type)}${fields.length?', '+fields.join(', '):''} }`;

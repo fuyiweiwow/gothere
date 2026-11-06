@@ -36,9 +36,13 @@ export function artTransform(node,level,snapshot,{tick=snapshot?.tick??0,animate
     }
   }
   const animation=variantData&&Object.hasOwn(variantData,'animation')?variantData.animation:variantData?.asset?null:node.animation;
-  const frames=animation?.frames,frame=animate&&!['lost','won'].includes(snapshot?.status)?Math.floor(tick*(animation?.fps??1)/60):0;
-  return applyMotion({...n,x,y,rotation,asset:frames?.[frame%frames.length]??n.asset,
-    flipX:Boolean(n.flipX)!==Boolean(n.flipWithDirection&&(object?.direction??object?.motionDirection)===-1)},feedback?.motions[node.id]);
+  // A newly started move begins at its own first frame, not an arbitrary global phase.
+  const frames=animation?.frames,clock=moving&&object.translation.elapsed!==undefined?object.translation.elapsed:tick;
+  const frame=animate&&!['lost','won'].includes(snapshot?.status)?Math.floor(clock*(animation?.fps??1)/60):0;
+  const translation=object?.translation,dx=translation?.to&&translation?.from?translation.to.x-translation.from.x:0;
+  const direction=dx?Math.sign(dx):object?.direction??object?.motionDirection;
+  return applyMotion({...n,x,y,rotation,asset:(animate?feedback?.frames?.[node.id]:undefined)??frames?.[frame%frames.length]??n.asset,
+    flipX:Boolean(n.flipX)!==Boolean(n.flipWithDirection&&direction===-1)},feedback?.motions[node.id]);
 }
 
 export function artCorners(node,level,snapshot,options) {

@@ -1,4 +1,5 @@
 import {feedbackDefault} from '../content/feedback-presets.js';
+import {commuterVisual,commuterFeedback,queueFeedback} from './commuter-presentation.js';
 
 /** Art direction is data, composed from broad continuous environment pieces,
  * editable architecture and small independently animated performers. */
@@ -21,18 +22,16 @@ export function createBusStopScene(){
     actor('stop-person-'+suffix,asset+'Idle','乘客 / '+suffix,'passenger-'+suffix,-9,-65,43,70,20,{variants:{inactive:{visible:false},moving:{animation:{frames:[asset+'Idle',asset+'Walk'],fps:8}}}});
   }
   actor('stop-door','stopBusDoor','公交 / 门扇','bus',75,-95,43,94,25,{variants:{inactive:{width:8,opacity:.85}}});
-  actor('stop-player','stopWorkerWalk','角色 / 赶路职员','actor',-19,-68,43,70,35,{animation:{frames:['stopWorkerIdle','stopWorkerWalk'],fps:7},variants:{
-    lost:{asset:'stopWorkerIdle',animation:null},won:{asset:'stopWorkerIdle',animation:null}}});
+  scene.nodes.push(commuterVisual());
   add('stop-foreground','stopPole','前景 / 裁切路灯',-11,453,110,180,90);
   const cue=(target,trigger,extra)=>scene.feedback.push({...feedbackDefault(target,'stop-feedback-'+scene.feedback.length),trigger,...extra});
   cue('stop-door',{type:'behavior',source:'bus',behavior:'open'},{motion:'squash',sound:'clack',duration:24,strength:.15});
   cue('stop-door',{type:'state',source:'bus',state:'active'},{motion:'recoil',sound:'clack',duration:18,strength:.2});
   cue('stop-bus',{type:'behavior',source:'bus',behavior:'leave'},{motion:'recoil',sound:'puff',duration:40,strength:.12});
-  cue('stop-player',{type:'lost'},{motion:'fall',particles:'dust',sound:'thud',duration:70,hold:true,strength:.6});
-  cue('stop-player',{type:'won'},{motion:'hop',sound:'success',duration:40,strength:.15});
+  scene.feedback.push(...commuterFeedback('stop-player'),...queueFeedback());
   scene.compositions=[
     {id:'stop-background',label:'晨间街景 · 背景',origin:{x:0,y:0},nodes:scene.nodes.filter(n=>!n.bind).map(n=>n.id),entities:[]},
-    {id:'stop-encounter',label:'公交与候车队伍',origin:{x:680,y:490},nodes:scene.nodes.filter(n=>n.bind?.type==='entity').map(n=>n.id),entities:['bus','boarding','depart-ready','passenger-a','passenger-b','passenger-c','approach']},
+    {id:'stop-encounter',label:'公交与候车队伍',origin:{x:680,y:490},nodes:scene.nodes.filter(n=>n.bind?.type==='entity').map(n=>n.id),entities:['bus','boarding','depart-ready','passenger-a','passenger-b','passenger-c','approach','queue-approach']},
   ];
   return scene;
 }

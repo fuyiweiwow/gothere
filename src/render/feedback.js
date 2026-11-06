@@ -29,14 +29,14 @@ export function createFeedbackPlayer(level,{onSound=()=>{}}={}) {
     instances.push({slot:f,start:signal.tick+f.delay,key:f.id+':'+signal.sequence,heard:-1,seed:hash(f.id+':'+signal.sequence)});
   };
   const matches=(t,s)=>t.type===s.type&&(!t.source||t.source===s.source)&&(!t.behavior||t.behavior===s.behavior)&&
-    (!t.state||t.state===s.state)&&(!t.event||t.event===s.event)&&(!t.reason||t.reason===s.reason);
+    (!t.state||t.state===s.state)&&(!t.event||t.event===s.event)&&(!t.reason||t.reason===s.reason)&&(!t.cause||t.cause===s.cause);
   function sample(snapshot,{endingTicks=0,enabled=true,audible=true}={}) {
     if(snapshot.tick<lastTick)reset();lastTick=snapshot.tick;
     for(const signal of snapshot.signals??[])if(signal.sequence>seen){for(const f of slots)if(matches(f.trigger,signal))add(f,signal);seen=signal.sequence;}
     const terminal=['lost','won'].includes(snapshot.status);
     if(terminal)terminalEnd??=Math.min(snapshot.tick+960,Math.max(snapshot.tick,...instances.filter(i=>!i.slot.loop).map(i=>i.start+i.slot.duration)));
     else terminalEnd=null;
-    const time=snapshot.tick+(terminal?clamp(endingTicks,0,terminalEnd-snapshot.tick):0),motions={},particles=[];
+    const time=snapshot.tick+(terminal?clamp(endingTicks,0,terminalEnd-snapshot.tick):0),motions={},particles=[],frames={};
     let active=0,tailFinished=true;
     for(const i of instances){
       const f=i.slot,raw=time-i.start;if(raw<0){active++;if(terminal&&!f.loop)tailFinished=false;continue;}
@@ -44,6 +44,10 @@ export function createFeedbackPlayer(level,{onSound=()=>{}}={}) {
       if(!ended){active++;if(terminal&&!f.loop)tailFinished=false;}
       if(i.heard<cycle){i.heard=cycle;if(audible&&snapshot.status!=='paused'&&!ended&&(age<=12||lastTime>=0&&i.start+cycle*f.duration>lastTime)&&f.sound!=='none')onSound({sound:f.sound,volume:f.volume,key:i.key+':'+cycle});}
       if(!enabled||ended&&!f.hold)continue;
+      if(f.animation){
+        const a=f.animation,index=Math.floor(age*a.fps/60);
+        frames[f.target]=a.frames[f.loop?index%a.frames.length:Math.min(index,a.frames.length-1)];
+      }
       const m=motionAt(f.motion,phase,f.strength),target=motions[f.target]??=neutral();
       target.dx+=m.dx;target.dy+=m.dy;target.rotation+=m.rotation;target.scaleX*=m.scaleX;target.scaleY*=m.scaleY;target.opacity*=m.opacity;
       if(!ended&&f.particles!=='none')for(let n=0;n<f.count&&particles.length<512;n++){
@@ -56,7 +60,7 @@ export function createFeedbackPlayer(level,{onSound=()=>{}}={}) {
     }
     instances=instances.filter(i=>i.slot.loop||i.slot.hold||time<i.start+i.slot.duration);
     lastTime=time;
-    return {motions,particles,active,tailFinished};
+    return {motions,particles,frames,active,tailFinished};
   }
   return {sample,reset,preview(slot,tick=0){add({...slot,loop:false},{tick,sequence:'preview-'+(++previewSerial)});}};
 }

@@ -1,4 +1,5 @@
 import {MOTIONS,PARTICLES,SOUNDS} from '../content/feedback-presets.js';
+import {ASSET_IDS} from '../content/asset-ids.js';
 const object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
 const number=(v,a,b)=>Number.isFinite(v)&&v>=a&&v<=b;
 const id=v=>typeof v==='string'&&/^[a-zA-Z][a-zA-Z0-9-]{0,63}$/.test(v);
@@ -20,6 +21,7 @@ export function validateFeedback(level) {
   if(scene.feedback===undefined)return errors;
   check(Array.isArray(scene.feedback)&&scene.feedback.length<=256,'最多256个行为反馈槽。');
   const nodes=new Set((Array.isArray(scene.nodes)?scene.nodes:[]).map(n=>n?.id)),ids=new Set();
+  const images=new Set([...ASSET_IDS,...(Array.isArray(scene.assets)?scene.assets:[]).map(a=>a?.id)]);
   if(Array.isArray(scene.feedback))for(const f of scene.feedback.slice(0,257)){
     if(!object(f)){check(false,'行为反馈格式无效。');continue;}
     check(id(f.id)&&!ids.has(f.id),'行为反馈标识无效或重复。');ids.add(f.id);
@@ -30,6 +32,7 @@ export function validateFeedback(level) {
     check(number(f.strength,0,2)&&number(f.volume,0,1)&&Number.isInteger(f.count)&&number(f.count,1,48)&&number(f.direction,-180,180),'反馈强度、音量、粒子数或方向无效。');
     check(typeof f.loop==='boolean'&&(f.hold===undefined||typeof f.hold==='boolean')&&['restart','overlay'].includes(f.policy),'反馈重复/结束策略无效。');
     check(object(f.anchor)&&number(f.anchor.x,0,1)&&number(f.anchor.y,0,1)&&typeof f.color==='string'&&/^#[a-f0-9]{6}$/i.test(f.color),'反馈挂点或颜色无效。');
+    if(f.animation!==undefined)check(object(f.animation)&&Array.isArray(f.animation.frames)&&f.animation.frames.length>=1&&f.animation.frames.length<=24&&f.animation.frames.every(id=>images.has(id))&&number(f.animation.fps,1,30),'反馈帧动画需要1～24张有效图片，帧率1～30：'+f.id);
     const t=f.trigger,e=level.entities?.find(e=>e.id===t?.source);
     check(object(t)&&['start','behavior','state','event','lost','won'].includes(t.type),'反馈触发类型无效。');
     if(['start','lost','won'].includes(t?.type)&&t.source!==undefined)check(t.source===(t.type==='start'?'scene':'actor'),'反馈生命周期来源无效：'+f.id);
@@ -38,6 +41,7 @@ export function validateFeedback(level) {
     if(t?.type==='event')check(Boolean(e)&&['click','contact','placed','droprejected','enter','board','arrive','rotated','moved','moveblocked','supportlost','supportfound','landed','impact','actorlanded','done'].includes(t.event),'反馈事件来源无效：'+f.id);
     if(t?.type==='event'&&t.behavior!==undefined)check(t.event==='done'&&Boolean(e?.behaviors?.some(b=>b.id===t.behavior)),'反馈完成事件的行为不存在：'+f.id);
     if(t?.reason!==undefined)check(typeof t.reason==='string'&&t.reason.length<=64,'反馈失败原因无效。');
+    if(t?.cause!==undefined)check(t.type==='lost'&&Boolean(level.entities?.some(e=>e.id===t.cause)),'反馈失败的关联物体不存在：'+f.id);
   }
   return errors;
 }
@@ -46,6 +50,6 @@ export function validateFeedback(level) {
 export function pruneFeedback(level) {
   if(!level.scene?.feedback)return;
   const nodes=new Set(level.scene.nodes.map(n=>n.id)),entities=new Map(level.entities.map(e=>[e.id,e]));
-  level.scene.feedback=level.scene.feedback.filter(f=>nodes.has(f.target)&&(!['behavior','state','event'].includes(f.trigger.type)||
+  level.scene.feedback=level.scene.feedback.filter(f=>nodes.has(f.target)&&(!f.trigger.cause||entities.has(f.trigger.cause))&&(!['behavior','state','event'].includes(f.trigger.type)||
     entities.has(f.trigger.source)&&(!f.trigger.behavior||entities.get(f.trigger.source).behaviors?.some(b=>b.id===f.trigger.behavior))));
 }

@@ -42,6 +42,7 @@ export function createSceneLibrary(level) {
     }
   }
   function trigger(value){
+    if(value.cause&&typeof value.cause!=='string')value={...value,cause:entity(value.cause)};
     if(value.behavior?.entity){
       const {behavior,source,...rest}=value,id=entity(behavior.entity);
       if(source!==undefined&&(typeof source==='string'?source:entity(source))!==id)throw new Error('反馈事件必须引用来源物体的行为。');
@@ -65,7 +66,7 @@ export function createSceneLibrary(level) {
     },
     feedbackTemplate(defaults){return {attach(id,target,event,options={}){
       const {sound,...rest}={...defaults,...options};
-      const cue={id,target:own(target,Visual).id,trigger:trigger(event),...structuredClone(rest),...(sound!==undefined?{sound:typeof sound==='string'?sound:own(sound,SoundAsset).id}:{})};
+      const cue={id,target:own(target,Visual).id,trigger:trigger(event),...style(rest),...(sound!==undefined?{sound:typeof sound==='string'?sound:own(sound,SoundAsset).id}:{})};
       data().feedback??=[];if(data().feedback.some(f=>f.id===id))throw new Error('反馈标识重复：'+id);data().feedback.push(cue);return cue;
     }};},
     compose(id,{nodes,entities,...options}){data().compositions??=[];if(data().compositions.some(c=>c.id===id))throw new Error('组合标识重复：'+id);const group={id,...structuredClone(options),nodes:nodes.map(n=>own(n,Visual).id),entities:entities.map(entity)};data().compositions.push(group);return group;},

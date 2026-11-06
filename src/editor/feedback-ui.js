@@ -1,5 +1,6 @@
 import {MOTIONS,PARTICLES,SOUNDS,feedbackDefault} from '../content/feedback-presets.js';
 import {STATES,eventTypes} from '../core/schema.js';
+import {assetLibrary} from '../render/resources.js';
 
 const el=(tag,text)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;return e;};
 const entries=o=>Object.entries(o);
@@ -35,8 +36,24 @@ export function createFeedbackUI({change,preview,stop,notify}) {
         const key={behavior:'behavior',state:'state',event:'event'}[f.trigger.type],items=key==='behavior'?e.behaviors.map(b=>[b.id,b.label]):key==='state'?STATES[e.kind].map(s=>[s,s]):eventTypes(e).map(s=>[s,s]);
         select(key==='behavior'?'命名行为':key==='state'?'目标状态':'事件槽','trigger-detail',items,f.trigger[key],v=>update('trigger',{...f.trigger,[key]:v}));
       }
-      if(f.trigger.type==='lost')select('失败原因','trigger-reason',[['','所有失败'],['hurt','接触伤害'],['hard-landing','坠落'],['boundary','边界']],f.trigger.reason??'',v=>update('trigger',v?{type:'lost',reason:v}:{type:'lost'}));
+      if(f.trigger.type==='lost'){
+        select('失败原因','trigger-reason',[['','所有失败'],['hurt','接触伤害'],['hard-landing','坠落'],['boundary','边界']],f.trigger.reason??'',v=>{const next={...f.trigger};if(v)next.reason=v;else delete next.reason;update('trigger',next);});
+        select('造成失败的物体','trigger-cause',[['','任意物体 / 无关联'],...level.entities.map(e=>[e.id,e.label])],f.trigger.cause??'',v=>{const next={...f.trigger};if(v)next.cause=v;else delete next.cause;update('trigger',next);});
+      }
       select('本体动画','motion',entries(MOTIONS),f.motion);select('特效','particles',entries(PARTICLES),f.particles);
+      const clip=el('label'),clipEnabled=el('input');clip.className='resource-check';clipEnabled.type='checkbox';clipEnabled.checked=Boolean(f.animation);clipEnabled.dataset.feedbackField='clip-enabled';
+      clipEnabled.onchange=()=>change(d=>{const cue=d.scene.feedback.find(s=>s.id===f.id);if(clipEnabled.checked)cue.animation={frames:[d.scene.nodes.find(n=>n.id===nodeId).asset],fps:10};else delete cue.animation;});
+      clip.append(clipEnabled,document.createTextNode('触发时播放帧动画'));card.append(clip);
+      if(f.animation){
+        const library=assetLibrary(level).map(a=>[a.id,a.label]);
+        card.append(el('p','非循环时从第一帧播放到末帧；时长不足会截断。勾选结束保留可停在末帧。'));
+        f.animation.frames.forEach((asset,index)=>{
+          select('反馈帧 '+(index+1),'clip-frame-'+index,library,asset,value=>update('animation',{...f.animation,frames:f.animation.frames.map((id,i)=>i===index?value:id)}));
+          if(f.animation.frames.length>1){const remove=el('button','移除反馈帧 '+(index+1));remove.type='button';remove.className='text-button';remove.onclick=()=>update('animation',{...f.animation,frames:f.animation.frames.filter((_,i)=>i!==index)});card.append(remove);}
+        });
+        select('反馈帧率','clip-fps',Array.from({length:30},(_,i)=>[String(i+1),String(i+1)]),String(f.animation.fps),v=>update('animation',{...f.animation,fps:Number(v)}));
+        if(f.animation.frames.length<24){const addFrame=el('button','＋ 反馈帧');addFrame.type='button';addFrame.className='text-button';addFrame.onclick=()=>update('animation',{...f.animation,frames:[...f.animation.frames,f.animation.frames.at(-1)]});card.append(addFrame);}
+      }
       select('音效槽','sound',[...entries(SOUNDS),...(level.scene.sounds??[]).map(s=>[s.id,s.label])],f.sound);
       field('时长（秒）','duration',f.duration/60,{min:.1,max:6,step:.1,factor:60});field('延迟（秒）','delay',f.delay/60,{min:0,max:10,step:.1,factor:60});
       field('动画 / 发射强度','strength',f.strength,{min:0,max:2,step:.05});field('音量','volume',f.volume,{min:0,max:1,step:.05});
