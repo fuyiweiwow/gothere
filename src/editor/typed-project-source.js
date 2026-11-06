@@ -57,13 +57,12 @@ export function typedLevelProject(level){
       const {id,label,kind,x,width,height,state:initial,space}=data;
       construct=`super(context, ${json(id)}, { label: ${json(label)}, at: context.layers.${layers.get(space.plane)}.at(${x}, ${json({height:space.height,...(space.depthSize!==undefined?{depthSize:space.depthSize}:{})})}), size: { width: ${width}, height: ${height} }, kind: ${constant('Kinds',kind)}, state: ${state(initial)} });`;
     }
-    files[path]=`import { Entity, ${keywords} } from '@gothere/core';\nimport type { ProjectContext } from '../context.ts';\nimport type { Objects } from './index.ts';\n\n// ${clean(definition.label)}\nexport default class ${className} extends Entity<ProjectContext> {\n`+
+    files[path]=`import { Entity, instance, ${keywords} } from '@gothere/core';\nimport type { ProjectContext } from '../context.ts';\nimport type { Objects } from '@gothere/objects';\n\n// ${clean(definition.label)}\nexport default class ${className} extends Entity<ProjectContext> {\n`+
       (definition.behaviors??[]).map(b=>`  readonly ${slots.get(b.id)} = this.behaviorSlot(${json(b.id)}, ${json(b.label??b.id)});\n`).join('')+
       `\n  constructor(context: ProjectContext) {\n    ${construct}\n  }\n\n  configure(objects: Objects) {\n    const context = this.context;\n`+setup.join('\n')+'\n'+
-      (behaviors??[]).map(b=>`    this.${slots.get(b.id)}.actions(${actions(b.actions)});\n`).join('')+'  }\n}\n';
+      (behaviors??[]).map(b=>`    this.${slots.get(b.id)}.actions(${actions(b.actions)});\n`).join('')+'  }\n}\n'+`\nexport const ${info.key} = instance(${className}, { order: ${[...objects.values()].indexOf(info)} });\n`;
   }
-  const imports=[...objects.values()].map(o=>`import ${o.className} from './${o.path.split('/').at(-1)}';`);
-  files['objects/index.ts']=`import type { ProjectContext } from '../context.ts';\n${imports.join('\n')}\n\nexport function createObjects(context: ProjectContext) {\n  const objects = {\n${[...objects.values()].map(o=>'    '+o.key+': new '+o.className+'(context)').join(',\n')}\n  };\n${[...objects.values()].map(o=>'  objects.'+o.key+'.configure(objects);').join('\n')}\n  return objects;\n}\n\nexport type Objects = ReturnType<typeof createObjects>;\n`;
+  files['objects/index.ts']=`// 实例由各文件的 export const 声明选择，装配清单由编辑器维护。\nexport { createObjects, type Objects } from '@gothere/objects';\n`;
   const rules=level.rules.map(rule=>{
     const {source,type,...details}=rule.on;
     if(objects.has(source)&&Object.keys(rule).every(k=>['on','if','actions'].includes(k))&&(!Object.hasOwn(rule,'if')||rule.if.length)){

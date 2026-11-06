@@ -7,11 +7,13 @@ import {createAuthoringNavigator} from './authoring-navigator.js';
 import {createAuthoringPreview} from './authoring-preview.js';
 import {ASSETS_INDEX,assetModule,assetKeys} from './project-assets.js';
 import {showProjectAsset,importProjectAssets,projectAssetDefinition} from './project-asset-ui.js';
+import {authoringFileSource} from './authoring-file-templates.js';
 
 export function createAuthoringUI({editor,notify,download,pause}) {
   const $=id=>document.getElementById(id),dialog=$('script-dialog'),source=$('script-source');
   let base,baseline,project,active,storageKey,result,task,codeEditor,reviewedCanvas,programmatic=false,dirty=false,hasSaved=false;
   const changedFiles=new Set(),opened=new Set(),collapsed=new Set();
+  let generatedFiles={},assemblyTicket=0;
   const core=globalThis.gothereAuthoringTypes??authoringLibrarySource();
   const trial=createAuthoringPreview({root:dialog,onInspect:id=>navigator.inspect(id)});
   const navigator=createAuthoringNavigator({project:()=>project,navigate:(path,position)=>{showFile(path);codeEditor?.jump(position);},notice:text=>message(text),onSelect:id=>trial.select(id),isOpen:()=>dialog.open});
@@ -60,19 +62,25 @@ export function createAuthoringUI({editor,notify,download,pause}) {
     throw new Error('源码草稿格式不正确。');
   }
   function changed(text){
-    source.value=text;if(programmatic||active===CORE_MODULE||active===ASSETS_INDEX||Object.hasOwn(project.assets??{},active))return;
-    project.files[active]=text;dirty=true;changedFiles.add(active);stop();invalidate();renderTabs();navigator.changed();
+    source.value=text;if(programmatic||active===CORE_MODULE||active.startsWith('.gothere/')||Object.hasOwn(project.assets??{},active))return;
+    project.files[active]=text;dirty=true;changedFiles.add(active);stop();invalidate();renderTabs();navigator.changed();void refreshAssembly();
+  }
+  async function refreshAssembly(){
+    const ticket=++assemblyTicket,snapshot=project;
+    if(snapshot.version!==2){generatedFiles={};return;}
+    try{const files=await typeScriptClient().request('assembly',snapshot);if(ticket!==assemblyTicket||project!==snapshot)return;generatedFiles=files;renderTree();}
+    catch(error){if(ticket===assemblyTicket)message('装配索引：'+error.message,true);}
   }
   function showFile(path){
-    const asset=Object.hasOwn(project.assets??{},path),generated=path===ASSETS_INDEX&&project.version===2,readonly=path===CORE_MODULE||generated;
+    const asset=Object.hasOwn(project.assets??{},path),generated=path===ASSETS_INDEX&&project.version===2||Object.hasOwn(generatedFiles,path),readonly=path===CORE_MODULE||generated;
     if(path!==CORE_MODULE&&!generated&&!asset&&!Object.hasOwn(project.files,path))return;
     active=path;opened.add(path);if(path!==CORE_MODULE)project.active=path;
     const viewer=$('script-asset-preview');showProjectAsset(viewer,project,asset?path:null);viewer.hidden=!asset;
     $('code-editor').hidden=asset||!codeEditor;source.hidden=asset||!!codeEditor;
-    programmatic=true;const text=path===CORE_MODULE?core:generated?assetModule(project).source:asset?'':project.files[path];source.value=text;source.readOnly=readonly||asset;
+    programmatic=true;const text=path===CORE_MODULE?core:generated?path===ASSETS_INDEX?assetModule(project).source:generatedFiles[path]:asset?'':project.files[path];source.value=text;source.readOnly=readonly||asset;
     if(codeEditor)codeEditor.open(path,text,{readOnly:readonly||asset,files:Object.keys(project.files)});
     programmatic=false;
-    $('script-current-path').textContent=path;$('script-readonly').hidden=!readonly;$('script-readonly').textContent=generated?'自动目录索引 · 只读':'内置基础库 · 只读';
+    $('script-current-path').textContent=path;$('script-readonly').hidden=!readonly;$('script-readonly').textContent=generated?'自动生成 · 只读':'内置基础库 · 只读';
     $('script-rename').disabled=$('script-delete').disabled=readonly;
     $('script-definition').disabled=asset||generated;
     $('script-file-form').hidden=true;renderTree();renderTabs();codeEditor?.refresh();
@@ -92,7 +100,7 @@ export function createAuthoringUI({editor,notify,download,pause}) {
   function renderTree(){
     const tree=$('script-tree'),filter=$('script-search').value.trim().toLowerCase();tree.replaceChildren();
     const root={folders:new Map(),files:[]};
-    for(const path of [...Object.keys(project.files),...Object.keys(project.assets??{}),...(project.version===2?[ASSETS_INDEX]:[])].sort()){
+    for(const path of [...Object.keys(project.files),...Object.keys(project.assets??{}),...(project.version===2?[ASSETS_INDEX,...Object.keys(generatedFiles)]:[])].sort()){
       if(filter&&!path.toLowerCase().includes(filter))continue;
       const parts=path.split('/');let folder=root;
       for(const part of parts.slice(0,-1)){if(!folder.folders.has(part))folder.folders.set(part,{folders:new Map(),files:[]});folder=folder.folders.get(part);}
@@ -121,9 +129,9 @@ export function createAuthoringUI({editor,notify,download,pause}) {
     $('script-file-count').textContent=Object.keys(project.files).length+' 源码 · '+Object.keys(project.assets??{}).length+' 资源';
   }
   function replaceProject(next){
-    validateProject(next);project=structuredClone(next);opened.clear();changedFiles.clear();collapsed.clear();$('script-search').value='';codeEditor?.reset();diagnostics([]);
+    validateProject(next);project=structuredClone(next);generatedFiles={};assemblyTicket++;opened.clear();changedFiles.clear();collapsed.clear();$('script-search').value='';codeEditor?.reset();diagnostics([]);
     opened.add(project.entry);dirty=true;trial.clear();previewVisible(false);navigator.reset();showFile(Object.hasOwn(project.files,project.active)||Object.hasOwn(project.assets??{},project.active)?project.active:project.entry);invalidate();
-    if(dialog.open)void navigator.refresh();
+    void refreshAssembly();if(dialog.open)void navigator.refresh();
   }
   $('open-script').onclick=()=>{
     pause();storageKey='gothere.authoring.'+editor.documentKey();base=editor.document();baseline=base;hasSaved=false;
@@ -145,6 +153,7 @@ export function createAuthoringUI({editor,notify,download,pause}) {
   $('script-restore').onclick=()=>{stop();try{const previous=decode(JSON.parse(localStorage.getItem(storageKey+'.previous')));if(!backup())return;base=previous.base;baseline=previous.baseline;replaceProject(previous.project);if(save())message('已恢复之前的源码项目。');}catch(error){message(error.message,true);}};
   function fileForm(mode){
     $('script-file-form').dataset.mode=mode;$('script-file-form').hidden=false;$('script-path-label').textContent=mode==='rename'?'重命名并更新 import':'新建 TypeScript / JavaScript 文件';
+    $('script-template-label').hidden=mode==='rename';
     $('script-path').value=mode==='rename'?active:'';if(mode==='rename'&&Object.hasOwn(project.assets??{},active))$('script-path-label').textContent='移动资源并更新完整目录引用（保留资源 ID）';$('script-path').focus();
   }
   $('script-new').onclick=()=>fileForm('new');$('script-rename').onclick=()=>fileForm('rename');
@@ -161,15 +170,15 @@ export function createAuthoringUI({editor,notify,download,pause}) {
         const next=nextAsset??renameProjectFile(project,from,path,refs?((source,file)=>refs[file]):undefined);if(!backup())return;project=next;opened.delete(active);changedFiles.delete(active);codeEditor?.reset();
       }else{
         if(Object.hasOwn(project.files,path))throw new Error('文件已存在：'+path);
-        const next={...project,files:{...project.files,[path]:"import { Entity } from '@gothere/core';\n\n// 在这里定义可复用的类或函数。\n"}};validateProject(next);if(!backup())return;project=next;
+        const next={...project,files:{...project.files,[path]:authoringFileSource(project,path,$('script-template').value)}};validateProject(next);if(!backup())return;project=next;
       }
-      stop();invalidate();dirty=true;changedFiles.add(path);showFile(path);navigator.changed();message('文件已更新；Ctrl+S 保存项目，Ctrl+Enter 校验入口。');
+      stop();invalidate();dirty=true;changedFiles.add(path);showFile(path);navigator.changed();void refreshAssembly();message('文件已更新；Ctrl+S 保存项目，Ctrl+Enter 校验入口。');
     }catch(error){message(error.message,true);}
   };
   $('script-delete').onclick=()=>{
-    if(active===CORE_MODULE||active===ASSETS_INDEX)return;
+    if(active===CORE_MODULE||active.startsWith('.gothere/'))return;
     if(active===project.entry){message('请先在上方选择其他入口文件，再删除此文件。',true);return;}
-    if(!backup())return;if(Object.hasOwn(project.assets??{},active))delete project.assets[active];else delete project.files[active];opened.delete(active);changedFiles.delete(active);dirty=true;stop();invalidate();showFile(project.entry);navigator.changed();message('文件已删除，失效引用会在校验时报告；可恢复之前的项目。');
+    if(!backup())return;if(Object.hasOwn(project.assets??{},active))delete project.assets[active];else delete project.files[active];opened.delete(active);changedFiles.delete(active);dirty=true;stop();invalidate();showFile(project.entry);navigator.changed();void refreshAssembly();message('文件已删除，失效引用会在校验时报告；可恢复之前的项目。');
   };
   source.oninput=()=>changed(source.value);
   dialog.addEventListener('keydown',e=>{
@@ -219,7 +228,7 @@ export function createAuthoringUI({editor,notify,download,pause}) {
       const imported=await importProjectAssets(project,files,{folder,destination:destination?destination+'/':''});
       if(!dialog.open||snapshot!==JSON.stringify(project))throw new Error('项目已变化，请重新导入资源。');
       validateProject(imported.project);if(!backup())return;
-      project=imported.project;stop();invalidate();dirty=true;codeEditor?.reset();showFile(imported.path);navigator.changed();if(save())message('目录资源已登记，可通过 @gothere/assets 的 createAssets(level) 获取类型化引用。');
+      project=imported.project;stop();invalidate();dirty=true;codeEditor?.reset();showFile(imported.path);navigator.changed();void refreshAssembly();if(save())message('目录资源已登记，可通过 @gothere/assets 的 createAssets(level) 获取类型化引用。');
     }catch(error){message(error.message,true);}finally{input.value='';}
   };
   $('script-load').onclick=()=>$('script-file').click();
@@ -244,6 +253,6 @@ export function createAuthoringUI({editor,notify,download,pause}) {
   };
   $('close-script').onclick=()=>{if(save())dialog.close();};
   dialog.addEventListener('cancel',e=>{if(!save())e.preventDefault();});
-  dialog.addEventListener('close',()=>{stop();trial.clear();showProjectAsset($('script-asset-preview'),project,null);navigator.stop();codeEditor?.destroy();codeEditor=null;});
+  dialog.addEventListener('close',()=>{assemblyTicket++;stop();trial.clear();showProjectAsset($('script-asset-preview'),project,null);navigator.stop();codeEditor?.destroy();codeEditor=null;});
   return {canvasChanged(){if(dialog.open)changes();}};
 }

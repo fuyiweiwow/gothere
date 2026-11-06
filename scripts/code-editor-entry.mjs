@@ -50,7 +50,7 @@ globalThis.createGothereCodeEditor=(parent,onChange,{project:getProject,onDiagno
   async function complete(context){
     const quote=context.matchBefore(/['"][^'"\n]*/);
     if(quote&&/\b(?:from|import)\s*$/.test(context.state.sliceDoc(Math.max(0,quote.from-30),quote.from))){
-      return {from:quote.from+1,options:['@gothere/core',...(snapshot()?.version===2?['@gothere/assets']:[]),...files.filter(p=>p!==current).map(p=>relative(current,p))].map(label=>({label,type:'module'})),validFor:/^[\p{ID_Continue}$@./-]*$/u};
+      return {from:quote.from+1,options:['@gothere/core',...(snapshot()?.version===2?['@gothere/assets','@gothere/objects','@gothere/scene-groups']:[]),...files.filter(p=>p!==current).map(p=>relative(current,p))].map(label=>({label,type:'module'})),validFor:/^[\p{ID_Continue}$@./-]*$/u};
     }
     const word=context.matchBefore(/[\p{ID_Continue}$]*/u),project=snapshot(),path=current;
     if(!project||!Object.hasOwn(project.files,path)||!context.explicit&&!word?.text&&!context.matchBefore(/\.$/))return null;

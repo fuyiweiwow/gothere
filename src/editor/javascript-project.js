@@ -8,6 +8,7 @@ import {typedLevelProject} from './typed-project-source.js';
 import {ASSETS_MODULE,ASSETS_INDEX,validateProjectAssets,materializeProjectAssets} from './project-assets.js';
 
 export const CORE_MODULE = '@gothere/core';
+const assemblyModules={'@gothere/objects':'.gothere/objects.ts','@gothere/scene-groups':'.gothere/scene-groups.ts'};
 export const PROJECT_LIMIT = 2097152;
 
 function literal(value) {
@@ -41,6 +42,7 @@ export function validateProject(project) {
 export function resolveProjectImport(from, specifier) {
   if (specifier === CORE_MODULE) return CORE_MODULE;
   if (specifier === ASSETS_MODULE) return ASSETS_INDEX;
+  if(Object.hasOwn(assemblyModules,specifier))return assemblyModules[specifier];
   if (!specifier.startsWith('./') && !specifier.startsWith('../')) throw new Error(`${from} · 仅支持项目相对路径和 ${CORE_MODULE}：${specifier}`);
   const parts = from.split('/').slice(0, -1);
   for (const part of specifier.split('/')) {
@@ -61,6 +63,7 @@ export function relativeProjectImport(from, target) {
 export function projectModuleGraph(project, analyze = globalThis.gothereProjectTools?.analyzeModule) {
   validateProject(project);
   project=materializeProjectAssets(project);
+  project={...project,files:{...project.files,...project.generated}};
   if (!analyze) throw new Error('模块解析器未加载，请重新打开编辑器。');
   const ordered = [], visited = new Set(), visiting = [];
   function visit(path) {
@@ -89,7 +92,7 @@ export function renameProjectFile(project, from, to, analyze = globalThis.gother
   const files = Object.fromEntries(Object.entries(project.files).map(([path, source]) => {
     const next = path === from ? to : path;
     const refs = analyze(source, path).map(ref => ({...ref, target: resolveProjectImport(path, ref.specifier)}));
-    return [next, rewriteModuleImports(source, refs, ref => ref.target === CORE_MODULE ? CORE_MODULE : ref.target===ASSETS_INDEX?ASSETS_MODULE:relativeProjectImport(next, ref.target === from ? to : ref.target))];
+    return [next, rewriteModuleImports(source, refs, ref => ref.target === CORE_MODULE ? CORE_MODULE : ref.target===ASSETS_INDEX?ASSETS_MODULE:Object.keys(assemblyModules).find(name=>assemblyModules[name]===ref.target)??relativeProjectImport(next, ref.target === from ? to : ref.target))];
   }));
   return validateProject({...project, files, entry: project.entry === from ? to : project.entry, active: to});
 }
@@ -99,7 +102,7 @@ export function authoringLibrarySource() {
   return '// 内置基础库 · 随编辑器提供；项目中使用 import { Level, Entity, Actions } from "@gothere/core"。\n' +
     'const blank = ' + literal(blank) + ';\n\n' +
     'export const createAPI = level => (' + createAuthoringAPI.toString() + ')(level, blank);\n\n' +
-    'export const { Level, Entity, Actions, Layer, Position, RoutePoint, Passage, LevelContext, LevelComponent, BehaviorRef, States, Events, Kinds, Effects, Motions, Particles, Sounds, VisualStates, FeedbackPolicies, FeedbackTriggers, Capabilities } = (' + createAuthoringLibrary.toString() + ')(createAPI, blank, '+createSceneLibrary.toString()+');\n';
+    'export const { Level, Entity, Actions, Layer, Position, RoutePoint, Passage, LevelContext, LevelComponent, BehaviorRef, instance, sceneGroup, States, Events, Kinds, Effects, Motions, Particles, Sounds, VisualStates, FeedbackPolicies, FeedbackTriggers, Capabilities } = (' + createAuthoringLibrary.toString() + ')(createAPI, blank, '+createSceneLibrary.toString()+');\n';
 }
 
 export function levelToProject(level, {typescript = false} = {}) {

@@ -35,7 +35,7 @@ export function sceneProjectSource(level,{objects,layers,ref,behavior,state,cons
   if(!scene)return {files,assets:directory.assets};
   files['scene/styles.ts']=`import { type Scene } from '@gothere/core';\nimport type { createResources } from '../resources.ts';\n\nexport function createStyles(scene: Scene, assets: ReturnType<typeof createResources>) {\n  return {\n${[...templateNames].map(([id,name])=>'    '+name+': scene.template('+image(id)+', '+style(templateDefaults.get(id))+')').join(',\n')}\n  };\n}\n`;
   const groups=new Map();for(const node of scene.nodes){let group=node.group??'ungrouped';if(groups.size>=32&&!groups.has(group))group='additional-groups';if(!groups.has(group))groups.set(group,[]);groups.get(group).push(node);}
-  const calls=[],imports=[],groupUsed=new Set(),groupResults=[];
+  const groupUsed=new Set();
   for(const [group,nodes]of groups){
     const name=sourceName(group,'group',groupUsed),path='scene/'+name+'.ts',lines=[];
     for(const node of nodes){
@@ -50,10 +50,9 @@ export function sceneProjectSource(level,{objects,layers,ref,behavior,state,cons
       if(node.variants&&Object.keys(node.variants).length===0)expression+='.properties({ variants: {} })';
       lines.push(`  const ${visualNames.get(node.id)} = ${expression};`);
     }
-    files[path]=`import { VisualStates, States } from '@gothere/core';\nimport type { ProjectContext } from '../context.ts';\nimport type { Objects } from '../objects/index.ts';\nimport type { createStyles } from './styles.ts';\n\nexport function ${name}(context: ProjectContext, objects: Objects, styles: ReturnType<typeof createStyles>) {\n  const { scene, assets } = context;\n${lines.join('\n')}\n  return { ${nodes.map(n=>visualNames.get(n.id)).join(', ')} };\n}\n`;
-    imports.push(`import { ${name} } from './${name}.ts';`);calls.push(`  const ${name}Views = ${name}(context, objects, styles);`);groupResults.push('...'+name+'Views');
+    files[path]=`import { VisualStates, States, sceneGroup } from '@gothere/core';\nimport type { ProjectContext } from '../context.ts';\nimport type { Objects } from '@gothere/objects';\nimport type { createStyles } from './styles.ts';\n\nexport function ${name}(context: ProjectContext, objects: Objects, styles: ReturnType<typeof createStyles>) {\n  const { scene, assets } = context;\n${lines.join('\n')}\n  return { ${nodes.map(n=>visualNames.get(n.id)).join(', ')} };\n}\n\nexport const ${name}Group = sceneGroup(${name}, { order: ${[...groups.keys()].indexOf(group)} });\n`;
   }
-  files['scene/visuals.ts']=`import type { ProjectContext } from '../context.ts';\nimport type { Objects } from '../objects/index.ts';\nimport { createStyles } from './styles.ts';\n${imports.join('\n')}\n\nexport function createVisuals(context: ProjectContext, objects: Objects) {\n  const styles = createStyles(context.scene, context.assets);\n${calls.join('\n')}\n  const visuals = { ${groupResults.join(', ')} };\n  context.scene.arrange([${scene.nodes.map(n=>'visuals.'+visualNames.get(n.id)).join(', ')}]);\n  return visuals;\n}\n\nexport type Visuals = ReturnType<typeof createVisuals>;\n`;
+  files['scene/visuals.ts']=`import type { ProjectContext } from '../context.ts';\nimport type { Objects } from '@gothere/objects';\nimport { createStyles } from './styles.ts';\nimport { createSceneGroups } from '@gothere/scene-groups';\n\nexport function createVisuals(context: ProjectContext, objects: Objects) {\n  const styles = createStyles(context.scene, context.assets);\n  const visuals = createSceneGroups(context, objects, styles);\n  context.scene.arrange([${scene.nodes.map(n=>'visuals.'+visualNames.get(n.id)).join(', ')}], { appendRemaining: true });\n  return visuals;\n}\n\nexport type Visuals = ReturnType<typeof createVisuals>;\n`;
   const cues=scene.feedback??[],defaults=common(cues.map(({id,target,trigger,...options})=>options));
   const trigger=t=>{
     const {type,source,behavior:slot,...rest}=t;

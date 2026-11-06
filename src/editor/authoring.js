@@ -14,7 +14,7 @@ export function generateFromProject(project,{timeout=2500}={}) {
     const finish=(error,value)=>{if(settled)return;settled=true;cleanup();if(error)reject(error);else resolve(value);};
     const start=async()=>{try {
       const snapshot=structuredClone(validateProject(project));
-      const compiled=Object.keys(snapshot.files).some(path=>path.endsWith('.ts'))?await typeScriptClient().request('compile',snapshot):snapshot;
+      const compiled=snapshot.version===2||Object.keys(snapshot.files).some(path=>path.endsWith('.ts'))?await typeScriptClient().request('compile',snapshot):snapshot;
       if(settled)return;
       const graph=projectModuleGraph(compiled);
       // Create module URLs inside the Worker. An offline file has an opaque origin,

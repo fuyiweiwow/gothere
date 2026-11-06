@@ -11,7 +11,7 @@ export async function typeService(){
 
 let run=0;
 export async function executeProject(project){
-  if(Object.keys(project.files).some(path=>path.endsWith('.ts')))project=(await typeService()).compile(project);
+  if(project.version===2||Object.keys(project.files).some(path=>path.endsWith('.ts')))project=(await typeService()).compile(project);
   const urls=new Map(),nonce=++run;
   const url=(path,text)=>{const value='data:text/javascript;base64,'+Buffer.from(text+'\n// run '+nonce+' '+path).toString('base64');urls.set(path,value);return value;};
   url(CORE_MODULE,authoringLibrarySource());

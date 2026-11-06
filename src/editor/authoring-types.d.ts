@@ -86,6 +86,18 @@ export class LevelComponent<C extends LevelContext = LevelContext> {
   constructor(context:C|Level);
   readonly context:C; readonly level:Level; readonly scene:Scene; readonly resources:Resources;
 }
+export interface InstanceDefinition<T extends Entity=Entity,C extends LevelContext=LevelContext> {
+  readonly Type:new(context:C,...args:any[])=>T;
+  readonly args?:(context:C)=>any[];
+  readonly order?:number;
+}
+export function instance<C extends LevelContext,T extends Entity>(Type:new(context:C)=>T):InstanceDefinition<T,C>;
+export function instance<C extends LevelContext,A extends any[],T extends Entity>(Type:new(context:C,...args:A)=>T,options:[] extends A?{args?:(context:C)=>A;order?:number}:{args:(context:C)=>A;order?:number}):InstanceDefinition<T,C>;
+export interface SceneGroupDefinition<C=any,O=any,S=any,V=Record<string,Visual>> {
+  readonly build:(context:C,objects:O,styles:S)=>V;
+  readonly order:number;
+}
+export function sceneGroup<C,O,S,V extends Record<string,Visual>>(build:(context:C,objects:O,styles:S)=>V,options?:{order?:number}):SceneGroupDefinition<C,O,S,V>;
 export class Entity<C extends LevelContext = LevelContext> extends LevelComponent<C> {
   private readonly entityBrand;
   constructor(context:C|Level, definition:string|Record<string,any>);
@@ -177,7 +189,7 @@ export interface Scene {
   configure(options:Record<string,unknown>):this;
   image(id:string,image:ImageAsset):Visual;
   template(image:ImageAsset,defaults?:VisualStyle):VisualTemplate;
-  arrange(visuals:Visual[]):this;
+  arrange(visuals:Visual[],options?:{appendRemaining?:boolean}):this;
   feedbackTemplate(defaults:FeedbackOptions):{attach(id:string,target:Visual,trigger:FeedbackTrigger,options?:FeedbackOptions):unknown};
   compose(id:string,options:{label:string;origin:{x:number;y:number};nodes:Visual[];entities:Entity[];[key:string]:unknown}):unknown;
 }

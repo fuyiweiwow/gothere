@@ -123,7 +123,7 @@ test('injected contexts expose concrete resources, references and behavior slots
   assert.match(project.files['scene/styles.ts'],/scene\.template\(assets\.images\./);
   assert.match(project.files['scene/feedback.ts'],/behavior: objects\.itemBus\.doLeave/);
   const eventPosition=project.files['events.ts'].indexOf('itemBus')+2;
-  assert.ok(service.definitions(project,'events.ts',eventPosition).some(d=>d.path==='objects/index.ts'));
+  assert.ok(service.definitions(project,'events.ts',eventPosition).some(d=>d.path==='objects/bus.ts'));
   const behaviorPosition=project.files['events.ts'].indexOf('doOpen')+2;
   assert.ok(service.definitions(project,'events.ts',behaviorPosition).some(d=>d.path==='objects/bus.ts'));
   const eventConstant=project.files['events.ts'].indexOf('Events.Click')+'Events.'.length+1;

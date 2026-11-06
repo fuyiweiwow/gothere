@@ -1,6 +1,7 @@
 import ts from 'typescript';
 import {projectOutline} from './project-outline.mjs';
 import {ASSETS_MODULE,ASSETS_INDEX,assetModule,renameProjectAsset,assetKeys} from '../src/editor/project-assets.js';
+import {projectAssembly,OBJECTS_MODULE,GROUPS_MODULE,OBJECTS_INDEX,GROUPS_INDEX} from './project-assembly.mjs';
 
 /** Virtual project; no filesystem, network, evaluation or user code execution. */
 export function createTypeScriptService(libraries, declarations) {
@@ -14,6 +15,8 @@ export function createTypeScriptService(libraries, declarations) {
   function resolve(name, containingFile) {
     if(name==='@gothere/core')return {resolvedFileName:'/sdk/core.d.ts',extension:ts.Extension.Dts};
     if(name===ASSETS_MODULE&&files.has('/project/'+ASSETS_INDEX))return {resolvedFileName:'/project/'+ASSETS_INDEX,extension:ts.Extension.Ts};
+    const assemblyPath=name===OBJECTS_MODULE?OBJECTS_INDEX:name===GROUPS_MODULE?GROUPS_INDEX:null;
+    if(assemblyPath&&files.has('/project/'+assemblyPath))return {resolvedFileName:'/project/'+assemblyPath,extension:ts.Extension.Ts};
     if(!name.startsWith('.'))return undefined;
     const path=normalize(containingFile.split('/').slice(0,-1).join('/')+'/'+name);
     if(!files.has(path))return undefined;
@@ -32,7 +35,7 @@ export function createTypeScriptService(libraries, declarations) {
   const service=ts.createLanguageService(host);
   function update(project) {
     const sources={...project.files};
-    if(project.version===2)sources[ASSETS_INDEX]=assetModule(project).source;
+    if(project.version===2){sources[ASSETS_INDEX]=assetModule(project).source;Object.assign(sources,projectAssembly(project).files);}
     const next=new Map(Object.entries(sources).map(([path,source])=>['/project/'+path,source]));let changed=files.size!==next.size;
     for(const [path,source]of next)if(files.get(path)!==source){versions.set(path,(versions.get(path)??0)+1);changed=true;}
     files=next;if(changed)projectVersion++;
@@ -69,11 +72,14 @@ export function createTypeScriptService(libraries, declarations) {
     compile(project) {
       const errors=diagnostics(project).filter(d=>d.severity==='error');
       if(errors.length)throw new Error(errors.slice(0,20).map(d=>`${d.path}:${d.line}:${d.column} · TS${d.code} ${d.message}`).join('\n'));
-      const result={};for(const [path,source]of Object.entries(project.files)){
+      const sources={...project.files,...(project.version===2?projectAssembly(project).files:{})};
+      const result={};for(const [path,source]of Object.entries(sources)){
         result[path]=path.endsWith('.d.ts')?'export {};\n':path.endsWith('.ts')?ts.transpileModule(source,{fileName:path,compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext,verbatimModuleSyntax:false}}).outputText:source;
       }
-      return {...project,files:result};
+      // Generated modules travel separately; they are never saved as author files.
+      return {...project,files:Object.fromEntries(Object.entries(result).filter(([p])=>!p.startsWith('.gothere/'))),generated:Object.fromEntries(Object.entries(result).filter(([p])=>p.startsWith('.gothere/')))};
     },
+    assembly(project) {return projectAssembly(project).files;},
     analyzeFiles(project) { return Object.fromEntries(Object.entries(project.files).map(([path,source])=>[path,analyze(source,path)])); },
     outline(project) { update(project);return projectOutline(service.getProgram()); },
     renameAsset(project,from,to) {
@@ -137,6 +143,7 @@ export function createTypeScriptService(libraries, declarations) {
         const target=info.fileName==='/sdk/core.d.ts'?'@gothere/core':info.fileName.startsWith('/project/')?info.fileName.slice('/project/'.length):null;
         if(!target)return [];
         if(target===ASSETS_INDEX){const original=assetModule(project).positions.find(p=>p.start===info.textSpan.start);if(original)return [{path:original.path,start:0,length:0,name:info.name}];}
+        if(target===OBJECTS_INDEX){const original=projectAssembly(project).positions[target]?.find(p=>p.generatedStart===info.textSpan.start);if(original)return [{path:original.path,start:original.start,length:original.length,name:info.name}];}
         return [{path:target,start:info.textSpan.start,length:info.textSpan.length,name:info.name}];
       });
     },

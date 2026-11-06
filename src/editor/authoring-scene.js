@@ -56,7 +56,13 @@ export function createSceneLibrary(level) {
     image(id,asset){return new VisualTemplate(asset,{}).place(id);},
     template(asset,defaults={}){return new VisualTemplate(asset,defaults);},
     actor:Object.freeze({type:'actor',level}),goal:Object.freeze({type:'goal',level}),
-    arrange(visuals){const nodes=visuals.map(v=>own(v,Visual).data);if(nodes.length!==data().nodes.length||new Set(nodes).size!==nodes.length)throw new Error('图层顺序必须包含每个图层一次。');data().nodes=nodes;return scene;},
+    arrange(visuals,{appendRemaining=false}={}){
+      const nodes=visuals.map(v=>own(v,Visual).data);
+      if(new Set(nodes).size!==nodes.length)throw new Error('图层顺序不能包含重复图层。');
+      if(appendRemaining)nodes.push(...data().nodes.filter(n=>!nodes.includes(n)));
+      if(nodes.length!==data().nodes.length)throw new Error('图层顺序必须包含每个图层一次。');
+      data().nodes=nodes;return scene;
+    },
     feedbackTemplate(defaults){return {attach(id,target,event,options={}){
       const {sound,...rest}={...defaults,...options};
       const cue={id,target:own(target,Visual).id,trigger:trigger(event),...structuredClone(rest),...(sound!==undefined?{sound:typeof sound==='string'?sound:own(sound,SoundAsset).id}:{})};

@@ -220,6 +220,15 @@ export function createAuthoringLibrary(createAPI, blank, sceneFactory = createSc
     static holding(target){return {holding:target===null?null:target.id};}
   }
   const Capabilities=constants(['surface','collider','passage','draggable','dropTarget']);
-  return {Level, Entity, Actions, Layer, Position, RoutePoint, Passage, LevelContext, LevelComponent, BehaviorRef,
+  function instance(Type,options={}) {
+    if(typeof Type!=='function'||!(Type.prototype instanceof Entity))throw new Error('instance 需要 Entity 子类。');
+    if(options.args!==undefined&&typeof options.args!=='function')throw new Error('实例参数需要同步的 args(context) 函数。');
+    return Object.freeze({...options,Type});
+  }
+  function sceneGroup(build,{order=0}={}) {
+    if(typeof build!=='function')throw new Error('sceneGroup 需要场景构建函数。');
+    return Object.freeze({build,order});
+  }
+  return {Level, Entity, Actions, Layer, Position, RoutePoint, Passage, LevelContext, LevelComponent, BehaviorRef, instance, sceneGroup,
     States, Events, Kinds, Effects, Motions, Particles, Sounds, VisualStates, FeedbackPolicies, FeedbackTriggers, Capabilities};
 }
