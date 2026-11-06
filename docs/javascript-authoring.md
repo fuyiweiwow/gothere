@@ -1,6 +1,6 @@
 # TypeScript 关卡项目与画外编辑
 
-v0.34.0。在线、静态预览与单文件离线版共用同一套工具，使用者不需要安装 npm。新项目使用 TypeScript；旧 JavaScript 和 JSON 仍可导入，运行时继续使用原有数据、校验器与确定性模拟。
+v0.35.0。在线、静态预览与单文件离线版共用同一套工具，使用者不需要安装 npm。新项目使用 TypeScript；旧 JavaScript 和 JSON 仍可导入，运行时继续使用原有数据、校验器与确定性模拟。
 
 ## 从哪里开始
 
@@ -11,7 +11,10 @@ level.ts            入口：构造上下文、物体、路线、事件和美术
 context.ts          ProjectContext：明确类型的地图与资源依赖
 map.ts              行走层、路面、路线点、主角和终点
 routes.ts           用已创建的物体连接跨层路线
-resources.ts        图片与导入声音只声明一次
+resources.ts        转出目录资源入口，无需逐项声明
+assets/images/      图片目录（内置引用与导入图片）
+assets/sounds/      导入音效目录
+.gothere/assets.ts  自动生成的只读目录类型索引
 events.ts           跨物体事件与动作
 scene.ts            装配场景模块
 scene/
@@ -27,15 +30,17 @@ objects/
 @gothere/core       内置基础库，可查看 API 类型声明
 ```
 
-首次打开新源码槽会生成 TS 项目。已保存的 JS 项目保持原样；要迁移时显式点击「从当前画布生成源码」，旧源码会备份，可「恢复之前的项目」。这会重新生成代码，不能自动保留自定义类、函数和注释，手写库请先导出 ZIP。
+首次打开新源码槽会生成 TS 项目。已保存的 JS/TS 项目保持原样；要迁移时显式点击「从当前画布生成源码」，旧源码会备份，可「恢复之前的项目」。这会重新生成代码，不能自动保留自定义类、函数和注释，手写库请先导出 ZIP。
 
 - 文件树可搜索、折叠；各文件有独立页签和撤销历史。除入口外，页签可关闭，关闭不删除文件或丢弃修改。Tab 缩进，Shift+Tab 反向缩进；先按 Esc 再按 Tab 可离开代码区。
 - 「新建」填写 `shared/cart.ts`，自动形成目录；也支持 `.js`。重命名会解析并更新静态 import、type import 和 re-export；有语法错误时先修正。删除前备份，入口文件需先更换入口再删除。
 - Ctrl+S 保存整个源码项目，Ctrl+Enter 生成并校验，F5 生成并临时试玩。生成成功后可替换画布（一次撤销）或另存为新草稿。
-- ZIP 保留所有源文件与目录，首个源文件是入口；可重新载入继续编辑，无需维护 JSON 清单。导出单文件时，其依赖需自行保留。
+- ZIP 保留源码、资源字节及编辑器维护的内部元数据；旧纯源码 ZIP 仍按首个源文件选入口。可重新载入继续编辑，无需手写资源清单。导出单文件时，其依赖需自行保留。
 - 载入支持 `.zip`、模块 `.ts`、旧 `.js` 和 `.json`。旧手写 JS 保存在兼容入口中，不执行迁移脚本，也不自动拆解手写函数。
 
 画布与源码分别保存。生成、类型检查和错误修正不会改变画布，应用才会改变；源码变化会使旧生成结果失效。源码项目上限256个文件、合计2 MiB，生成数据上限1 MiB。
+
+左栏「＋ 图片 / 音效」导入文件或目录，填写可选子目录即可得到 `assets.images.street.bus` 等可补全引用。图片/声音可在文件树中预览，F12 跳到原文件；索引只读。重命名保留资源 ID，并更新可解析的完整目录引用；无法安全更新的解构/目录别名会提示。资源随 ZIP 和离线编辑器保存，规则和限制见 [目录资源约定](resource-conventions.md)。
 
 ## 查找、修改与试玩
 
@@ -154,13 +159,14 @@ export class DepartingObject extends Entity {
 
 ## 用资源模板搭场景
 
-`resources.ts` 返回具名 ImageAsset / SoundAsset 引用，内嵌图片字节与导入声音集中保存。`scene/styles.ts` 将同类图层的共同尺寸、显示顺序、帧动画等提为模板；模板可多次放置，实例仍可覆盖大小、偏移和状态变体。
+`resources.ts` 从 `@gothere/assets` 转出 `createAssets`，返回按目录生成的 ImageAsset / SoundAsset 引用；媒体字节存放在资源项目中。新 ProjectContext 将它注入为 `context.assets`，无需逐一 import 或注册图片。`scene/styles.ts` 将同类图层的共同尺寸、显示顺序、帧动画等提为模板；模板可多次放置，实例仍可覆盖大小、偏移和状态变体。
 
 ```ts
-const shopStyle = scene.template(images.imageBlockShop, { height: 120, layer: -75 });
+const { scene, assets } = context;
+const shopStyle = scene.template(assets.images.builtin.blockShop, { height: 120, layer: -75 });
 const shop = shopStyle.place('shop-a').label('店面', '建筑')
   .at(195, 424).size(215, 120);
-const bus = scene.image('bus-picture', images.imageBlockBusBack)
+const bus = scene.image('bus-picture', assets.images.builtin.blockBusBack)
   .label('公交').at(-80, -90).size(263, 95).order(10)
   .bind(objects.itemBus)
   .variant(States.Inactive, { visible: false });

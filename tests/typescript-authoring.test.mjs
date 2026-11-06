@@ -120,7 +120,7 @@ test('injected contexts expose concrete resources, references and behavior slots
   assert.doesNotMatch(project.files['events.ts'],/level\.entity\(|"target"|"source"/);
   assert.match(project.files['events.ts'],/Events\.Click/);assert.match(project.files['events.ts'],/States\.Active/);
   assert.ok(project.files['scene.ts'].length<1000,'scene is orchestration, not an embedded document');
-  assert.match(project.files['scene/styles.ts'],/scene\.template\(images\./);
+  assert.match(project.files['scene/styles.ts'],/scene\.template\(assets\.images\./);
   assert.match(project.files['scene/feedback.ts'],/behavior: objects\.itemBus\.doLeave/);
   const eventPosition=project.files['events.ts'].indexOf('itemBus')+2;
   assert.ok(service.definitions(project,'events.ts',eventPosition).some(d=>d.path==='objects/index.ts'));
@@ -128,13 +128,13 @@ test('injected contexts expose concrete resources, references and behavior slots
   assert.ok(service.definitions(project,'events.ts',behaviorPosition).some(d=>d.path==='objects/bus.ts'));
   const eventConstant=project.files['events.ts'].indexOf('Events.Click')+'Events.'.length+1;
   assert.ok(service.definitions(project,'events.ts',eventConstant).some(d=>d.path==='@gothere/core'));
-  const probe='\nconst known = context.images.';
+  const probe='\nconst known = context.assets.images.builtin.';
   project.files['objects/bus.ts']+=probe;
   // Probe inside the configure scope for actual inferred resource names.
-  project.files['objects/bus.ts']=project.files['objects/bus.ts'].replace(probe,'').replace('    const context = this.context;','    const context = this.context;\n    context.images.');
-  const position=project.files['objects/bus.ts'].indexOf('context.images.')+'context.images.'.length;
-  assert.ok(service.completions(project,'objects/bus.ts',position).some(c=>c.label==='imageBlockStreets'));
-  project.files['objects/bus.ts']=project.files['objects/bus.ts'].replace('context.images.','context.images.missingPicture;');
+  project.files['objects/bus.ts']=project.files['objects/bus.ts'].replace(probe,'').replace('    const context = this.context;','    const context = this.context;\n    context.assets.images.builtin.');
+  const position=project.files['objects/bus.ts'].indexOf('context.assets.images.builtin.')+'context.assets.images.builtin.'.length;
+  assert.ok(service.completions(project,'objects/bus.ts',position).some(c=>c.label==='blockStreets'));
+  project.files['objects/bus.ts']=project.files['objects/bus.ts'].replace('context.assets.images.builtin.','context.assets.images.builtin.missingPicture;');
   assert.ok(service.diagnostics(project).some(d=>d.code===2339&&d.path==='objects/bus.ts'));
 });
 

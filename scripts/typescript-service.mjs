@@ -1,5 +1,6 @@
 import ts from 'typescript';
 import {projectOutline} from './project-outline.mjs';
+import {ASSETS_MODULE,ASSETS_INDEX,assetModule,renameProjectAsset,assetKeys} from '../src/editor/project-assets.js';
 
 /** Virtual project; no filesystem, network, evaluation or user code execution. */
 export function createTypeScriptService(libraries, declarations) {
@@ -12,6 +13,7 @@ export function createTypeScriptService(libraries, declarations) {
   const read = path => files.get(normalize(path)) ?? fixed.get(normalize(path));
   function resolve(name, containingFile) {
     if(name==='@gothere/core')return {resolvedFileName:'/sdk/core.d.ts',extension:ts.Extension.Dts};
+    if(name===ASSETS_MODULE&&files.has('/project/'+ASSETS_INDEX))return {resolvedFileName:'/project/'+ASSETS_INDEX,extension:ts.Extension.Ts};
     if(!name.startsWith('.'))return undefined;
     const path=normalize(containingFile.split('/').slice(0,-1).join('/')+'/'+name);
     if(!files.has(path))return undefined;
@@ -29,7 +31,9 @@ export function createTypeScriptService(libraries, declarations) {
   };
   const service=ts.createLanguageService(host);
   function update(project) {
-    const next=new Map(Object.entries(project.files).map(([path,source])=>['/project/'+path,source]));let changed=files.size!==next.size;
+    const sources={...project.files};
+    if(project.version===2)sources[ASSETS_INDEX]=assetModule(project).source;
+    const next=new Map(Object.entries(sources).map(([path,source])=>['/project/'+path,source]));let changed=files.size!==next.size;
     for(const [path,source]of next)if(files.get(path)!==source){versions.set(path,(versions.get(path)??0)+1);changed=true;}
     files=next;if(changed)projectVersion++;
   }
@@ -72,6 +76,45 @@ export function createTypeScriptService(libraries, declarations) {
     },
     analyzeFiles(project) { return Object.fromEntries(Object.entries(project.files).map(([path,source])=>[path,analyze(source,path)])); },
     outline(project) { update(project);return projectOutline(service.getProgram()); },
+    renameAsset(project,from,to) {
+      const next=renameProjectAsset(project,from,to);
+      update(project);
+      const positions=assetModule(project).positions,leaf=positions.find(p=>p.path===from);
+      const oldKeys=assetKeys(from),newKeys=assetKeys(to),edits={},handled=new Set();
+      for(const file of service.getProgram().getSourceFiles()){
+        const path=file.fileName.replace('/project/','');
+        if(!Object.hasOwn(project.files,path))continue;
+        function visit(node){
+          const token=ts.isPropertyAccessExpression(node)?node.name:ts.isElementAccessExpression(node)&&ts.isStringLiteral(node.argumentExpression)?node.argumentExpression:null;
+          if(token){
+            const definitions=service.getDefinitionAtPosition(file.fileName,token.getStart(file)+(ts.isStringLiteral(token)?1:0))??[];
+            if(definitions.some(d=>d.fileName==='/project/'+ASSETS_INDEX&&d.textSpan.start===leaf.start)){
+              let root=node;
+              for(let i=0;i<oldKeys.length;i++){
+                if(!ts.isPropertyAccessExpression(root)&&!ts.isElementAccessExpression(root))throw new Error('资源通过局部别名引用，无法安全移动；请先改为完整目录引用。');
+                root=root.expression;
+              }
+              // Refuse destructured or shortened directory aliases rather than rewriting unrelated code.
+              const suffix=node.getText(file).slice(root.getText(file).length).replace(/\[(['"])([^'"]+)\1\]/g,'.$2').replace(/\s/g,'');
+              if(suffix!=='.'+oldKeys.join('.'))throw new Error('存在目录别名引用，请先调整引用再移动资源。');
+              (edits[path]??=[]).push({start:root.end,end:node.end,text:'.'+newKeys.join('.')});
+              handled.add(file.fileName+':'+token.getStart(file));
+              return;
+            }
+          }
+          ts.forEachChild(node,visit);
+        }
+        visit(file);
+      }
+      const references=service.findReferences('/project/'+ASSETS_INDEX,leaf.start)??[];
+      for(const group of references)for(const ref of group.references){
+        if(ref.fileName==='/project/'+ASSETS_INDEX)continue;
+        if(!handled.has(ref.fileName+':'+ref.textSpan.start)&&!handled.has(ref.fileName+':'+(ref.textSpan.start-1)))throw new Error('存在解构或别名资源引用，无法安全更新；请先改为完整目录引用。');
+      }
+      const result={...next,files:{...next.files}};
+      for(const [path,changes]of Object.entries(edits))for(const edit of changes.sort((a,b)=>b.start-a.start))result.files[path]=result.files[path].slice(0,edit.start)+edit.text+result.files[path].slice(edit.end);
+      return result;
+    },
     isModule({source,path}) { const refs=analyze(source,path);return refs.length>0||ts.createSourceFile(path,source,ts.ScriptTarget.ES2022).statements.some(s=>s.modifiers?.some(m=>m.kind===ts.SyntaxKind.ExportKeyword)||ts.isExportAssignment(s)); },
     completions(project,path,position) {
       update(project);const full='/project/'+path,info=service.getCompletionsAtPosition(full,position,{includeCompletionsForModuleExports:false});
@@ -93,6 +136,7 @@ export function createTypeScriptService(libraries, declarations) {
       return (service.getDefinitionAtPosition('/project/'+path,position)??[]).flatMap(info=>{
         const target=info.fileName==='/sdk/core.d.ts'?'@gothere/core':info.fileName.startsWith('/project/')?info.fileName.slice('/project/'.length):null;
         if(!target)return [];
+        if(target===ASSETS_INDEX){const original=assetModule(project).positions.find(p=>p.start===info.textSpan.start);if(original)return [{path:original.path,start:0,length:0,name:info.name}];}
         return [{path:target,start:info.textSpan.start,length:info.textSpan.length,name:info.name}];
       });
     },

@@ -5,6 +5,8 @@ import {typeScriptClient} from './typescript-client.js';
 import {sameDocument,documentChanges,changeValue} from './authoring-changes.js';
 import {createAuthoringNavigator} from './authoring-navigator.js';
 import {createAuthoringPreview} from './authoring-preview.js';
+import {ASSETS_INDEX,assetModule,assetKeys} from './project-assets.js';
+import {showProjectAsset,importProjectAssets,projectAssetDefinition} from './project-asset-ui.js';
 
 export function createAuthoringUI({editor,notify,download,pause}) {
   const $=id=>document.getElementById(id),dialog=$('script-dialog'),source=$('script-source');
@@ -58,17 +60,21 @@ export function createAuthoringUI({editor,notify,download,pause}) {
     throw new Error('源码草稿格式不正确。');
   }
   function changed(text){
-    source.value=text;if(programmatic||active===CORE_MODULE)return;
+    source.value=text;if(programmatic||active===CORE_MODULE||active===ASSETS_INDEX||Object.hasOwn(project.assets??{},active))return;
     project.files[active]=text;dirty=true;changedFiles.add(active);stop();invalidate();renderTabs();navigator.changed();
   }
   function showFile(path){
-    if(path!==CORE_MODULE&&!Object.hasOwn(project.files,path))return;
+    const asset=Object.hasOwn(project.assets??{},path),generated=path===ASSETS_INDEX&&project.version===2,readonly=path===CORE_MODULE||generated;
+    if(path!==CORE_MODULE&&!generated&&!asset&&!Object.hasOwn(project.files,path))return;
     active=path;opened.add(path);if(path!==CORE_MODULE)project.active=path;
-    programmatic=true;const text=path===CORE_MODULE?core:project.files[path];source.value=text;source.readOnly=path===CORE_MODULE;
-    if(codeEditor)codeEditor.open(path,text,{readOnly:path===CORE_MODULE,files:Object.keys(project.files)});
+    const viewer=$('script-asset-preview');showProjectAsset(viewer,project,asset?path:null);viewer.hidden=!asset;
+    $('code-editor').hidden=asset||!codeEditor;source.hidden=asset||!!codeEditor;
+    programmatic=true;const text=path===CORE_MODULE?core:generated?assetModule(project).source:asset?'':project.files[path];source.value=text;source.readOnly=readonly||asset;
+    if(codeEditor)codeEditor.open(path,text,{readOnly:readonly||asset,files:Object.keys(project.files)});
     programmatic=false;
-    $('script-current-path').textContent=path;$('script-readonly').hidden=path!==CORE_MODULE;
-    $('script-rename').disabled=$('script-delete').disabled=path===CORE_MODULE;
+    $('script-current-path').textContent=path;$('script-readonly').hidden=!readonly;$('script-readonly').textContent=generated?'自动目录索引 · 只读':'内置基础库 · 只读';
+    $('script-rename').disabled=$('script-delete').disabled=readonly;
+    $('script-definition').disabled=asset||generated;
     $('script-file-form').hidden=true;renderTree();renderTabs();codeEditor?.refresh();
   }
   function renderTabs(){
@@ -86,7 +92,7 @@ export function createAuthoringUI({editor,notify,download,pause}) {
   function renderTree(){
     const tree=$('script-tree'),filter=$('script-search').value.trim().toLowerCase();tree.replaceChildren();
     const root={folders:new Map(),files:[]};
-    for(const path of Object.keys(project.files).sort()){
+    for(const path of [...Object.keys(project.files),...Object.keys(project.assets??{}),...(project.version===2?[ASSETS_INDEX]:[])].sort()){
       if(filter&&!path.toLowerCase().includes(filter))continue;
       const parts=path.split('/');let folder=root;
       for(const part of parts.slice(0,-1)){if(!folder.folders.has(part))folder.folders.set(part,{folders:new Map(),files:[]});folder=folder.folders.get(part);}
@@ -96,7 +102,7 @@ export function createAuthoringUI({editor,notify,download,pause}) {
       for(const path of folder.files){
         const button=document.createElement('button');button.type='button';button.className='script-tree-file';button.dataset.scriptPath=path;button.style.paddingLeft=(12+depth*14)+'px';button.title=path;
         button.setAttribute('aria-current',String(path===active));
-        const icon=document.createElement('span');icon.className='script-js-icon';icon.textContent=path.endsWith('.ts')?'TS':'JS';
+        const icon=document.createElement('span');icon.className='script-js-icon';icon.textContent=Object.hasOwn(project.assets??{},path)?path.startsWith('assets/images/')?'IMG':'SND':path.endsWith('.ts')?'TS':'JS';
         const name=document.createElement('span');name.textContent=path.split('/').at(-1);button.append(icon,name);
         if(path===project.entry){const badge=document.createElement('small');badge.textContent='入口';button.append(badge);}
         button.onclick=()=>showFile(path);tree.append(button);
@@ -112,11 +118,11 @@ export function createAuthoringUI({editor,notify,download,pause}) {
     if(!tree.childElementCount){const empty=document.createElement('p');empty.className='panel-note';empty.textContent='没有匹配的文件';tree.append(empty);}
     $('script-core').setAttribute('aria-current',String(active===CORE_MODULE));
     const entry=$('script-entry');entry.replaceChildren();for(const path of Object.keys(project.files)){const option=document.createElement('option');option.value=path;option.textContent=path;entry.append(option);}entry.value=project.entry;
-    $('script-file-count').textContent=Object.keys(project.files).length+' 个文件';
+    $('script-file-count').textContent=Object.keys(project.files).length+' 源码 · '+Object.keys(project.assets??{}).length+' 资源';
   }
   function replaceProject(next){
     validateProject(next);project=structuredClone(next);opened.clear();changedFiles.clear();collapsed.clear();$('script-search').value='';codeEditor?.reset();diagnostics([]);
-    opened.add(project.entry);dirty=true;trial.clear();previewVisible(false);navigator.reset();showFile(Object.hasOwn(project.files,project.active)?project.active:project.entry);invalidate();
+    opened.add(project.entry);dirty=true;trial.clear();previewVisible(false);navigator.reset();showFile(Object.hasOwn(project.files,project.active)||Object.hasOwn(project.assets??{},project.active)?project.active:project.entry);invalidate();
     if(dialog.open)void navigator.refresh();
   }
   $('open-script').onclick=()=>{
@@ -139,18 +145,20 @@ export function createAuthoringUI({editor,notify,download,pause}) {
   $('script-restore').onclick=()=>{stop();try{const previous=decode(JSON.parse(localStorage.getItem(storageKey+'.previous')));if(!backup())return;base=previous.base;baseline=previous.baseline;replaceProject(previous.project);if(save())message('已恢复之前的源码项目。');}catch(error){message(error.message,true);}};
   function fileForm(mode){
     $('script-file-form').dataset.mode=mode;$('script-file-form').hidden=false;$('script-path-label').textContent=mode==='rename'?'重命名并更新 import':'新建 TypeScript / JavaScript 文件';
-    $('script-path').value=mode==='rename'?active:'';$('script-path').focus();
+    $('script-path').value=mode==='rename'?active:'';if(mode==='rename'&&Object.hasOwn(project.assets??{},active))$('script-path-label').textContent='移动资源并更新完整目录引用（保留资源 ID）';$('script-path').focus();
   }
   $('script-new').onclick=()=>fileForm('new');$('script-rename').onclick=()=>fileForm('rename');
   $('script-file-cancel').onclick=()=>$('script-file-form').hidden=true;
   $('script-file-form').onsubmit=async e=>{
     e.preventDefault();try{
-      const path=projectPath($('script-path').value.trim());
+      const renamingAsset=$('script-file-form').dataset.mode==='rename'&&Object.hasOwn(project.assets??{},active);
+      const path=$('script-path').value.trim();if(renamingAsset)assetKeys(path);else projectPath(path);
       if($('script-file-form').dataset.mode==='rename'){
         const before=JSON.stringify(project),from=active;
-        const refs=Object.keys(project.files).some(p=>p.endsWith('.ts'))?await typeScriptClient().request('analyzeFiles',project):null;
+        const nextAsset=renamingAsset?await typeScriptClient().request('renameAsset',project,from,path):null;
+        const refs=!renamingAsset&&Object.keys(project.files).some(p=>p.endsWith('.ts'))?await typeScriptClient().request('analyzeFiles',project):null;
         if(!dialog.open||before!==JSON.stringify(project)||active!==from)throw new Error('项目已变化，请重新重命名。');
-        const next=renameProjectFile(project,from,path,refs?((source,file)=>refs[file]):undefined);if(!backup())return;project=next;opened.delete(active);changedFiles.delete(active);codeEditor?.reset();
+        const next=nextAsset??renameProjectFile(project,from,path,refs?((source,file)=>refs[file]):undefined);if(!backup())return;project=next;opened.delete(active);changedFiles.delete(active);codeEditor?.reset();
       }else{
         if(Object.hasOwn(project.files,path))throw new Error('文件已存在：'+path);
         const next={...project,files:{...project.files,[path]:"import { Entity } from '@gothere/core';\n\n// 在这里定义可复用的类或函数。\n"}};validateProject(next);if(!backup())return;project=next;
@@ -159,9 +167,9 @@ export function createAuthoringUI({editor,notify,download,pause}) {
     }catch(error){message(error.message,true);}
   };
   $('script-delete').onclick=()=>{
-    if(active===CORE_MODULE)return;
+    if(active===CORE_MODULE||active===ASSETS_INDEX)return;
     if(active===project.entry){message('请先在上方选择其他入口文件，再删除此文件。',true);return;}
-    if(!backup())return;delete project.files[active];opened.delete(active);changedFiles.delete(active);dirty=true;stop();invalidate();showFile(project.entry);navigator.changed();message('文件已删除，引用它的 import 需调整；可恢复之前的项目。');
+    if(!backup())return;if(Object.hasOwn(project.assets??{},active))delete project.assets[active];else delete project.files[active];opened.delete(active);changedFiles.delete(active);dirty=true;stop();invalidate();showFile(project.entry);navigator.changed();message('文件已删除，失效引用会在校验时报告；可恢复之前的项目。');
   };
   source.oninput=()=>changed(source.value);
   dialog.addEventListener('keydown',e=>{
@@ -199,13 +207,26 @@ export function createAuthoringUI({editor,notify,download,pause}) {
   }catch(error){message('未能完成应用：'+error.message,true);}};
   $('script-apply').onclick=()=>apply(false);$('script-import').onclick=()=>apply(true);
   $('script-canvas-backup').onclick=()=>{try{const saved=JSON.parse(localStorage.getItem(storageKey+'.canvas.previous'));if(!saved?.level)throw new Error('没有替换前画布备份。');download(JSON.stringify(saved.level,null,2),'gothere-before-source-apply.json','application/json');message('已导出最近一次替换前的画布，可从关卡导入恢复。');}catch(error){message(error.message,true);}};
-  $('script-export').onclick=()=>{try{validateProject(project);const bytes=globalThis.gothereProjectTools.zipProject(project.files,project.entry);download(bytes,'gothere-project.zip','application/zip');if(save())message('整个项目已导出，包含所有手写文件；重新载入 ZIP 可继续编辑。');}catch(error){message(error.message,true);}};
-  $('script-export-file').onclick=()=>download(getSource(),active===CORE_MODULE?'gothere-core.d.ts':active.split('/').at(-1),'text/plain');
+  $('script-export').onclick=()=>{try{validateProject(project);const bytes=globalThis.gothereProjectTools.zipProject(project.files,project.entry,project.version===2?project.assets??{}:undefined);download(bytes,'gothere-project.zip','application/zip');if(save())message('整个项目已导出，包含源码、图片、音效及稳定资源标识。');}catch(error){message(error.message,true);}};
+  $('script-export-file').onclick=()=>{const definition=projectAssetDefinition(project,active);if(definition){const a=document.createElement('a');a.href=definition.src;a.download=active.split('/').at(-1);a.click();}else download(getSource(),active===CORE_MODULE?'gothere-core.d.ts':active.split('/').at(-1),'text/plain');};
+  $('script-add-assets').onclick=()=>$('script-asset-file').click();
+  $('script-add-folder').onclick=()=>$('script-asset-folder').click();
+  for(const id of ['script-asset-file','script-asset-folder'])$(id).onchange=async()=>{
+    const input=$(id),snapshot=JSON.stringify(project),files=[...input.files];
+    try{
+      if(!files.length)return;
+      const folder=id==='script-asset-folder',destination=$('script-asset-destination').value.trim().replace(/\/$/,'');
+      const imported=await importProjectAssets(project,files,{folder,destination:destination?destination+'/':''});
+      if(!dialog.open||snapshot!==JSON.stringify(project))throw new Error('项目已变化，请重新导入资源。');
+      validateProject(imported.project);if(!backup())return;
+      project=imported.project;stop();invalidate();dirty=true;codeEditor?.reset();showFile(imported.path);navigator.changed();if(save())message('目录资源已登记，可通过 @gothere/assets 的 createAssets(level) 获取类型化引用。');
+    }catch(error){message(error.message,true);}finally{input.value='';}
+  };
   $('script-load').onclick=()=>$('script-file').click();
   $('script-file').onchange=async()=>{
     const file=$('script-file').files[0];
     try{
-      if(!file)return;if(file.size>3145728)throw new Error('导入文件不能超过3 MiB。');stop();
+      if(!file)return;if(file.size>4194304)throw new Error('导入文件不能超过4 MiB。');stop();
       let next;
       if(/\.zip$/i.test(file.name))next=globalThis.gothereProjectTools.unzipProject(new Uint8Array(await file.arrayBuffer()));
       else{
@@ -223,6 +244,6 @@ export function createAuthoringUI({editor,notify,download,pause}) {
   };
   $('close-script').onclick=()=>{if(save())dialog.close();};
   dialog.addEventListener('cancel',e=>{if(!save())e.preventDefault();});
-  dialog.addEventListener('close',()=>{stop();trial.clear();navigator.stop();codeEditor?.destroy();codeEditor=null;});
+  dialog.addEventListener('close',()=>{stop();trial.clear();showProjectAsset($('script-asset-preview'),project,null);navigator.stop();codeEditor?.destroy();codeEditor=null;});
   return {canvasChanged(){if(dialog.open)changes();}};
 }

@@ -8,6 +8,7 @@ import {buildEditor} from './build.mjs';
 import {unzipProject,zipProject} from './project-code-tools.mjs';
 import {levelToJavaScript} from '../src/editor/javascript-source.js';
 import {createProjectExample} from '../src/editor/javascript-project.js';
+import {zipSync,strToU8} from 'fflate';
 
 await mkdir('artifacts',{recursive:true});
 const server=makeServer(),preview=makeServer({portableOnly:true});
@@ -64,9 +65,9 @@ try{
       assert.equal(await p.locator('.cm-content').getAttribute('contenteditable'),'false');await p.locator('#script-back').click();
       await p.waitForFunction(()=>document.getElementById('script-current-path').textContent==='events.ts');
       await select(p,'scene/styles.ts');const stylesSource=await p.locator('#script-source').inputValue();
-      await cursorAt(p,stylesSource,'imageBlockStreets');await p.keyboard.press('F12');
-      await p.waitForFunction(()=>document.getElementById('script-current-path').textContent==='resources.ts');
-      await p.keyboard.press('Alt+ArrowLeft');await p.waitForFunction(()=>document.getElementById('script-current-path').textContent==='scene/styles.ts');
+      await cursorAt(p,stylesSource,'blockStreets');await p.keyboard.press('F12');
+      await p.waitForFunction(()=>document.getElementById('script-current-path').textContent==='assets/images/builtin/blockStreets.png');
+      await p.locator('#script-back').click();await p.waitForFunction(()=>document.getElementById('script-current-path').textContent==='scene/styles.ts');
       await p.locator('#script-search').fill('objects/bus.ts');assert.equal(await p.locator('#script-tree [data-script-path]').count(),1);await p.locator('#script-search').fill('');
       await p.locator('#script-core').click();assert.equal(await p.locator('.cm-content').getAttribute('contenteditable'),'false');assert.equal(await p.locator('#script-delete').isDisabled(),true);
       await select(p,'level.ts');await generate(p);await p.locator('#script-apply').click();assert.deepEqual(current(await workspace(p)),current(original));
@@ -129,7 +130,7 @@ try{
       await p.evaluate(base=>{const key='gothere.authoring.'+JSON.parse(localStorage.getItem('gothere.studio.layered.v1')).activeKey;localStorage.setItem(key,JSON.stringify({base,source:'level.actor.speed += 3; return level;'}));},playable);
       await p.reload();await p.locator('#scene[data-assets=ready]').waitFor();await p.locator('#open-script').click();assert.match(await p.locator('#script-source').inputValue(),/speed \+= 3/);await generate(p);
       await upload(p,'old-level.js',levelToJavaScript(current(original)));await generate(p);await p.locator('#script-apply').click();assert.deepEqual(current(await workspace(p)),current(original));
-      await p.locator('#open-script').click();await upload(p,'invalid.zip',zipProject({'../escape.js':'export default function() {}'},'../escape.js'));assert.equal(await p.locator('#script-status').getAttribute('data-error'),'true');await generate(p);
+      await p.locator('#open-script').click();await upload(p,'invalid.zip',zipSync({'../escape.js':strToU8('export default function() {}')}));assert.equal(await p.locator('#script-status').getAttribute('data-error'),'true');await generate(p);
       await p.locator('#close-script').click();assert.deepEqual(requests,[]);assert.deepEqual(errors,[]);
     }finally{await context.close();}
   }

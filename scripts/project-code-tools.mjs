@@ -1,5 +1,7 @@
 import {parse} from 'acorn';
 import {zipSync, unzipSync, strToU8, strFromU8} from 'fflate';
+import {ASSETS_MANIFEST,assetPath} from '../src/editor/project-assets.js';
+import {validateProject} from '../src/editor/javascript-project.js';
 
 export function isModule(source) {
   // Legacy scripts can return from their surrounding generation function.
@@ -29,21 +31,48 @@ export function analyzeModule(source, filename) {
   return imports;
 }
 
-export function zipProject(files, entry) {
+export function zipProject(files, entry, assets) {
+  validateProject({version:assets===undefined?1:2,files,entry,...(assets===undefined?{}:{assets})});
   // The first source file in the archive is the entry point; no code execution.
   const ordered = [entry, ...Object.keys(files).filter(path => path !== entry)];
-  return zipSync(Object.fromEntries(ordered.map(path => [path, strToU8(files[path])])), {level: 6});
+  const archive=Object.fromEntries(ordered.map(path => [path, strToU8(files[path])]));
+  if(assets!==undefined){
+    const metadata=structuredClone(assets);
+    for(const [path,asset]of Object.entries(metadata))if(asset.definition){
+      const src=asset.definition.src,comma=src.indexOf(',');
+      asset.encoding=src.slice(0,comma+1);delete asset.definition.src;
+      archive[path]=Uint8Array.from(atob(src.slice(comma+1)),c=>c.charCodeAt(0));
+    }
+    archive[ASSETS_MANIFEST]=strToU8(JSON.stringify({version:2,entry,assets:metadata}));
+  }
+  return zipSync(archive, {level: 6});
 }
 
 export function unzipProject(bytes) {
   let count = 0, total = 0;
-  const files = unzipSync(bytes, {filter(file) {
+  const names=new Set();
+  const archive = unzipSync(bytes, {filter(file) {
     if (file.name.endsWith('/')) return false;
-    if (!/\.(ts|js)$/.test(file.name)) throw new Error('项目 ZIP 只能包含 .ts 或 .js 文件。');
-    if (++count > 256 || (total += file.originalSize) > 2097152) throw new Error('项目最多256个文件，解压后的源码不能超过2 MiB。');
+    if(names.has(file.name))throw new Error('ZIP 中存在重复路径：'+file.name);names.add(file.name);
+    if(!Number.isSafeInteger(file.originalSize)||file.originalSize<0)throw new Error('ZIP 文件大小无效。');
+    if(file.name!==ASSETS_MANIFEST&&!/\.(ts|js)$/.test(file.name))assetPath(file.name);
+    if (++count > 513 || (total += file.originalSize) > 4194304) throw new Error('项目 ZIP 最多513个文件，解压后不能超过4 MiB。');
     return true;
   }});
-  const entries = Object.entries(files).map(([path, data]) => [path, strFromU8(data)]);
+  const entries = Object.entries(archive).filter(([path])=>/\.(ts|js)$/.test(path)).map(([path, data]) => [path, strFromU8(data)]);
   if (!entries.length) throw new Error('项目中没有 TypeScript / JavaScript 文件。');
-  return {version: 1, entry: entries[0][0], active: entries[0][0], files: Object.fromEntries(entries)};
+  let project={version:1,entry:entries[0][0],active:entries[0][0],files:Object.fromEntries(entries)};
+  if(Object.hasOwn(archive,ASSETS_MANIFEST)){
+    const manifest=JSON.parse(strFromU8(archive[ASSETS_MANIFEST]));
+    if(manifest.version!==2||!manifest.assets||typeof manifest.assets!=='object'||Array.isArray(manifest.assets))throw new Error('资源项目元数据无效。');
+    const assets=structuredClone(manifest.assets),expected=new Set([...entries.map(([p])=>p),ASSETS_MANIFEST]);
+    for(const [path,asset]of Object.entries(assets))if(asset.definition){
+      if(!Object.hasOwn(archive,path)||typeof asset.encoding!=='string')throw new Error('ZIP 缺少资源：'+path);
+      let binary='';for(const byte of archive[path])binary+=String.fromCharCode(byte);
+      asset.definition.src=asset.encoding+btoa(binary);delete asset.encoding;expected.add(path);
+    }
+    if(Object.keys(archive).some(p=>!expected.has(p)))throw new Error('ZIP 含有未登记的资源文件。');
+    project={version:2,entry:manifest.entry,active:manifest.entry,files:project.files,assets};
+  }else if(Object.keys(archive).length!==entries.length)throw new Error('带资源的项目缺少编辑器元数据，请从项目 ZIP 导入。');
+  return validateProject(project);
 }

@@ -5,6 +5,7 @@ import {levelToJavaScript} from './javascript-source.js';
 import {semanticMapSource,actionsSource} from './semantic-source.js';
 import {createSceneLibrary} from './authoring-scene.js';
 import {typedLevelProject} from './typed-project-source.js';
+import {ASSETS_MODULE,ASSETS_INDEX,validateProjectAssets,materializeProjectAssets} from './project-assets.js';
 
 export const CORE_MODULE = '@gothere/core';
 export const PROJECT_LIMIT = 2097152;
@@ -22,22 +23,24 @@ export function projectPath(path) {
 }
 
 export function validateProject(project) {
-  if (project?.version !== 1 || !project.files || typeof project.files !== 'object' || Array.isArray(project.files)) throw new Error('源码项目格式不正确。');
+  if (![1,2].includes(project?.version) || !project.files || typeof project.files !== 'object' || Array.isArray(project.files)) throw new Error('源码项目格式不正确。');
   const entries = Object.entries(project.files);
   if (!entries.length || entries.length > 256) throw new Error('项目需要1～256个 TypeScript / JavaScript 文件。');
   let size = 0;
   for (const [path, source] of entries) {
     projectPath(path);
+    if(path.startsWith('.gothere/'))throw new Error('.gothere 目录由编辑器维护，不能放置手写源码。');
     if (typeof source !== 'string') throw new Error('文件内容必须是文本：' + path);
     size += new TextEncoder().encode(source).length;
   }
   if (size > PROJECT_LIMIT) throw new Error('项目源码合计不能超过2 MiB。');
   if (!Object.hasOwn(project.files, project.entry)) throw new Error('找不到入口文件：' + project.entry);
-  return project;
+  return validateProjectAssets(project);
 }
 
 export function resolveProjectImport(from, specifier) {
   if (specifier === CORE_MODULE) return CORE_MODULE;
+  if (specifier === ASSETS_MODULE) return ASSETS_INDEX;
   if (!specifier.startsWith('./') && !specifier.startsWith('../')) throw new Error(`${from} · 仅支持项目相对路径和 ${CORE_MODULE}：${specifier}`);
   const parts = from.split('/').slice(0, -1);
   for (const part of specifier.split('/')) {
@@ -57,6 +60,7 @@ export function relativeProjectImport(from, target) {
 /** Dependency order also gives a precise, early error for unsupported circular imports. */
 export function projectModuleGraph(project, analyze = globalThis.gothereProjectTools?.analyzeModule) {
   validateProject(project);
+  project=materializeProjectAssets(project);
   if (!analyze) throw new Error('模块解析器未加载，请重新打开编辑器。');
   const ordered = [], visited = new Set(), visiting = [];
   function visit(path) {
@@ -85,7 +89,7 @@ export function renameProjectFile(project, from, to, analyze = globalThis.gother
   const files = Object.fromEntries(Object.entries(project.files).map(([path, source]) => {
     const next = path === from ? to : path;
     const refs = analyze(source, path).map(ref => ({...ref, target: resolveProjectImport(path, ref.specifier)}));
-    return [next, rewriteModuleImports(source, refs, ref => ref.target === CORE_MODULE ? CORE_MODULE : relativeProjectImport(next, ref.target === from ? to : ref.target))];
+    return [next, rewriteModuleImports(source, refs, ref => ref.target === CORE_MODULE ? CORE_MODULE : ref.target===ASSETS_INDEX?ASSETS_MODULE:relativeProjectImport(next, ref.target === from ? to : ref.target))];
   }));
   return validateProject({...project, files, entry: project.entry === from ? to : project.entry, active: to});
 }
