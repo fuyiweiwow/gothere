@@ -18,7 +18,7 @@ function assertClosed(template){
   for(const e of template.entities)for(const id of e.draggable?.targets??[])check(id);
   for(const r of template.rules){check(r.on.source);check(r.on.other);for(const c of r.if??[]){check(c.entity);check(c.holding);}}
   for(const n of template.nodes)if(n.bind){if(n.bind.type!=='entity')throw new Error('模板成员只可绑定组合内的逻辑对象。');check(n.bind.id);}
-  for(const f of template.feedback)if(['behavior','state','event'].includes(f.trigger.type))check(f.trigger.source);
+  for(const f of template.feedback){if(['behavior','state','event'].includes(f.trigger.type))check(f.trigger.source);check(f.trigger.cause);}
 }
 
 /** Capture authored pieces, never infer collisions or behavior from their pixels. */
@@ -34,6 +34,7 @@ export function captureTemplate(level,{id,label,nodes,entities=[],origin}){
   if(!template.nodes.length||template.nodes.length!==selected.size||template.entities.length!==actors.size)throw new Error('模板成员不存在。');
   assertPortable(template.entities);assertClosed(template);
   const art=new Set();for(const n of template.nodes)for(const v of [n,...Object.values(n.variants??{})]){if(v.asset)art.add(v.asset);for(const frame of v.animation?.frames??[])art.add(frame);}
+  for(const f of template.feedback)for(const frame of f.animation?.frames??[])art.add(frame);
   template.assets=clone((scene.assets??[]).filter(a=>art.has(a.id)));
   template.sounds=clone((scene.sounds??[]).filter(s=>template.feedback.some(f=>f.sound===s.id)));
   return template;
@@ -80,7 +81,7 @@ export function placeTemplate(level,template,{x=template.origin.x,y=template.ori
   const entityIds=new Set(copy.entities.map(e=>e.id));translateActions(copy,entityIds,dx,plane);
   for(const n of copy.nodes){n.id=nodeMap.get(n.id);if(n.bind)n.bind.id=remap(n.bind.id);shiftNode(n,dx,dy,entityIds);
     for(const v of [n,...Object.values(n.variants??{})]){if(v.asset)v.asset=remapArt(v.asset);if(v.animation)v.animation.frames=v.animation.frames.map(remapArt);}}
-  for(const f of copy.feedback){f.id=fresh('cue');f.target=nodeMap.get(f.target);if(['behavior','state','event'].includes(f.trigger.type))f.trigger.source=remap(f.trigger.source);f.sound=soundMap.get(f.sound)??f.sound;}
+  for(const f of copy.feedback){f.id=fresh('cue');f.target=nodeMap.get(f.target);if(['behavior','state','event'].includes(f.trigger.type))f.trigger.source=remap(f.trigger.source);if(f.trigger.cause)f.trigger.cause=remap(f.trigger.cause);if(f.animation)f.animation.frames=f.animation.frames.map(remapArt);f.sound=soundMap.get(f.sound)??f.sound;}
   next.entities.push(...copy.entities);next.rules.push(...copy.rules);scene.nodes.push(...copy.nodes);(scene.feedback??=[]).push(...copy.feedback);
   const composition={id:fresh('composition'),label:template.label,origin:{x,y:baseline},nodes:copy.nodes.map(n=>n.id),entities:[...entityIds]};
   (scene.compositions??=[]).push(composition);checkResult(next);Object.assign(level,next);return composition.id;
