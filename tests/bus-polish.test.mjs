@@ -76,3 +76,27 @@ test('authored failure clips and typed cause references round trip through assem
   assert.match(project.files['scene/feedback.ts'],/cause: objects\.itemPassengerA/);
   assert.deepEqual(await executeProject(project),level);
 });
+
+test('delayed hurt actions keep their originating event or invoked behavior as the cause',()=>{
+  for(const behavior of [false,true]){
+    const level=createBusStopLevel(),bus=level.entities.find(e=>e.id==='bus');
+    const delayed=[{type:'after',ticks:3,actions:[{type:'after',ticks:2,actions:[{type:'hurt'}]}]}];
+    bus.behaviors.push({id:'delayed-hurt',label:'delayed hurt',actions:delayed});
+    level.rules=[{on:{source:'boarding',type:'click'},actions:behavior?[{type:'invoke',target:'bus',behavior:'delayed-hurt'}]:delayed}];
+    const game=createSimulation(level).start();game.click('boarding');game.step(10);
+    assert.equal(game.snapshot().signals.find(s=>s.type==='lost').cause,behavior?'bus':'boarding');
+    assert.deepEqual(replayRecording(level,game.recording()).snapshot(),game.snapshot());
+  }
+});
+
+test('concurrent frame clips use the newest instance and respect pause, restart and loop boundaries',()=>{
+  const {level,actor}=fixture(),slot=level.scene.feedback[0];
+  slot.trigger={type:'event',source:'bus',event:'click'};slot.loop=true;slot.hold=false;slot.duration=24;slot.policy='overlay';
+  const one={sequence:1,tick:0,type:'event',source:'bus',event:'click'},two={...one,sequence:2,tick:10};
+  const p=createFeedbackPlayer(level),s={tick:10,status:'running',signals:[one,two]};
+  const frame=p.sample(s);assert.equal(frame.active,2);assert.equal(frame.frames[actor.id],'stopWorkerIdle');
+  assert.deepEqual(p.sample({...s,status:'paused'}),frame);
+  assert.equal(p.sample({...s,tick:20}).frames[actor.id],'stopWorkerWalk');
+  assert.equal(p.sample({...s,tick:34}).frames[actor.id],'stopWorkerIdle');
+  slot.policy='restart';assert.equal(createFeedbackPlayer(level).sample(s).active,1);
+});

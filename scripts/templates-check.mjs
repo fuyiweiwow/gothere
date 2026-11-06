@@ -1,7 +1,7 @@
 import {readSourceLevel,importLevel} from './check-source-helpers.mjs';
 import assert from 'node:assert/strict';
 import {existsSync} from 'node:fs';
-import {mkdir} from 'node:fs/promises';
+import {mkdir,writeFile} from 'node:fs/promises';
 import {pathToFileURL} from 'node:url';
 import {chromium} from 'playwright';
 import {makeServer} from '../server.mjs';
@@ -27,7 +27,7 @@ try{
     await p.keyboard.press('Escape');await p.locator('#editor-undo').click();await p.locator('#editor-undo').click();assert.deepEqual(await draft(p),initial);
     await p.locator('[data-template=bus-encounter]').click();await point(p,680,160);await p.keyboard.press('Escape');
     const placed=await draft(p),c=placed.scene.compositions.find(c=>c.entities.length),bus=placed.entities.find(e=>e.behaviors?.some(b=>b.id==='open'));
-    assert.equal(placed.entities.length,7);assert.equal(c.origin.y,490,'activity placement snaps to the plane rather than cursor height');
+    assert.equal(placed.entities.length,8);assert.equal(c.origin.y,490,'activity placement snaps to the plane rather than cursor height');
     await p.locator('[data-select-composition="'+c.id+'"]').click();await fill(p,'#composition-x',640);
     assert.ok(Math.abs((await draft(p)).entities.find(e=>e.id===bus.id).x-640)<.01);await p.locator('#editor-undo').click();assert.deepEqual(await draft(p),placed);
     const b=await p.locator('#resource-overlay').boundingBox(),handle=await p.locator('[data-composition-handle]').boundingBox();
@@ -35,7 +35,7 @@ try{
     await p.mouse.move(handle.x+handle.width/2+24*b.width/1200,handle.y+handle.height/2+20*b.height/640,{steps:4});await p.mouse.up();await p.keyboard.up('Alt');
     assert.ok(Math.abs((await draft(p)).entities.find(e=>e.id===bus.id).x-(bus.x+24))<.2);assert.equal((await draft(p)).scene.compositions.find(g=>g.id===c.id).origin.y,490);
     await p.locator('#editor-undo').click();assert.deepEqual(await draft(p),placed);
-    await p.locator('#composition-copy').click();assert.equal((await draft(p)).entities.length,14);await p.locator('#editor-undo').click();assert.deepEqual(await draft(p),placed);
+    await p.locator('#composition-copy').click();assert.equal((await draft(p)).entities.length,16);await p.locator('#editor-undo').click();assert.deepEqual(await draft(p),placed);
     await p.locator('[data-select-composition="'+c.id+'"]').click();await p.screenshot({path:'artifacts/templates-editor-'+index+'.png',fullPage:true});
     const door=placed.scene.nodes.find(n=>n.asset==='stopBusDoor');await p.locator('[data-template-part="'+door.id+'"]').click();
     assert.equal(await p.locator('#art-bind').inputValue(),'entity:'+bus.id);await fill(p,'#art-y',-90);assert.deepEqual((await draft(p)).entities,placed.entities);await p.locator('#editor-undo').click();
@@ -46,11 +46,13 @@ try{
     assert.deepEqual(await readSourceLevel(p),placed);
     await p.locator('#preview-toggle').click();await p.clock.runFor(3000);await p.locator('#scene-interactions [data-source="'+bus.id+'"]').click();await p.clock.runFor(1200);
     await p.locator('#scene').screenshot({path:'artifacts/templates-boarding-'+index+'.png'});await p.locator('#preview-toggle').click();const still=await p.locator('#scene').evaluate(c=>c.toDataURL());
-    await p.clock.runFor(250);assert.equal(await p.locator('#scene').evaluate(c=>c.toDataURL()),still);await p.locator('#preview-toggle').click();await p.clock.runFor(15000);
+    await p.clock.runFor(250);const afterPause=await p.locator('#scene').evaluate(c=>c.toDataURL());
+    if(afterPause!==still){await writeFile('artifacts/templates-paused-before.png',Buffer.from(still.split(',')[1],'base64'));await writeFile('artifacts/templates-paused-after.png',Buffer.from(afterPause.split(',')[1],'base64'));}
+    assert.ok(afterPause===still,'paused template playback must freeze all artwork');await p.locator('#preview-toggle').click();await p.clock.runFor(15000);
     assert.equal(await p.locator('#runtime-status').getAttribute('data-status'),'won');await p.locator('#editor-return').click();assert.deepEqual(await draft(p),placed);
     await p.reload();await p.locator('#scene[data-assets=ready]').waitFor();assert.deepEqual(await draft(p),placed);
     await p.locator('#template-practice').click();assert.equal((await draft(p)).entities.length,0);
-    assert.equal(await p.evaluate(()=>{const s=JSON.parse(localStorage.getItem('gothere.studio.layered.v1'));return s.documents.find(d=>d.key==='templates:practice:01').level.entities.length;}),7);
+    assert.equal(await p.evaluate(()=>{const s=JSON.parse(localStorage.getItem('gothere.studio.layered.v1'));return s.documents.find(d=>d.key==='templates:practice:01').level.entities.length;}),8);
     assert.deepEqual(requests,[]);await context.close();console.log('PASS templates '+(index?'offline':'online')+': continuous placement, grounded logic, group dragging/copy, parts, animation/sound, history, persistence and complete play.');
   }
   assert.deepEqual(errors,[]);

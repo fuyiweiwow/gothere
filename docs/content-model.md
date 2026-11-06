@@ -258,13 +258,15 @@ supportlost 从失去支撑的动态物体发出；landed 从下落后落定的�
  "anchor":{"x":0.5,"y":0},"count":18,"color":"#c4d7e3","direction":-90,"volume":0.25}
 ```
 
-`target` 引用任意资源图层。`trigger` 支持 `start`、`behavior`（source/behavior）、`state`（source/state）、`event`（source/event，可为 done 指定 behavior）、`lost`（可选 reason）、`won`。start 的可选 source 只能为 scene，lost/won 只能为 actor，其余 source 引用实体。每个槽拥有独立触发实例；同一触发可启动多槽。
+`target` 引用任意资源图层。`trigger` 支持 `start`、`behavior`（source/behavior）、`state`（source/state）、`event`（source/event，可为 done 指定 behavior）、`lost`（可选 reason/cause）、`won`。start 的可选 source 只能为 scene，lost/won 只能为 actor，其余 source 引用实体。lost 的 cause 引用实际造成失败的物体：直接致命接触/关闭的门使用接触实体，hurt 动作使用命名行为来源或规则事件来源，延迟保留关联；坠落/边界等不强行指定对象。每个槽拥有独立触发实例；同一触发可启动多槽。
+
+可选 `animation: {frames: [图片ID, ...], fps: 10}` 绑定1～24张有效图片，fps为1～30。帧时钟从触发加 delay 开始；非循环钳制末帧，duration 提前结束则截断，hold 保留结束时采样；循环每轮 duration 重启。同一目标的帧图片由较后创建的实例覆盖，位移等运动仍组合；无帧反馈时回到普通状态动画。TS 作者接口以 ImageAsset 和 Entity 引用这些关联。模板复制同时携带帧资源并重映射 cause，删除原因物体清理相关反馈。
 
 motion 为 none/squash/shake/hop/recoil/sway/pulse/emerge/fade/fall；emerge 从缩小/透明/略低的位置浮现到作者定义的原图，适用于烟雾、平台或任意贴图，不识别具体物体。particles 为 none/smoke/dust/spark；sound 为 none/puff/clack/pop/thud/success/fail 或自定义声音 ID。duration 为6～360整数 tick，delay 为0～600整数 tick，strength 为0～2，volume 为0～1；loop 为布尔值，hold 可选布尔值。policy 为 restart（替换该槽上次实例）或 overlay（并存）。同目标的位移/角度相加，缩放/透明度相乘；显示缩放最终钳制0.1～3，不修改逻辑几何。运动以图片尺寸为相对单位、绕底部中心变换。
 
 anchor.x/y 为0～1的图片内挂点；direction 为−180～180度；count 为1～48整数；color 为六位十六进制颜色。粒子随目标变换，不参与碰撞；差异由槽 ID 和信号序号播种，重复采样与重放相同。最多同时256个实例、512个粒子；超出实例数移除最早实例，粒子按声明顺序截断。
 
-延迟后同步开始本体、粒子和声音；循环音效每轮播放一次，静音不追补。声音最长8秒；循环时周期由槽 duration 控制，可能叠音，音频源最多24个。结束时粒子消失；hold 保留最终本体姿态。暂停冻结模拟/表现及音频，重置清空实例、音源和待解码播放。终局玩法 tick 停止，单独表现时钟推进到已触发单次槽结束（含延迟），随后冻结循环；最多补960 tick。逐帧图片在终局使用首帧，本体反馈仍可倾倒/淡出。
+延迟后同步开始本体、粒子和声音；循环音效每轮播放一次，静音不追补。声音最长8秒；循环时周期由槽 duration 控制，可能叠音，音频源最多24个。结束时粒子消失；hold 保留最终本体姿态。暂停冻结模拟/表现及音频，重置清空实例、音源和待解码播放。终局玩法 tick 停止，单独表现时钟推进到已触发单次槽结束（含延迟），随后冻结循环；最多补960 tick。普通状态动画在终局使用首帧；反馈帧序列在有限尾声继续播放，可替换为受击/倒地姿态，玩法不前进。
 
 可选 `scene.sounds` 保存 `{id,label,src}`，最多8个，src 只接受内嵌 data:audio/wav、x-wav、wave、mpeg、mp3、ogg 的base64；单段256 KiB、总计512 KiB。播放时校验解码与8秒上限，异常提示不影响模拟。删除图层/实体/行为会清理相关反馈，行为改名同步更新引用；复制图片同时复制其反馈槽。
 

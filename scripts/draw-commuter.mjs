@@ -39,8 +39,8 @@ for(const inward of [true,false])for(let i=0;i<8;i++){
   else b+=path('M42 16Q39 3 52 2l4-2 1 4q16-4 17 13l-10-5-14 2-2 6Z',P.hair)+rect(43,17,12,9,P.shirt,2)+rect(58,17,12,9,P.shirt,2)+path('M43 17h12v9H43Zm15 0h12v9H58Zm-3 3h3','none',P.ink,2)+circle(50,21,1.2,P.ink)+circle(64,21,1.2,P.ink)+path('m52 34 4 8 5-8',P.shirt)+rect(48,49,8,10,P.shirt,1);
   add('commuter'+(inward?'In':'Out')+(i+1),'赶路职员 · '+(inward?'向里':'向外')+' '+(i+1),112,96,b);
 }
-// Stagger, reach for balance, fold knees, then land on the hip. This sequence
-// has a drawn end pose; no whole-image rotation is needed to fake the fall.
+// Fixed-canvas fall poses: reach for balance while tilting the body toward
+// the ground, with a separate shadow and landing marks. No runtime rig needed.
 for(let i=0;i<8;i++){
   const angles=[0,-7,-19,-35,-54,-72,-86,-86],drop=[0,0,2,6,13,21,27,27];
   let b=shadow(50,92,22+i*1.8)+`<g transform="translate(0 ${drop[i]}) rotate(${angles[i]} 56 58)">${side(.125,i>0)}</g>`;
