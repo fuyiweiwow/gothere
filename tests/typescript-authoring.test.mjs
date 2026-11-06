@@ -26,7 +26,7 @@ test('typed semantic projects preserve all existing map schemas, artwork and act
     assert.deepEqual(await executeProject(project),original,original.id);
   }
   const map=levelToProject(createCommuteChapter(),{typescript:true}).files['map.ts'];
-  assert.match(map,/\.layer\(/);assert.match(map,/\.at\(/);assert.match(map,/level\.route/);
+  assert.match(map,/\.layer\(/);assert.match(map,/\.at\(/);assert.match(levelToProject(createCommuteChapter(),{typescript:true}).files['routes.ts'],/level\.route/);
   assert.doesNotMatch(map,/schemaVersion|"depth"|"space"|"projection"/);
 });
 
@@ -42,6 +42,9 @@ test('missing or extended map fields use lossless compatibility definitions',asy
   const custom=createBlankLevel('names',{layered:true});custom.description="A note from './kept.js'";
   custom.custom={quote:"from './source.js'"};createAuthoringAPI(custom,custom).object('level');
   assert.deepEqual(await executeProject(levelToProject(custom,{typescript:true})),custom);
+  const extended=createCommuteChapter();extended.platforms[0].space.custom={note:'preserve'};
+  assert.equal(semanticMapSource(extended),null);
+  assert.deepEqual(await executeProject(levelToProject(extended,{typescript:true})),extended,'partial semantic-map fallback retains anchored artwork and linked actions');
 });
 
 test('semantic references, passages and generic object capabilities build a playable typed sample',async()=>{
@@ -108,4 +111,62 @@ test('compiled commute chapter retains the full solution and deterministic repla
     place('barrier','gap',e['scooter-awake'].state==='active');place('breakfast','bowl',s.actor.space.plane==='far'&&s.actor.x>360);game.step();
   }
   assert.equal(game.snapshot().status,'won');assert.deepEqual(replayRecording(level,game.recording()).snapshot(),game.snapshot());
+});
+
+test('injected contexts expose concrete resources, references and behavior slots with project definitions',async()=>{
+  const project=levelToProject(createCommuteChapter(),{typescript:true}),service=await typeService();
+  assert.match(project.files['objects/bus.ts'],/extends Entity<ProjectContext>/);
+  assert.match(project.files['objects/bus.ts'],/objects\.itemPassengerC\.doBoard\.invoke/);
+  assert.doesNotMatch(project.files['events.ts'],/level\.entity\(|"target"|"source"/);
+  assert.match(project.files['events.ts'],/Events\.Click/);assert.match(project.files['events.ts'],/States\.Active/);
+  assert.ok(project.files['scene.ts'].length<1000,'scene is orchestration, not an embedded document');
+  assert.match(project.files['scene/styles.ts'],/scene\.template\(images\./);
+  assert.match(project.files['scene/feedback.ts'],/behavior: objects\.itemBus\.doLeave/);
+  const eventPosition=project.files['events.ts'].indexOf('itemBus')+2;
+  assert.ok(service.definitions(project,'events.ts',eventPosition).some(d=>d.path==='objects/index.ts'));
+  const behaviorPosition=project.files['events.ts'].indexOf('doOpen')+2;
+  assert.ok(service.definitions(project,'events.ts',behaviorPosition).some(d=>d.path==='objects/bus.ts'));
+  const eventConstant=project.files['events.ts'].indexOf('Events.Click')+'Events.'.length+1;
+  assert.ok(service.definitions(project,'events.ts',eventConstant).some(d=>d.path==='@gothere/core'));
+  const probe='\nconst known = context.images.';
+  project.files['objects/bus.ts']+=probe;
+  // Probe inside the configure scope for actual inferred resource names.
+  project.files['objects/bus.ts']=project.files['objects/bus.ts'].replace(probe,'').replace('    const context = this.context;','    const context = this.context;\n    context.images.');
+  const position=project.files['objects/bus.ts'].indexOf('context.images.')+'context.images.'.length;
+  assert.ok(service.completions(project,'objects/bus.ts',position).some(c=>c.label==='imageBlockStreets'));
+  project.files['objects/bus.ts']=project.files['objects/bus.ts'].replace('context.images.','context.images.missingPicture;');
+  assert.ok(service.diagnostics(project).some(d=>d.code===2339&&d.path==='objects/bus.ts'));
+});
+
+test('art resource API retains imported asset order, sounds, frame animation and extended definitions',async()=>{
+  const level=createCommuteChapter();
+  level.scene.assets=[{id:'customA',label:'A',width:1,height:1,src:'data:image/png;base64,AAAA'},{id:'customB',label:'B',width:1,height:1,src:'data:image/png;base64,AAAA'}];
+  level.scene.nodes[0].asset='customB';level.scene.nodes[1].asset='customA';
+  level.scene.nodes[0].animation={frames:['customB','customA'],fps:6};
+  level.scene.sounds=[{id:'mySound',label:'sound',src:'data:audio/wav;base64,AAAA'}];level.scene.feedback[0].sound='mySound';
+  level.entities[0].behaviors[0].custom={preserve:true};
+  level.entities.find(e=>!e.behaviors).behaviors=[];
+  level.entities[0].space.depth+=1;
+  level.scene.nodes.find(n=>n.anchor).anchor.depth+=1;
+  assert.deepEqual(await executeProject(levelToProject(level,{typescript:true})),level);
+});
+
+test('resource references reject foreign scenes and type confusion without changing old data schemas',()=>{
+  const blank=createBlankLevel('ctx',{layered:true}),{Level,Entity,LevelContext,Events,States}=createAuthoringLibrary(l=>createAuthoringAPI(l,blank),blank);
+  const a=new Level(),b=new Level(),context=new LevelContext(a);
+  class Component extends Entity {inspect(){return this.context.resources;}}
+  const item=new Component(context,'bound',{x:400});assert.equal(item.context,context);assert.equal(item.inspect(),a.scene.resources);
+  const image=a.scene.resources.image('crate'),foreign=b.scene.resources.image('crate');
+  const view=a.scene.template(image,{width:32,height:32,layer:0}).place('view').label('view').at(0,0).bind(item);
+  assert.throws(()=>a.scene.image('foreign',foreign),/同一关卡/);
+  assert.throws(()=>view.bind(b.object('elsewhere')),/同一关卡/);
+  assert.throws(()=>view.bind(b.scene.actor),/同一关卡/);
+  const slot=item.behaviorSlot('depart');slot.actions([item.set(States.Inactive)]);item.on(Events.Click,[slot.invoke()]);
+  const feedback=a.scene.feedbackTemplate({motion:'none'});
+  const cue=feedback.attach('done',view,{type:'event',source:item,event:Events.Done,behavior:slot});
+  assert.deepEqual(cue.trigger,{type:'event',event:'done',source:item.id,behavior:slot.id});
+  assert.throws(()=>feedback.attach('foreign-slot',view,{type:'event',source:a.object('different'),event:Events.Done,behavior:slot}),/来源物体/);
+  assert.throws(()=>feedback.attach('foreign-source',view,{type:'event',source:b.object('bound'),event:Events.Done,behavior:slot}),/同一关卡/);
+  assert.equal(a.data.rules[0].on.source,'bound');assert.equal(a.data.rules[0].on.type,'click');
+  assert.equal(a.data.scene.nodes[0].bind.id,'bound');assert.equal(a.data.scene.nodes[0].asset,'crate');
 });

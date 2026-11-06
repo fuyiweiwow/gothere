@@ -91,13 +91,14 @@ export function createAuthoringUI({editor,notify,download,pause}) {
     pause();storageKey='gothere.authoring.'+editor.documentKey();base=editor.document();
     try{const raw=localStorage.getItem(storageKey);if(raw){const saved=decode(JSON.parse(raw));base=saved.base;project=saved.project;}else project=levelToProject(base,{typescript:true});}
     catch(error){notify('读取源码项目失败，原存储已保留：'+error.message);return;}
-    if(typeof globalThis.createGothereCodeEditor==='function'){codeEditor=globalThis.createGothereCodeEditor($('code-editor'),changed,{project:()=>project,onDiagnostics:diagnostics});source.hidden=true;$('code-editor').hidden=false;}
+    if(typeof globalThis.createGothereCodeEditor==='function'){codeEditor=globalThis.createGothereCodeEditor($('code-editor'),changed,{project:()=>project,onDiagnostics:diagnostics,onNavigate:(path,position)=>{showFile(path);codeEditor.jump(position);},onNotice:text=>message(text)});source.hidden=true;$('code-editor').hidden=false;}
     else{source.hidden=false;$('code-editor').hidden=true;}
     replaceProject(project);dirty=false;changedFiles.clear();renderTabs();
-    invalidate();message('地图使用行走层、位置和通路；左侧选择文件。Ctrl+Space 类型提示，悬停查看签名，点击问题定位。');
+    invalidate();message('左侧选择文件；Ctrl+Space 类型提示，F12 或 Ctrl+单击转到定义，Alt+← 返回。场景按模板和分组编排。');
     $('script-base').disabled=$('script-example').disabled=!editor.isEditing();dialog.showModal();codeEditor?.refresh();
   };
   $('script-search').oninput=renderTree;$('script-core').onclick=()=>showFile(CORE_MODULE);
+  $('script-definition').onclick=()=>codeEditor?.definition();$('script-back').onclick=()=>codeEditor?.back();
   $('script-entry').onchange=()=>{project.entry=$('script-entry').value;dirty=true;stop();invalidate();renderTree();renderTabs();};
   $('script-base').onclick=()=>{stop();if(!backup())return;base=editor.document();replaceProject(levelToProject(base,{typescript:true}));if(save())message('已从画布生成 TypeScript 项目；之前的源码项目可恢复。');};
   $('script-example').onclick=()=>{stop();if(!backup())return;replaceProject(createProjectExample({typescript:true}));if(save())message('已载入 TypeScript 类复用示例；之前的项目可恢复。');};

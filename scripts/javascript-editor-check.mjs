@@ -16,6 +16,17 @@ const browser=await chromium.launch({headless:true,args:['--mute-audio'],...(!ex
 const workspace=p=>p.evaluate(()=>JSON.parse(localStorage.getItem('gothere.studio.layered.v1'))),current=s=>s.documents.find(d=>d.key===s.activeKey).level;
 async function select(p,path){await p.locator('[data-script-path="'+path+'"]').click();}
 async function edit(p,text){await p.locator('.cm-content').click();await p.keyboard.press('Control+a');await p.keyboard.insertText(text);}
+async function cursorAt(p,text,token){
+  assert.ok(text.includes(token),token);await p.locator('.cm-content').click();await p.keyboard.press('Control+Home');
+  const point=await p.locator('.cm-line').filter({hasText:token}).first().evaluate((line,token)=>{
+    let offset=line.textContent.indexOf(token)+2;const walker=document.createTreeWalker(line,NodeFilter.SHOW_TEXT);
+    for(let node=walker.nextNode();node;node=walker.nextNode()){
+      if(offset>node.length){offset-=node.length;continue;}
+      const range=document.createRange();range.setStart(node,offset);range.setEnd(node,Math.min(offset+1,node.length));const rect=range.getBoundingClientRect();return {x:rect.x+1,y:rect.y+rect.height/2};
+    }
+    throw new Error('token not rendered');
+  },token);await p.mouse.click(point.x,point.y);return point;
+}
 async function generate(p,{error=false,match}={}){
   await p.locator('#script-generate').click();await p.waitForFunction(()=>!document.getElementById('script-generate').disabled);
   const message=await p.locator('#script-status').innerText();assert.equal(await p.locator('#script-status').getAttribute('data-error'),String(error),message);
@@ -36,7 +47,26 @@ try{
       await p.screenshot({path:`artifacts/js-project-${index}.png`});
       await p.setViewportSize({width:1280,height:800});const footer=await p.locator('#script-generate').boundingBox();assert.ok(footer.y+footer.height<=800,'generation controls remain visible on a small desktop');await p.setViewportSize({width:1650,height:1150});
       await select(p,'objects/bus.ts');assert.match(await p.locator('#script-source').inputValue(),/extends Entity/);
-      await select(p,'map.ts');assert.match(await p.locator('#script-source').inputValue(),/level\.route/);assert.doesNotMatch(await p.locator('#script-source').inputValue(),/"projection"|"depth"/);
+      await select(p,'map.ts');assert.match(await p.locator('#script-source').inputValue(),/level\.point/);assert.doesNotMatch(await p.locator('#script-source').inputValue(),/"projection"|"depth"/);
+      await select(p,'routes.ts');assert.match(await p.locator('#script-source').inputValue(),/level\.route/);
+      await select(p,'scene.ts');assert.ok((await p.locator('#script-source').inputValue()).length<1000);
+      await select(p,'events.ts');const eventsSource=await p.locator('#script-source').inputValue();
+      await cursorAt(p,eventsSource,'doOpen');await p.keyboard.press('F12');
+      await p.waitForFunction(()=>document.getElementById('script-current-path').textContent==='objects/bus.ts').catch(async error=>{console.log('navigation failure',index,await p.evaluate(()=>({path:document.getElementById('script-current-path').textContent,status:document.getElementById('script-status').textContent,selection:window.getSelection()?.anchorNode?.textContent,offset:window.getSelection()?.anchorOffset})));throw error;});
+      assert.match(await p.locator('#script-source').inputValue(),/behaviorSlot/);await p.keyboard.press('Alt+ArrowLeft');
+      await p.waitForFunction(()=>document.getElementById('script-current-path').textContent==='events.ts');
+      const behaviorPoint=await cursorAt(p,eventsSource,'doOpen');
+      await p.keyboard.down('Control');await p.mouse.click(behaviorPoint.x,behaviorPoint.y);await p.keyboard.up('Control');
+      await p.waitForFunction(()=>document.getElementById('script-current-path').textContent==='objects/bus.ts');
+      await p.keyboard.press('Alt+ArrowLeft');await p.waitForFunction(()=>document.getElementById('script-current-path').textContent==='events.ts');
+      await cursorAt(p,eventsSource,'Click');await p.locator('#script-definition').click();
+      await p.waitForFunction(()=>document.getElementById('script-current-path').textContent==='@gothere/core');
+      assert.equal(await p.locator('.cm-content').getAttribute('contenteditable'),'false');await p.locator('#script-back').click();
+      await p.waitForFunction(()=>document.getElementById('script-current-path').textContent==='events.ts');
+      await select(p,'scene/styles.ts');const stylesSource=await p.locator('#script-source').inputValue();
+      await cursorAt(p,stylesSource,'imageBlockStreets');await p.keyboard.press('F12');
+      await p.waitForFunction(()=>document.getElementById('script-current-path').textContent==='resources.ts');
+      await p.keyboard.press('Alt+ArrowLeft');await p.waitForFunction(()=>document.getElementById('script-current-path').textContent==='scene/styles.ts');
       await p.locator('#script-search').fill('objects/bus.ts');assert.equal(await p.locator('#script-tree [data-script-path]').count(),1);await p.locator('#script-search').fill('');
       await p.locator('#script-core').click();assert.equal(await p.locator('.cm-content').getAttribute('contenteditable'),'false');assert.equal(await p.locator('#script-delete').isDisabled(),true);
       await select(p,'level.ts');await generate(p);await p.locator('#script-apply').click();assert.deepEqual(current(await workspace(p)),current(original));

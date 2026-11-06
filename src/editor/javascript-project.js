@@ -3,6 +3,8 @@ import {createAuthoringLibrary} from './authoring-library.js';
 import {createBlankLevel} from './model.js';
 import {levelToJavaScript} from './javascript-source.js';
 import {semanticMapSource,actionsSource} from './semantic-source.js';
+import {createSceneLibrary} from './authoring-scene.js';
+import {typedLevelProject} from './typed-project-source.js';
 
 export const CORE_MODULE = '@gothere/core';
 export const PROJECT_LIMIT = 2097152;
@@ -93,10 +95,11 @@ export function authoringLibrarySource() {
   return '// 内置基础库 · 随编辑器提供；项目中使用 import { Level, Entity, Actions } from "@gothere/core"。\n' +
     'const blank = ' + literal(blank) + ';\n\n' +
     'export const createAPI = level => (' + createAuthoringAPI.toString() + ')(level, blank);\n\n' +
-    'export const { Level, Entity, Actions, Layer, Position, RoutePoint, Passage } = (' + createAuthoringLibrary.toString() + ')(createAPI, blank);\n';
+    'export const { Level, Entity, Actions, Layer, Position, RoutePoint, Passage, LevelContext, LevelComponent, BehaviorRef, States, Events, Kinds, Effects, Motions, Particles, Sounds, VisualStates, FeedbackPolicies, FeedbackTriggers, Capabilities } = (' + createAuthoringLibrary.toString() + ')(createAPI, blank, '+createSceneLibrary.toString()+');\n';
 }
 
 export function levelToProject(level, {typescript = false} = {}) {
+  if(typescript)return validateProject(typedLevelProject(level));
   const map = structuredClone(level), files = {}, objectImports = [], objectCalls = [];
   map.entities = []; map.rules = [];
   const scene = map.scene; delete map.scene;
@@ -152,17 +155,6 @@ export default function buildLevel() {
     return '  level.rule(' + literal(rule) + ');';
   }).join('\n') + '\n}\n';
   if (scene) files['scene.js'] = '// 美术、动画与声音只描述表现，逻辑实体在 objects 中定义。\nexport function addScene(level) {\n  level.data.scene = ' + literal(scene) + ';\n}\n';
-  if(typescript){
-    const typed={};for(const [path,source]of Object.entries(files)){
-      let text=source.replace(/^import (.+) from '(\.\.?\/[^']+)\.js';$/gm,"import $1 from '$2.ts';");
-      if(path==='map.js'&&semanticMap)text=semanticMap;
-      else if(path==='map.js')text=text.replace('createMap()','createMap(): Level');
-      if(path.startsWith('objects/')&&path!=='objects/index.js')text=text.replace('{ Entity, Actions }','{ Entity, Actions, type Level }').replace('constructor(level)','constructor(level: Level)');
-      else if(['objects/index.js','events.js','scene.js'].includes(path))text="import type { Level } from '@gothere/core';\n"+text.replace('(level) {','(level: Level) {');
-      typed[path.replace(/\.js$/,'.ts')]=text;
-    }
-    return validateProject({version:1,entry:'level.ts',active:'level.ts',files:typed});
-  }
   return validateProject({version: 1, entry: 'level.js', active: 'level.js', files});
 }
 
@@ -192,18 +184,20 @@ export default function buildLevel(): Level {
   return level;
 }
 `,
-    'objects/departing-object.ts':`import { Entity, Actions, type Level, type Position } from '@gothere/core';
+    'objects/departing-object.ts':`import { Entity, Actions, Events, States, Effects, LevelContext, type Level, type Position } from '@gothere/core';
 
 // 任意贴图均可搭配这种能力；可在其他关卡中重复使用。
 export class DepartingObject extends Entity {
-  constructor(level: Level, id: string, at: Position) {
-    super(level, id, { at, label: '点击让路的物体', size: { width: 64, height: 44 } });
-    this.contact({ effect: 'lethal', message: '撞上了挡路物。' });
-    this.behavior('leave', [
-      this.set('inactive'),
+  readonly doLeave = this.behaviorSlot('leave', '向右驶离');
+
+  constructor(context: LevelContext | Level, id: string, at: Position) {
+    super(context, id, { at, label: '点击让路的物体', size: { width: 64, height: 44 } });
+    this.contact({ effect: Effects.Lethal, message: '撞上了挡路物。' });
+    this.doLeave.actions([
+      this.set(States.Inactive),
       Actions.after(0.2, [this.move({ to: at.layer.at(1350), seconds: 2 })])
-    ], '向右驶离');
-    this.on('click', [this.invoke('leave')], [this.condition('active')]);
+    ]);
+    this.on(Events.Click, [this.doLeave.invoke()], [this.condition(States.Active)]);
   }
 }
 `

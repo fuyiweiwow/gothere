@@ -86,6 +86,14 @@ export function createTypeScriptService(libraries, declarations) {
       update(project);const info=service.getQuickInfoAtPosition('/project/'+path,position);
       return info?{start:info.textSpan.start,length:info.textSpan.length,text:ts.displayPartsToString(info.displayParts),documentation:ts.displayPartsToString(info.documentation)}:null;
     },
+    definitions(project,path,position) {
+      update(project);
+      return (service.getDefinitionAtPosition('/project/'+path,position)??[]).flatMap(info=>{
+        const target=info.fileName==='/sdk/core.d.ts'?'@gothere/core':info.fileName.startsWith('/project/')?info.fileName.slice('/project/'.length):null;
+        if(!target)return [];
+        return [{path:target,start:info.textSpan.start,length:info.textSpan.length,name:info.name}];
+      });
+    },
     dispose(){service.dispose();}
   };
 }

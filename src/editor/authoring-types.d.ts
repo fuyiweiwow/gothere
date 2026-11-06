@@ -11,12 +11,12 @@ export interface LayerOptions { label?: string; screenY: number; order?: number;
 export interface PositionOptions { height?: number; depthSize?: number; }
 export interface GroundOptions { from: number; to: number; height?: number; endHeight?: number; }
 export interface Contact { effect: 'lethal'; message?: string; }
-export interface DragOptions { enabled?: boolean; targets?: string[]; }
+export interface DragOptions { enabled?: boolean; targets?: (string|Entity)[]; }
 export interface DropOptions { enabled?: boolean; radius?: number; }
 export interface EntityOptions {
   label?: string; at?: Position; size?: {width:number; height:number};
   x?: number; width?: number; height?: number; plane?: string; elevation?: number;
-  state?: string; kind?: 'object' | 'zone'; contact?: Contact;
+  state?: string; kind?: 'object' | 'zone' | 'switch' | 'gate' | 'plate' | 'bridge' | 'hazard' | 'ladder' | 'lift'; contact?: Contact;
 }
 export interface MoveOptions { x?:number; seconds?:number; plane?:string; passage?:string; progress?:number; depth?:number; height?:number; to?:Position; editor?:{waypoints?:{x:number;y:number}[];keepWorldX?:boolean}; }
 export type EventName = 'click' | 'contact' | 'enter' | 'placed' | 'droprejected' | 'board' | 'arrive' | 'moved' | 'moveblocked' | 'rotated' | 'supportlost' | 'supportfound' | 'landed' | 'impact' | 'actorlanded' | 'done';
@@ -38,6 +38,7 @@ export class Level {
   /** Generated runtime document. Advanced compatibility escape hatch, not the default authoring interface. */
   readonly data:LevelData;
   readonly api:AuthoringAPI;
+  readonly scene:Scene;
   /** Add a layer with screen placement, independent of real elevation. */
   layer(id:string, options:LayerOptions):Layer;
   /** Find an existing layer. Throws if it does not exist. */
@@ -77,10 +78,18 @@ export class Passage {
   private readonly passageBrand;
   readonly id:string;
 }
-export class Entity {
+export class LevelContext {
+  constructor(level:Level);
+  readonly level:Level; readonly scene:Scene; readonly resources:Resources;
+}
+export class LevelComponent<C extends LevelContext = LevelContext> {
+  constructor(context:C|Level);
+  readonly context:C; readonly level:Level; readonly scene:Scene; readonly resources:Resources;
+}
+export class Entity<C extends LevelContext = LevelContext> extends LevelComponent<C> {
   private readonly entityBrand;
-  constructor(level:Level, definition:string|Record<string,any>);
-  constructor(level:Level, id:string, options:EntityOptions);
+  constructor(context:C|Level, definition:string|Record<string,any>);
+  constructor(context:C|Level, id:string, options:EntityOptions);
   readonly id:string; readonly data:any; readonly level:Level;
   contact(options:Contact):this;
   hold():Action;
@@ -90,18 +99,87 @@ export class Entity {
   dropTarget(options?:DropOptions):this;
   connect(from:RoutePoint, to:RoutePoint, options?:{distance?:number;enabled?:boolean}):this;
   behavior(id:string, actions:Action[], label?:string):this;
-  on(event:EventName, actions:Action[], conditions?:Condition[], details?:{other?:string;behavior?:string}):this;
+  behaviorSlot(id:string, label?:string):BehaviorRef;
+  on(event:EventName, actions:Action[], conditions?:Condition[], details?:{other?:string|Entity;behavior?:string|BehaviorRef}):this;
   move(destination:MoveOptions):Action;
   set(state:string):Action;
-  invoke(behavior:string):Action;
+  invoke(behavior:string|BehaviorRef):Action;
   condition(state:string):Condition;
+}
+export class BehaviorRef {
+  private readonly behaviorBrand;
+  readonly entity:Entity; readonly id:string;
+  actions(actions:Action[]):this;
+  invoke():Action;
 }
 export class Actions {
   static after(seconds:number, actions:Action[]):Action;
   static set(target:string|Entity, state:string):Action;
-  static invoke(target:string|Entity, behavior:string):Action;
+  static invoke(target:string|Entity, behavior:string|BehaviorRef):Action;
   static move(target:string|Entity, destination:Omit<MoveOptions,'to'>):Action;
   static drop():Action;
+  static enable(target:Entity,capability:Capability,enabled:boolean):Action;
+  static rotate(target:Entity,angle:number,ticks:number):Action;
+  static place(target:Entity,at:Entity,range:number):Action;
+  static hurt(message?:string):Action;
+  static holding(target:Entity|null):Condition;
+}
+
+export const States:Readonly<{Active:'active';Inactive:'inactive';Enabled:'enabled';Disabled:'disabled';Off:'off';On:'on';Folded:'folded';Extended:'extended';Closed:'closed';Open:'open';Running:'running';Stopped:'stopped';Idle:'idle';Pressed:'pressed';Lower:'lower';Upper:'upper'}>;
+export const Events:Readonly<{Click:'click';Contact:'contact';Enter:'enter';Placed:'placed';Droprejected:'droprejected';Board:'board';Arrive:'arrive';Moved:'moved';Moveblocked:'moveblocked';Rotated:'rotated';Supportlost:'supportlost';Supportfound:'supportfound';Landed:'landed';Impact:'impact';Actorlanded:'actorlanded';Done:'done'}>;
+export const Kinds:Readonly<{Object:'object';Zone:'zone';Switch:'switch';Gate:'gate';Plate:'plate';Bridge:'bridge';Hazard:'hazard';Ladder:'ladder';Lift:'lift'}>;
+export const Effects:Readonly<{Lethal:'lethal'}>;
+export const Capabilities:Readonly<{Surface:'surface';Collider:'collider';Passage:'passage';Draggable:'draggable';DropTarget:'dropTarget'}>;
+export const VisualStates:Readonly<{Moving:'moving';Carried:'carried';Idle:'idle';Forward:'forward';Backward:'backward';Inward:'inward';Outward:'outward';Upward:'upward';Downward:'downward'}>;
+export const Motions:Readonly<{None:'none';Squash:'squash';Shake:'shake';Hop:'hop';Recoil:'recoil';Sway:'sway';Pulse:'pulse';Emerge:'emerge';Fade:'fade';Fall:'fall'}>;
+export const Particles:Readonly<{None:'none';Smoke:'smoke';Dust:'dust';Spark:'spark'}>;
+export const Sounds:Readonly<{None:'none';Puff:'puff';Clack:'clack';Pop:'pop';Thud:'thud';Success:'success';Fail:'fail'}>;
+export const FeedbackPolicies:Readonly<{Restart:'restart';Overlay:'overlay'}>;
+export const FeedbackTriggers:Readonly<{Start:'start';Behavior:'behavior';State:'state';Event:'event';Lost:'lost';Won:'won'}>;
+declare const imageBrand:unique symbol;
+declare const soundBrand:unique symbol;
+export interface ImageAsset { readonly [imageBrand]:true; readonly id:string; }
+export interface SoundAsset { readonly [soundBrand]:true; readonly id:string; }
+export interface ImageDefinition {label:string;src:string;width:number;height:number;[key:string]:unknown;}
+export interface SoundDefinition {label:string;src:string;[key:string]:unknown;}
+export interface Resources {
+  /** Built-in image reference, or declare an imported image once. */
+  image(id:string, definition?:ImageDefinition):ImageAsset;
+  sound(id:string, definition?:SoundDefinition):SoundAsset;
+}
+export interface Animation {frames:ImageAsset[];fps:number;[key:string]:unknown;}
+export interface VisualStyle {
+  asset?:ImageAsset; animation?:Animation|null; width?:number;height?:number;x?:number;y?:number;
+  rotation?:number;layer?:number;opacity?:number;flipX?:boolean;visible?:boolean;flipWithDirection?:boolean;
+  [key:string]:unknown;
+}
+export interface SceneTarget {readonly type:'actor'|'goal';}
+export interface Visual {
+  readonly id:string;
+  label(label:string,group?:string):this;at(x:number,y:number):this;size(width:number,height:number):this;
+  order(order:number):this;bind(target:Entity|SceneTarget):this;platform(index:number):this;
+  anchor(position:Position):this;properties(options:VisualStyle):this;variant(state:string,options:VisualStyle):this;
+}
+export interface VisualTemplate {place(id:string):Visual;}
+export type FeedbackTrigger =
+  {type:'behavior';behavior:BehaviorRef} |
+  {type:'state';source:Entity;state:string} |
+  {type:'event';source:Entity;event:EventName;behavior?:string|BehaviorRef} |
+  {type:'start'|'lost'|'won';source?:string;reason?:string};
+export interface FeedbackOptions {
+  label?:string;motion?:typeof Motions[keyof typeof Motions];particles?:typeof Particles[keyof typeof Particles];
+  sound?:typeof Sounds[keyof typeof Sounds]|SoundAsset;policy?:'restart'|'overlay';
+  duration?:number;delay?:number;strength?:number;loop?:boolean;hold?:boolean;
+  anchor?:{x:number;y:number};count?:number;color?:string;direction?:number;volume?:number;[key:string]:unknown;
+}
+export interface Scene {
+  readonly resources:Resources; readonly actor:SceneTarget;readonly goal:SceneTarget;
+  configure(options:Record<string,unknown>):this;
+  image(id:string,image:ImageAsset):Visual;
+  template(image:ImageAsset,defaults?:VisualStyle):VisualTemplate;
+  arrange(visuals:Visual[]):this;
+  feedbackTemplate(defaults:FeedbackOptions):{attach(id:string,target:Visual,trigger:FeedbackTrigger,options?:FeedbackOptions):unknown};
+  compose(id:string,options:{label:string;origin:{x:number;y:number};nodes:Visual[];entities:Entity[];[key:string]:unknown}):unknown;
 }
 export interface AuthoringAPI {
   entity(id:string|{id:string}):any;

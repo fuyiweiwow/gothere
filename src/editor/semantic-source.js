@@ -3,14 +3,14 @@ export function sourceLiteral(value) {
 }
 const compact = value => JSON.stringify(value).replace(/"__proto__":/g, '["__proto__"]:');
 export function sourceName(id, prefix, used) {
-  let name = String(id).replace(/[-_]([a-z])/g, (_, c) => c.toUpperCase()).replace(/[^\w$]/g, '_');
+  let name = String(id).replace(/[-_]([a-z])/g, (_, c) => c.toUpperCase()).replace(/[^\p{ID_Continue}$]/gu, '_');
   name = prefix + (name ? name[0].toUpperCase() + name.slice(1) : 'Item');
   while (used.has(name)) name += '_';
   used.add(name); return name;
 }
 
 /** Only export the structured facade when every field can be preserved exactly. */
-export function semanticMapSource(level) {
+export function semanticMapSource(level, {context=false, layerNames, pointNames}={}) {
   if (level.schemaVersion !== 3 || level.spatial?.mode !== 'layered') return null;
   const {spatial, world} = level;
   const keys = (value, allowed) => Object.keys(value).every(key => allowed.includes(key));
@@ -37,6 +37,7 @@ export function semanticMapSource(level) {
     const name = sourceName(layer.id, 'street', used); layers.set(layer.id,name);
     lines.push(`  const ${name} = level.layer(${compact(layer.id)}, ${compact({label:layer.label,screenY:spatial.projection.originY-layer.depth,order:layer.order})});`);
   }
+  if(layerNames)for(const [id,name]of layers)layerNames.set(id,name);
   lines.push('', '  // 实际承托路面；屏幕位置和离地高度分别定义。');
   for (const platform of level.platforms) {
     const {x,width,space,...extra} = platform;
@@ -49,6 +50,7 @@ export function semanticMapSource(level) {
     const name = sourceName(id, 'point', used); points.set(id,name);
     lines.push(`  const ${name} = level.point(${compact(id)}, ${layers.get(plane)}.at(${x}${height?', { height: '+height+' }':''})${Object.keys(extra).length?', '+compact(extra):''});`);
   }
+  if(pointNames)for(const [id,name]of points)pointNames.set(id,name);
   const pending = new Set(spatial.nodes.filter(n=>n.next).map(n=>n.id));
   lines.push('', '  // 跨层必须经过显式通路；普通路段只连接同层位置。');
   function chain(id) {
@@ -60,7 +62,7 @@ export function semanticMapSource(level) {
     }
     if (steps.length>1) lines.push('  level.route('+steps.join(', ')+');');
   }
-  chain(spatial.start);for (const id of [...pending]) chain(id);
+  if(!context){chain(spatial.start);for (const id of [...pending]) chain(id);}
   lines.push(`  level.startAt(${points.get(spatial.start)});`, '');
   function position(object) {
     const {plane,depth,height,...extra} = object.space;
@@ -70,7 +72,8 @@ export function semanticMapSource(level) {
   const {x:actorX,space:actorSpace,...actor} = level.actor, {x:goalX,space:goalSpace,...goal} = level.goal;
   lines.push(`  level.traveler({ start: ${position(level.actor)}, ${Object.entries(actor).map(([k,v])=>k+': '+compact(v)).join(', ')} });`);
   lines.push(`  level.destination(${position(level.goal)}${Object.keys(goal).length?', '+compact(goal):''});`);
-  lines.push('  return level;', '}');
+  lines.push(context?'  return { level, layers: { '+[...layers.values()].join(', ')+' }, points: { '+[...points.values()].join(', ')+' } };':'  return level;', '}');
+  if(context)lines[2]='export function createMap() {';
   return lines.join('\n')+'\n';
 }
 

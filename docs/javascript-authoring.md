@@ -1,16 +1,25 @@
 # TypeScript 关卡项目与画外编辑
 
-v0.32.0。在线、静态预览与单文件离线版共用同一套工具，使用者不需要安装 npm。新项目使用 TypeScript；旧 JavaScript 和 JSON 仍可导入，运行时继续使用原有数据、校验器与确定性模拟。
+v0.33.0。在线、静态预览与单文件离线版共用同一套工具，使用者不需要安装 npm。新项目使用 TypeScript；旧 JavaScript 和 JSON 仍可导入，运行时继续使用原有数据、校验器与确定性模拟。
 
 ## 从哪里开始
 
 顶部「关卡源码」（Ctrl+O）打开左侧文件树、右侧代码区。点击「从当前画布生成源码」会得到：
 
 ```text
-level.ts            入口：调用地图、物体、事件和美术模块
-map.ts              行走层、路面、路线、主角和终点
+level.ts            入口：构造上下文、物体、路线、事件和美术
+context.ts          ProjectContext：明确类型的地图与资源依赖
+map.ts              行走层、路面、路线点、主角和终点
+routes.ts           用已创建的物体连接跨层路线
+resources.ts        图片与导入声音只声明一次
 events.ts           跨物体事件与动作
-scene.ts            图片、动画、音效与图层
+scene.ts            装配场景模块
+scene/
+  styles.ts         可复用图片样式模板与帧动画
+  group建筑.ts      具体分组的摆放与绑定（文件随分组生成）
+  visuals.ts        合并图层引用，保持原始显示顺序
+  feedback.ts       行为、状态与事件的动画音效订阅
+  compositions.ts   用图层/物体引用建立编辑组合
 objects/
   index.ts          创建所有物体
   bus.ts            一个物体的类、能力与行为
@@ -58,25 +67,54 @@ export function createMap(): Level {
 
 `screenY` 是路面的画面基线，由库推导旧数据中的深度；`front.at(x, {height})` 是所属层上的位置，height 是真实离地高度。斜路可用 `ground({from,to,height,endHeight})` 设置两端高度。内外行走与真实升降仍是两种空间含义，不因画面纵坐标变化自动变成斜坡。
 
-`level.route()` 连接同层位置或命名路线点；跨层必须经过显式通路。`level.passage()` 创建普通物体的通路能力并返回路线引用；也可用 `level.through('alley')` 引用稍后在物体文件中创建的通路，最终检查其存在性。路线不负责寻路、修路或保证有解。
+`level.route()` 连接同层位置或命名路线点；跨层必须经过显式通路。`level.passage()` 创建普通物体的通路能力并返回路线引用；已有通路物体使用 `level.through(objects.itemAlley)`，生成项目在物体创建后连接路线。旧字符串入口继续兼容。路线不负责寻路、修路或保证有解。
 
 已有层与点用 `level.layer(id)`、`level.point(id)` 取回。Layer、Position、RoutePoint、Passage 在类型系统中区分；不能把 Layer 当作 Position。跨关卡引用还会在生成时拒绝。
 
 ## 组合物体能力与可复用类
 
+生成项目采用显式依赖注入。`ProjectContext extends LevelContext` 包含 `map`、`layers`、`points`、`images`，这些类型从声明函数推导。`Entity<C>` 继承 `LevelComponent<C>`，子类可通过 `this.context` 获取项目的具体依赖，也可使用 `this.scene`、`this.resources`。不通过任意字符串向全局容器索取物体。
+
+物体先在构造时注册行为槽，再统一执行 `configure(objects: Objects)`。Objects 的属性是具体的子类实例，跨物体调用例如 `objects.itemBus.doLeave.invoke()`，而非 `level.entity('bus').invoke('leave')`。这两阶段允许公交引用乘客、乘客又引用公交，同时避免访问尚未初始化的实例；type import 不形成运行时依赖环。注册和动作数组仍然是生成数据，不是在模拟期间执行回调。
+
+```ts
+class Bus extends Entity<ProjectContext> {
+  readonly doLeave = this.behaviorSlot('leave', '驶离');
+
+  constructor(context: ProjectContext) {
+    super(context, 'bus', {
+      at: context.layers.streetBusRoad.at(500),
+      size: { width: 30, height: 75 }, kind: Kinds.Object
+    });
+  }
+
+  configure(objects: Objects) {
+    this.doLeave.actions([
+      Actions.set(objects.itemDepartReady, States.Inactive),
+      this.move({ to: this.context.layers.streetBusRoad.at(1300), seconds: 3 })
+    ]);
+    // this.context.images.imageBlockBusBack 是具体图片引用，可补全、跳转。
+  }
+}
+```
+
+系统关键字有来源：事件使用 `Events.Click`，状态 `States.Active`，伤害 `Effects.Lethal`，常用动画 `Motions.Recoil` 等。物体、资源、行为自定义名称在声明处仍需稳定 ID，生成后写入已有运行数据；后续关联尽量使用引用。旧字符串 API 保留兼容，不要求手写旧项目立即迁移。
+
 ```ts
 // shared/departing-object.ts
-import { Entity, Actions, type Level, type Position } from '@gothere/core';
+import { Entity, Actions, Events, States, Effects, LevelContext, type Level, type Position } from '@gothere/core';
 
 export class DepartingObject extends Entity {
-  constructor(level: Level, id: string, at: Position) {
-    super(level, id, { at, size: { width: 64, height: 44 } });
-    this.contact({ effect: 'lethal', message: '撞上了挡路物。' });
-    this.behavior('leave', [
-      this.set('inactive'),
+  readonly doLeave = this.behaviorSlot('leave', '向右驶离');
+
+  constructor(context: LevelContext | Level, id: string, at: Position) {
+    super(context, id, { at, size: { width: 64, height: 44 } });
+    this.contact({ effect: Effects.Lethal, message: '撞上了挡路物。' });
+    this.doLeave.actions([
+      this.set(States.Inactive),
       Actions.after(0.2, [this.move({ to: at.layer.at(1350), seconds: 2 })])
     ]);
-    this.on('click', [this.invoke('leave')], [this.condition('active')]);
+    this.on(Events.Click, [this.doLeave.invoke()], [this.condition(States.Active)]);
   }
 }
 ```
@@ -87,12 +125,13 @@ export class DepartingObject extends Entity {
 | --- | --- |
 | `level.object(id, {at,size,...})` / `new Entity(level,id,options)` | 创建物体；默认普通物体、active 状态 |
 | `level.entity(id)` / `new Entity(level,id)` | 引用已有物体，不重复创建 |
-| `item.contact({effect:'lethal'})` | 接触造成致死伤害 |
+| `item.contact({effect:Effects.Lethal})` | 接触造成致死伤害 |
 | `item.surface({enabled:true})` | 添加承托面与默认旋转姿态 |
-| `item.draggable({targets:['bowl']})` | 玩家可拖放到指定物体 |
+| `item.draggable({targets:[objects.itemBowl]})` | 玩家可拖放到指定物体 |
 | `item.dropTarget({radius:32})` | 添加接收拖放能力 |
 | `item.connect(fromPoint,toPoint,{distance})` | 添加通路能力 |
 | `item.behavior(id,actions,label?)` / `.on(event,actions,conditions?,details?)` | 注册行为与事件，返回物体，可链式调用 |
+| `item.behaviorSlot(id,label?)` | 声明行为引用，使用 `.actions()` 配置、`.invoke()` 调用 |
 | `item.move({to:position,seconds})` | 构造移动动作，目的地明确所属层和高度 |
 | `item.set(state)` / `.invoke(behavior)` / `.condition(state)` | 状态动作、调用行为和状态条件 |
 | `item.hold()` / `Actions.drop()` | 构造持有或放下动作，无须专用物品类型 |
@@ -101,7 +140,33 @@ export class DepartingObject extends Entity {
 
 事件接收动作数组，不接收运行时函数。通路上的移动用既有 `passage`、`progress` 参数；当前层移动可用 `to`。能力组合仍须遵守引擎约束：拖放物不同时承托/旋转/巡逻；通路物体不同时承托；跨层移动须符合现有端点规则。`carriedPhysics` 仅为旧 v1 兼容接口，v3 不支持，不把它描述为新能力。
 
-地图生成器为可保真的 v3 数据输出上述 API。旧 v1/v2 或含不能保真表示的扩展数据使用 `new Level(完整定义)`。资源目前仍是 `scene.ts` 中的完整图层定义；没有声称图片和动画也已全部语义化。`Level.data` 与完整物体定义允许兼容数据，类型约束重点在语义 API，所有输出仍需运行校验。
+地图生成器为可保真的 v3 数据输出上述 API。旧 v1/v2 或含不能保真表示的扩展数据使用 `new Level(完整定义)`。`Level.data` 与完整物体定义允许兼容数据，类型约束重点在语义 API，所有输出仍需运行校验。
+
+## 用资源模板搭场景
+
+`resources.ts` 返回具名 ImageAsset / SoundAsset 引用，内嵌图片字节与导入声音集中保存。`scene/styles.ts` 将同类图层的共同尺寸、显示顺序、帧动画等提为模板；模板可多次放置，实例仍可覆盖大小、偏移和状态变体。
+
+```ts
+const shopStyle = scene.template(images.imageBlockShop, { height: 120, layer: -75 });
+const shop = shopStyle.place('shop-a').label('店面', '建筑')
+  .at(195, 424).size(215, 120);
+const bus = scene.image('bus-picture', images.imageBlockBusBack)
+  .label('公交').at(-80, -90).size(263, 95).order(10)
+  .bind(objects.itemBus)
+  .variant(States.Inactive, { visible: false });
+const feedback = scene.feedbackTemplate({
+  label: '驶离反馈', motion: Motions.Recoil, particles: Particles.None,
+  sound: Sounds.Puff, duration: 40, delay: 0, strength: 0.12,
+  loop: false, hold: false, policy: FeedbackPolicies.Restart,
+  anchor: { x: 0.5, y: 0 }, count: 12, color: '#c4d7e3', direction: -90, volume: 0.25
+});
+feedback.attach('departure', bus,
+  { type: FeedbackTriggers.Behavior, behavior: objects.itemBus.doLeave });
+```
+
+动画帧也接收 ImageAsset 数组，声音可为 Sounds 常量或 SoundAsset；不同关卡的资源和物体绑定会拒绝混用。背景和活动图片使用同一 API，不从图片名推断碰撞或机关。`scene.arrange([...visuals])` 按引用恢复原图层顺序，`scene.compose()` 按引用建立编辑组合。未知扩展属性可通过 `properties()` 兼容保留。
+
+分组文件、样式和反馈是实际可编辑的创作接口，仍需作者选择构图、图片和位置；不会自动把扁平插画拆成可交互部件，也没有宣称生成器能理解任意素材的语义。
 
 ## 类型提示和错误定位
 
@@ -109,7 +174,9 @@ export class DepartingObject extends Entity {
 
 生成前对全部 TS 文件做语法与严格语义检查，包括入口未引用的文件；错误时不执行生成器。旧 JS 保留兼容，只做语法检查，不强制添加类型。物体 ID 是否存在、动作是否可组合、状态是否有效和关卡能否通关不是 TS 能完全保证的，继续由运行校验和试玩验证。
 
-这是嵌入语言服务，没有实现外部 LSP 协议、跳转定义、自动导入或 IDE 级重构。静态模块支持相对完整文件名（`.ts` / `.js`）、核心库、别名、命名空间和再导出；不支持 npm 包、外部 URL、动态 import、循环依赖与异步入口。更改底层引擎仍需修改应用代码，作者代码不能凭空定义新的运行时动作。
+F12、「转到定义」按钮或 Ctrl+点击跳到项目声明；Alt+← /「← 返回」回到原文件与光标。对象属性跳到装配声明，行为槽跳到子类字段，资源跳到资源目录，SDK 常量跳到只读基础库声明。使用真实 TypeScript 定义查询，没有按字符串 ID 猜测位置。
+
+这是嵌入语言服务，没有实现外部 LSP 协议、自动导入或 IDE 级重构。静态模块支持相对完整文件名（`.ts` / `.js`）、核心库、别名、命名空间和再导出；不支持 npm 包、外部 URL、动态 import、循环依赖与异步入口。更改底层引擎仍需修改应用代码，作者代码不能凭空定义新的运行时动作。
 
 ## 画外入场与离场
 

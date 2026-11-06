@@ -1,5 +1,17 @@
-/** Object-oriented authoring facade. Keep this factory self-contained for module Workers. */
-export function createAuthoringLibrary(createAPI, blank) {
+import {createSceneLibrary} from './authoring-scene.js';
+/** Factories are embedded together for module Workers. */
+export function createAuthoringLibrary(createAPI, blank, sceneFactory = createSceneLibrary) {
+  const constants = values => Object.freeze(Object.fromEntries(values.map(value => [value.replace(/(^|-)([a-z])/g,(_,dash,c)=>c.toUpperCase()),value])));
+  const States=constants(['active','inactive','enabled','disabled','off','on','folded','extended','closed','open','running','stopped','idle','pressed','lower','upper']);
+  const Events=constants(['click','contact','enter','placed','droprejected','board','arrive','moved','moveblocked','rotated','supportlost','supportfound','landed','impact','actorlanded','done']);
+  const Kinds=constants(['object','zone','switch','gate','plate','bridge','hazard','ladder','lift']);
+  const Effects=constants(['lethal']);
+  const Motions=constants(['none','squash','shake','hop','recoil','sway','pulse','emerge','fade','fall']);
+  const Particles=constants(['none','smoke','dust','spark']);
+  const Sounds=constants(['none','puff','clack','pop','thud','success','fail']);
+  const VisualStates=constants(['moving','carried','idle','forward','backward','inward','outward','upward','downward']);
+  const FeedbackPolicies=constants(['restart','overlay']);
+  const FeedbackTriggers=constants(['start','behavior','state','event','lost','won']);
   const finite = (value, name) => { if (!Number.isFinite(value)) throw new Error(name + '必须是有限数值。'); return value; };
   const own = (level, value, Type) => {
     if (!(value instanceof Type) || value.level !== level) throw new Error('请使用同一关卡中的' + Type.name + '引用。');
@@ -96,7 +108,23 @@ export function createAuthoringLibrary(createAPI, blank) {
     entity(id) { return new Entity(this, id); }
     rule(definition) { return this.api.addRule(definition); }
     art(definition) { return this.api.addArt(definition); }
+    get scene() { return this._scene ??= sceneFactory(this); }
     toJSON() { return this.data; }
+  }
+
+  class LevelContext {
+    constructor(level) { if(!(level instanceof Level))throw new Error('上下文需要所属关卡。');this.level=level; }
+    get scene() { return this.level.scene; }
+    get resources() { return this.scene.resources; }
+  }
+  class LevelComponent {
+    constructor(context) {
+      this.context=context instanceof Level?new LevelContext(context):context;
+      if(!(this.context instanceof LevelContext))throw new Error('组件需要 LevelContext 上下文。');
+      this.level=this.context.level;
+    }
+    get scene() { return this.context.scene; }
+    get resources() { return this.context.resources; }
   }
 
   class Layer {
@@ -129,10 +157,9 @@ export function createAuthoringLibrary(createAPI, blank) {
   }
   class Passage { constructor(level, id) { this.level = level; this.id = id; } }
 
-  class Entity {
-    constructor(level, definition, options) {
-      if (!(level instanceof Level)) throw new Error('Entity 需要所属的 Level。');
-      this.level = level;
+  class Entity extends LevelComponent {
+    constructor(context, definition, options) {
+      super(context);const level=this.level;
       this.data = options !== undefined ? createObject(level, definition, options) : typeof definition === 'string' ? level.api.entity(definition) : level.api.addObject(definition);
     }
     get id() { return this.data.id; }
@@ -140,22 +167,38 @@ export function createAuthoringLibrary(createAPI, blank) {
     hold() { return {type: 'hold', target: this.id}; }
     carriedPhysics(options) { this.data.carriedPhysics = structuredClone(options); return this; }
     surface(options = {}) { this.data.pose ??= {angle: 0, pivot: 0}; this.data.surface = {enabled: true, ...structuredClone(options)}; return this; }
-    draggable(options = {}) { this.data.draggable = {enabled: true, targets: [], ...structuredClone(options)}; return this; }
+    draggable(options = {}) { const {targets=[],...rest}=options;this.data.draggable = {enabled: true, ...structuredClone(rest), targets:targets.map(t=>typeof t==='string'?t:own(this.level,t,Entity).id)}; return this; }
     dropTarget(options = {}) { this.data.dropTarget = {enabled: true, radius: 32, ...structuredClone(options)}; return this; }
     connect(from, to, options = {}) {
       own(this.level, from, RoutePoint); own(this.level, to, RoutePoint);
       this.data.passage = {from: from.id, to: to.id, distance: Math.hypot(to.x - from.x, to.data.depth - from.data.depth), enabled: true, ...structuredClone(options)}; return this;
     }
     behavior(id, actions, label = id) { this.data.behavior(id, actions, label); return this; }
-    on(event, actions, conditions = [], details = {}) { this.data.on(event, actions, conditions, details); return this; }
+    behaviorSlot(id,label=id) {
+      let data=this.data.behaviors?.find(b=>b.id===id);
+      if(!data)data=this.level.api.behavior(this.id,id,[],label);
+      return new BehaviorRef(this,data);
+    }
+    on(event, actions, conditions = [], details = {}) {
+      const normalized={...details};
+      if(normalized.other instanceof Entity)normalized.other=own(this.level,normalized.other,Entity).id;
+      if(normalized.behavior instanceof BehaviorRef){if(normalized.behavior.entity.id!==this.id||normalized.behavior.entity.level!==this.level)throw new Error('完成事件必须引用当前物体的行为。');normalized.behavior=normalized.behavior.id;}
+      this.data.on(event, actions, conditions, normalized); return this;
+    }
     move(destination) {
       const {to, ...options} = destination;
       if (to) { own(this.level, to, Position); return this.data.move({...options, x: to.x, plane: to.layer.id, depth: to.layer.data.depth, height: to.height}); }
       return this.data.move(options);
     }
     set(state) { return this.data.set(state); }
-    invoke(behavior) { return this.data.invoke(behavior); }
+    invoke(behavior) { if(behavior instanceof BehaviorRef){if(behavior.entity.level!==this.level||behavior.entity.id!==this.id)throw new Error('行为不属于当前物体。');return behavior.invoke();}return this.data.invoke(behavior); }
     condition(state) { return this.data.condition(state); }
+  }
+  class BehaviorRef {
+    constructor(entity,data) {this.entity=entity;this.data=data;}
+    get id(){return this.data.id;}
+    actions(actions){this.data.actions=actions;return this;}
+    invoke(){return {type:'invoke',target:this.entity.id,behavior:this.id};}
   }
 
   class Actions {
@@ -164,12 +207,19 @@ export function createAuthoringLibrary(createAPI, blank) {
       return {type: 'after', ticks: Math.max(1, Math.round(seconds * 60)), actions};
     }
     static set(target, state) { return {type: 'set', target: typeof target === 'string' ? target : target.id, state}; }
-    static invoke(target, behavior) { return {type: 'invoke', target: typeof target === 'string' ? target : target.id, behavior}; }
+    static invoke(target, behavior) { const id=typeof target==='string'?target:target.id;if(behavior instanceof BehaviorRef&&(behavior.entity.id!==id||typeof target!=='string'&&behavior.entity.level!==target.level))throw new Error('行为不属于目标物体。');return {type:'invoke',target:id,behavior:behavior instanceof BehaviorRef?behavior.id:behavior}; }
     static move(target, {seconds = 1, ...destination}) {
       const ticks = Actions.after(seconds, []).ticks;
       return {type: 'move', target: typeof target === 'string' ? target : target.id, ...destination, ticks};
     }
     static drop() { return {type: 'drop'}; }
+    static enable(target,capability,enabled){return {type:'enable',target:target.id,capability,enabled};}
+    static rotate(target,angle,ticks){return {type:'rotate',target:target.id,angle,ticks};}
+    static place(target,at,range){return {type:'place',target:target.id,at:at.id,range};}
+    static hurt(message){return {type:'hurt',...(message===undefined?{}:{message})};}
+    static holding(target){return {holding:target===null?null:target.id};}
   }
-  return {Level, Entity, Actions, Layer, Position, RoutePoint, Passage};
+  const Capabilities=constants(['surface','collider','passage','draggable','dropTarget']);
+  return {Level, Entity, Actions, Layer, Position, RoutePoint, Passage, LevelContext, LevelComponent, BehaviorRef,
+    States, Events, Kinds, Effects, Motions, Particles, Sounds, VisualStates, FeedbackPolicies, FeedbackTriggers, Capabilities};
 }
