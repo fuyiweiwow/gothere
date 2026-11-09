@@ -6,9 +6,9 @@ const frames=(prefix,count)=>Array.from({length:count},(_,i)=>prefix+(i+1));
 export function commuterVisual(id='stop-player',height=70){
   return {id,asset:'toonCommuterIdle',label:'角色 / 戴厚镜片的赶路职员',group:'角色',bind:{type:'actor'},
     x:-height*56/96,y:-height*90/96,width:height*112/96,height,layer:35,flipWithDirection:true,
-    animation:{frames:frames('toonCommuterWalk',12),fps:12,stride:.75},variants:{
-      'walk-left':{},'walk-right':{},inward:{animation:{frames:frames('toonCommuterIn',12),fps:12,stride:.4},flipWithDirection:false},
-      outward:{animation:{frames:frames('toonCommuterOut',12),fps:12,stride:.4},flipWithDirection:false},
+    animation:{frames:frames('toonCommuterWalkCycle',12),fps:12,stride:.75},variants:{
+      'walk-left':{},'walk-right':{},inward:{animation:{frames:frames('toonCommuterInCycle',12),fps:12,stride:.4},flipWithDirection:false},
+      outward:{animation:{frames:frames('toonCommuterOutCycle',12),fps:12,stride:.4},flipWithDirection:false},
       lost:{asset:'toonCommuterFall1',animation:null},won:{asset:'toonCommuterIdle',animation:null}}};
 }
 
