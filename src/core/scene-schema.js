@@ -25,7 +25,8 @@ export function validateScene(level) {
     check(num(a.width,1,2048)&&num(a.height,1,2048),'导入图片尺寸不能超过2048。');
   }
   check(bytes<=700000,'自定义图片总计不能超过512 KiB。');
-  const animation=a=>obj(a)&&Array.isArray(a.frames)&&a.frames.length>=1&&a.frames.length<=24&&a.frames.every(f=>assets.has(f))&&num(a.fps,1,30);
+  const animation=a=>obj(a)&&Array.isArray(a.frames)&&a.frames.length>=1&&a.frames.length<=24&&a.frames.every(f=>assets.has(f))&&num(a.fps,1,30)&&
+    (a.stride===undefined||num(a.stride,.05,4));
   const transform=(n,partial=false)=>{
     if(!obj(n))return false;
     return (partial&&n.asset===undefined||assets.has(n.asset))&&

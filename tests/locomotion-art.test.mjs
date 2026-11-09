@@ -34,11 +34,15 @@ test('stride measures the projected foot route through inward and outward passag
   Object.assign(level.entities.find(e=>e.id==='alley').passage,{from:'back-entry',to:'front-turn'});
   level.actor={x:450,speed:90,space:{plane:'back',depth:210,height:0}};
   level.spatial.start='back-entry';level.goal={x:80,space:{plane:'front',depth:30,height:0}};
-  const game=createSimulation(level).start();let previous=game.snapshot(),total=0,saw=false;
+  const game=createSimulation(level).start();let previous=game.snapshot(),saw=false;
   const foot=a=>projectSpace(level,{x:a.x,...a.space});
+  const start=projectSpace(level,nodes.find(n=>n.id==='back-entry')),end=projectSpace(level,nodes.find(n=>n.id==='front-turn'));
+  const length=Math.hypot(end.x-start.x,end.y-start.y);
   for(let i=0;i<1600&&previous.status==='running';i++){
-    game.step();const s=game.snapshot(),a=foot(previous.actor),b=foot(s.actor);
-    total+=Math.hypot(b.x-a.x,b.y-a.y);near(s.actor.walkDistance,total);
+    game.step();const s=game.snapshot(),b=foot(s.actor);
+    const total=s.actor.passage?Math.hypot(b.x-start.x,b.y-start.y):length+Math.abs(b.x-end.x);
+    if(s.status==='running')near(s.actor.walkDistance,total);
+    else assert.ok(Math.abs(s.actor.walkDistance-total)<=level.actor.speed/60,'the final tick can include a route-node turn');
     if(s.actor.passage){saw=true;assert.equal(actorAnimationState(level,s),'outward');}
     previous=s;
   }
@@ -46,6 +50,19 @@ test('stride measures the projected foot route through inward and outward passag
   assert.deepEqual(replayRecording(level,game.recording()).snapshot(),previous);
   game.reset().start().step(10);game.pause();const paused=game.snapshot();game.step(10);assert.deepEqual(game.snapshot(),paused);
   game.reset();assert.equal(game.snapshot().actor.walkDistance,0);
+});
+
+test('turning from horizontal to depth walking keeps the foot-cycle phase continuous',()=>{
+  const level=createLayeredLevel(),node=commuterVisual('hero',50);
+  level.scene={background:'#ffffff',assets:[],nodes:[node]};
+  const game=createSimulation(level).start();let prior=0,turns=0,previousState='walk-right';
+  for(let i=0;i<1000;i++){
+    game.step();const s=game.snapshot();if(s.status!=='running')break;
+    const state=actorAnimationState(level,s),frame=Number(artTransform(node,level,s).asset.match(/(\d+)$/)[1])-1;
+    if(state!==previousState){turns++;assert.ok((frame-prior+12)%12<=1,'a turn must not jump to an arbitrary foot pose');}
+    prior=frame;previousState=state;
+  }
+  assert.ok(turns>=2);
 });
 
 test('inward/outward artwork does not inherit the previous horizontal mirror or change the foot anchor',()=>{

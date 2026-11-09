@@ -1,3 +1,5 @@
+import {recordWalk} from './locomotion.js';
+
 // World coordinates are independent of the screen. Increasing depth goes away from the viewer.
 const EPS=1e-7;
 const finite=(v,min,max)=>Number.isFinite(v)&&v>=min&&v<=max;
@@ -198,6 +200,9 @@ export function initializeSpatialActor(level,actor) {
 /** Advance only world movement. Events, behavior calls, input and timers belong to the shared engine. */
 export function advanceSpatialActor(level,entities,actor) {
   let remaining=1/60,transitions=0;const trace=[],landings=[],crossings=[],nodes=level.spatial.nodes,allSurfaces=spaceSurfaces(level,entities,actor.holding),layered=isLayered(level);
+  // Presentation odometer: measure the actual supported screen path, including
+  // a passage's authored distance/projection. It never drives world movement.
+  const walked=(from,state)=>{const a=projectSpace(level,from),b=projectSpace(level,position(actor));recordWalk(actor,Math.hypot(b.x-a.x,b.y-a.y),state);};
   while(remaining>EPS&&transitions++<64){
     if(layered&&actor.passage){
       const p=actor.passage,a=nodes.find(n=>n.id===p.from),b=nodes.find(n=>n.id===p.to),distance=p.distance;
@@ -205,6 +210,7 @@ export function advanceSpatialActor(level,entities,actor) {
       p.travelled=Math.min(distance,p.travelled+dt*level.actor.speed);const t=p.travelled/distance;
       actor.x=a.x+(b.x-a.x)*t;actor.space.depth=a.depth+(b.depth-a.depth)*t;
       actor.space.height=a.height;remaining-=dt;
+      walked(from,b.depth>a.depth?'inward':'outward');
       // A passage owns its traversal. Unrelated streets cannot contact it mid-way.
       trace.push({distance,from:{...from,plane:null,passage:p.id,progress:(p.travelled-dt*level.actor.speed)/distance},to:{...position(actor),plane:null,passage:p.id,progress:t}});
       if(p.travelled>=distance-EPS){
@@ -244,7 +250,7 @@ export function advanceSpatialActor(level,entities,actor) {
     if(Math.abs(actor.heading.x)>EPS)actor.direction=actor.heading.x>0?1:-1;
     const support=surfaces.map(s=>({id:s.id,height:surfaceAt(s,actor.x,actor.space.depth),before:surfaceAt(s,from.x,from.depth)}))
       .filter(s=>s.height!==null&&s.before!==null&&Math.abs(s.before-from.height)<EPS).sort((a,b)=>b.height-a.height)[0];
-    if(actor.mode==='walking'&&support){actor.space.height=support.height;actor.support=support.id;actor.vh=0;}
+    if(actor.mode==='walking'&&support){actor.space.height=support.height;actor.support=support.id;actor.vh=0;walked(from,actor.direction===-1?'walk-left':'walk-right');}
     else {
       if(actor.mode!=='falling'){actor.mode='falling';actor.vh=0;actor.support=null;}
       const g=level.world.physics.gravity,v=Math.max(-level.world.physics.maxFallSpeed,actor.vh-g*dt);

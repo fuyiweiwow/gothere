@@ -4,12 +4,12 @@ const frames=(prefix,count)=>Array.from({length:count},(_,i)=>prefix+(i+1));
 
 /** Authored hero artwork and shared clips. This creates ordinary editable data. */
 export function commuterVisual(id='stop-player',height=70){
-  return {id,asset:'commuterIdle',label:'角色 / 戴厚镜片的赶路职员',group:'角色',bind:{type:'actor'},
+  return {id,asset:'toonCommuterIdle',label:'角色 / 戴厚镜片的赶路职员',group:'角色',bind:{type:'actor'},
     x:-height*56/96,y:-height*90/96,width:height*112/96,height,layer:35,flipWithDirection:true,
-    animation:{frames:frames('commuterWalk',8),fps:height===50?10:8},variants:{
-      'walk-left':{},'walk-right':{},inward:{animation:{frames:frames('commuterIn',8),fps:10}},
-      outward:{animation:{frames:frames('commuterOut',8),fps:10}},
-      lost:{asset:'commuterFall1',animation:null},won:{asset:'commuterIdle',animation:null}}};
+    animation:{frames:frames('toonCommuterWalk',12),fps:12,stride:.75},variants:{
+      'walk-left':{},'walk-right':{},inward:{animation:{frames:frames('toonCommuterIn',12),fps:12,stride:.4},flipWithDirection:false},
+      outward:{animation:{frames:frames('toonCommuterOut',12),fps:12,stride:.4},flipWithDirection:false},
+      lost:{asset:'toonCommuterFall1',animation:null},won:{asset:'toonCommuterIdle',animation:null}}};
 }
 
 export function commuterFeedback(player){

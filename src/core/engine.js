@@ -7,6 +7,7 @@ import { updateSupportProbes } from './support.js';
 import {initializeSpatialActor,advanceSpatialActor,spaceTouches,spaceGoalReached,spaceSupport,spaceSurfaces,syncPassageObject,beginSpatialMove} from './spatial.js';
 import {normalizeLevel} from './level-version.js';
 import {canDrag,validPlacementPoint,placementReceiver} from './placement.js';
+import {recordWalk} from './locomotion.js';
 export { validateLevel } from './schema.js';
 export const TICKS_PER_SECOND = 60;
 const clone = (value) => structuredClone(value);
@@ -28,7 +29,7 @@ export function createSimulation(input) {
   };
   const reset = () => {
     state = { tick: 0, status: 'ready', reason: null,
-      actor: { x: level.actor.x, y:floorY(level.actor), direction:level.actor.direction??1, holding:null, mode:'walking', connector:null,
+      actor: { x: level.actor.x, y:floorY(level.actor), direction:level.actor.direction??1, holding:null, mode:'walking', connector:null,walkDistance:0,
         ...(level.actor.maxLandingSpeed!==undefined?{maxLandingSpeed:level.actor.maxLandingSpeed}:{}),
         ...(level.world.physics?{vy:0,support:null}:{}) },
       entities: Object.fromEntries(level.entities.map((e) => [e.id, { ...clone(e), y:floorY(e), width: e.width ?? 28,
@@ -343,6 +344,8 @@ export function createSimulation(input) {
     }
     movementTrace=null;reachedPhysicsGoal=false;
     const [from,to,walked]=moveActor(), a=state.actor;
+    if(movementTrace)for(const s of movementTrace.filter(s=>s.mode==='walking'))recordWalk(a,Math.hypot(s.to.x-s.from.x,s.to.y-s.from.y),s.to.x<s.from.x?'walk-left':'walk-right');
+    else if(walked)recordWalk(a,Math.abs(to-from),to<from?'walk-left':'walk-right');
     if(state.status!=='running')return;
     syncHeld();
     const touching=new Set();

@@ -159,7 +159,7 @@ export interface Resources {
   image(id:string, definition?:ImageDefinition):ImageAsset;
   sound(id:string, definition?:SoundDefinition):SoundAsset;
 }
-export interface Animation {frames:ImageAsset[];fps:number;[key:string]:unknown;}
+export interface Animation {frames:ImageAsset[];fps:number;/** Walking distance per cycle, as a multiple of image height. Omit for a timed loop. */stride?:number;[key:string]:unknown;}
 export interface VisualStyle {
   asset?:ImageAsset; animation?:Animation|null; width?:number;height?:number;x?:number;y?:number;
   rotation?:number;layer?:number;opacity?:number;flipX?:boolean;visible?:boolean;flipWithDirection?:boolean;

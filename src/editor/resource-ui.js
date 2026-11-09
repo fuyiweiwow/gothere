@@ -134,6 +134,10 @@ export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspe
         if(animation.frames.length>1)box.append(button('移除第 '+(i+1)+' 帧',()=>{const a=structuredClone(animation);a.frames.splice(i,1);setAnimation(a);},'text-button'));
       });
       box.append(field('动画帧率',animation.fps,v=>setAnimation({...animation,fps:v}),{id:'art-fps',min:1,max:30}));
+      if(n.bind?.type==='actor'){
+        box.append(checkbox('按行走距离播放',animation.stride!==undefined,v=>{const a={...animation};if(v)a.stride=.75;else delete a.stride;setAnimation(a);},'art-distance-cycle'));
+        if(animation.stride!==undefined)box.append(field('每轮步幅（图高倍数）',animation.stride,v=>setAnimation({...animation,stride:v}),{id:'art-stride',min:.05,max:4,step:.05}));
+      }
       if(animation.frames.length<24)box.append(button('＋ 动画帧',()=>setAnimation({...animation,frames:[...animation.frames,animation.frames.at(-1)]}),'text-button'));
     }
     box.append(el('p','图片边框是显示范围。跟随对象时，位置是相对偏移；移动、缩放、换图不会改变碰撞体、路面或行为。','panel-note'));

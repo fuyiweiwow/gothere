@@ -38,9 +38,17 @@ export function artTransform(node,level,snapshot,{tick=snapshot?.tick??0,animate
   const animation=variantData&&Object.hasOwn(variantData,'animation')?variantData.animation:variantData?.asset?null:node.animation;
   // A newly started move begins at its own first frame, not an arbitrary global phase.
   const frames=animation?.frames,clock=moving&&object.translation.elapsed!==undefined?object.translation.elapsed:tick;
-  const frame=animate&&!['lost','won'].includes(snapshot?.status)?Math.floor(clock*(animation?.fps??1)/60):0;
+  const distance=node.bind?.type==='actor'&&animation?.stride&&['walking','walk-left','walk-right','inward','outward'].includes(state)?object?.walkDistance:undefined;
+  // Sum completed cycles across directional clips, preserving the foot phase
+  // when a turn selects a clip with a different projected stride or frame count.
+  const cycles=distance!==undefined&&object.walkByState?Object.entries(object.walkByState).reduce((sum,[state,d])=>{
+    const v=node.variants?.[state]??node.variants?.walking;
+    return sum+d/((v?.height??node.height)*(v?.animation?.stride??node.animation?.stride??animation.stride));
+  },0):distance/(n.height*(animation?.stride??1));
+  const phase=distance===undefined?clock*(animation?.fps??1)/60:cycles*frames.length;
+  const frame=animate&&!['lost','won'].includes(snapshot?.status)?Math.floor(phase+1e-9):0;
   const translation=object?.translation,dx=translation?.to&&translation?.from?translation.to.x-translation.from.x:0;
-  const direction=dx?Math.sign(dx):object?.direction??object?.motionDirection;
+  const direction=node.bind?.type==='actor'&&['inward','outward'].includes(state)?undefined:dx?Math.sign(dx):object?.direction??object?.motionDirection;
   return applyMotion({...n,x,y,rotation,asset:(animate?feedback?.frames?.[node.id]:undefined)??frames?.[frame%frames.length]??n.asset,
     flipX:Boolean(n.flipX)!==Boolean(n.flipWithDirection&&direction===-1)},feedback?.motions[node.id]);
 }
