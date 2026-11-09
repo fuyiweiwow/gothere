@@ -15,7 +15,7 @@ export function createBusStopScene(){
   add('stop-ground','stopGround','街道 / 连续铺面与路缘',0,418,1200,222,-60);
   add('stop-tree-left','stopTree','布景 / 路边树池',267,243,132,210,-45);
   add('stop-tree-right','stopTree','布景 / 街角树池',1063,238,132,210,-44);
-  add('stop-shelter','stopShelter','站台 / 透视候车亭',420,301,163,184,-40);
+  add('stop-shelter','stopShelter','站台 / 透视候车亭',500,301,245,184,-40);
   // Same plane: body below people; door leaf overlays their final step.
   actor('stop-bus','stopBus','公交 / 车身','bus',0,-113,365,132,10);
   for(const [suffix,asset]of [['a','stopPassengerA'],['b','stopPassengerB'],['c','stopPassengerC']]){

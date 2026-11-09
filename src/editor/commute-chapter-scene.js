@@ -35,7 +35,7 @@ export function createCommuteChapterScene(level){
     add('chapter-far-building-'+i,'blockApartment','建筑 / 外街公寓',x,2,w,180,-76);
   add('chapter-office','blockOffice','终点 / 公司外门',-69,-199,159,208,-74,{bind:{type:'goal'}});
   add('chapter-office-clock','commuteClock','终点 / 门外时钟',-12,-172,20,20,-65,{bind:{type:'goal'}});
-  onPlane(add('chapter-shelter','blockShelter','站台 / 轻薄候车亭',301,486,133,90,-40),'front');
+  onPlane(add('chapter-shelter','blockShelter','站台 / 轻薄候车亭',320,486,220,90,-40),'front');
   onPlane(add('chapter-umbrella','crossUmbrella','路口 / 执勤遮阳伞',1137,301,63,80,-40),'middle');
   add('chapter-alley-posts','chapterPosts','窄巷 / 人行空隙与路桩',-76,-33,151,39,15,{bind:{type:'entity',id:'gap'}});
   for(const [id,x,y,plane]of [['a',52,366,'middle'],['b',929,366,'middle'],['c',875,551,'front'],['d',271,191,'far'],['e',993,191,'far']])

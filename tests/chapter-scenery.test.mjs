@@ -8,7 +8,7 @@ import {validateLevel} from '../src/core/schema.js';
 
 test('shelter and independent street props belong to their street and draw over its facades',()=>{
   const l=createCommuteChapter(),byId=id=>l.scene.nodes.find(n=>n.id===id);
-  const expected=[['chapter-shelter','front',301,486],['chapter-umbrella','middle',1137,301],
+  const expected=[['chapter-shelter','front',320,486],['chapter-umbrella','middle',1137,301],
     ['chapter-tree-a','middle',52,277],['chapter-tree-c','front',875,462],['chapter-tree-d','far',271,102],
     ['chapter-bikes-a','middle',270,359],['chapter-bikes-b','front',785,544],['chapter-bikes-c','far',548,184],
     ['chapter-bin-a','front',15,542],['chapter-bin-b','middle',949,357],['chapter-bin-c','far',372,182]];
