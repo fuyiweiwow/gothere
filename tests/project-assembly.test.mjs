@@ -95,7 +95,7 @@ test('namespace marker imports and JavaScript-only projects use the same assembl
 test('new scene groups append artwork while retaining existing order and reject duplicate exported views',async()=>{
   const p=levelToProject(createCommuteChapter(),{typescript:true}),original=await executeProject(p);
   p.files['scene/extra.ts']=`import {sceneGroup} from '@gothere/core';import type {ProjectContext} from '../context.ts';
-export const newDecor=sceneGroup((context:ProjectContext)=>({extra:context.scene.image('extra-picture',context.assets.images.builtin.blockStreets).label('Extra').at(0,0).size(40,40).order(0)}),{order:100});`;
+export const newDecor=sceneGroup((context:ProjectContext)=>({extra:context.scene.image('extra-picture',context.assets.images.builtin.toonBlockStreets).label('Extra').at(0,0).size(40,40).order(0)}),{order:100});`;
   const result=await executeProject(p);
   assert.deepEqual(result.scene.nodes.slice(0,-1),original.scene.nodes);assert.equal(result.scene.nodes.at(-1).id,'extra-picture');
   p.files['scene/other.ts']=p.files['scene/extra.ts'].replace('newDecor','otherDecor').replace('extra-picture','other-picture');

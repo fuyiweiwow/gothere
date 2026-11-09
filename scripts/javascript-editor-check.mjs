@@ -33,7 +33,11 @@ async function generate(p,{error=false,match}={}){
   const message=await p.locator('#script-status').innerText();assert.equal(await p.locator('#script-status').getAttribute('data-error'),String(error),message);
   if(match)assert.match(message,match);
 }
-async function upload(p,name,buffer){await p.locator('#script-file').setInputFiles({name,mimeType:name.endsWith('.zip')?'application/zip':'text/javascript',buffer:Buffer.from(buffer)});}
+async function upload(p,name,buffer){
+  await p.locator('#script-file').setInputFiles({name,mimeType:name.endsWith('.zip')?'application/zip':'text/javascript',buffer:Buffer.from(buffer)});
+  // Import reads the file asynchronously and clears this input after replacing the project.
+  await p.waitForFunction(()=>document.getElementById('script-file').files.length===0);
+}
 try{
   const urls=['http://127.0.0.1:'+server.address().port+'/',pathToFileURL((await buildEditor()).path).href,'http://127.0.0.1:'+preview.address().port+'/'];
   for(const [index,url] of urls.entries()){
@@ -65,8 +69,8 @@ try{
       assert.equal(await p.locator('.cm-content').getAttribute('contenteditable'),'false');await p.locator('#script-back').click();
       await p.waitForFunction(()=>document.getElementById('script-current-path').textContent==='events.ts');
       await select(p,'scene/styles.ts');const stylesSource=await p.locator('#script-source').inputValue();
-      await cursorAt(p,stylesSource,'blockStreets');await p.keyboard.press('F12');
-      await p.waitForFunction(()=>document.getElementById('script-current-path').textContent==='assets/images/builtin/blockStreets.png');
+      await cursorAt(p,stylesSource,'toonBlockStreets');await p.keyboard.press('F12');
+      await p.waitForFunction(()=>document.getElementById('script-current-path').textContent==='assets/images/builtin/toonBlockStreets.png');
       await p.locator('#script-back').click();await p.waitForFunction(()=>document.getElementById('script-current-path').textContent==='scene/styles.ts');
       await p.locator('#script-search').fill('objects/bus.ts');assert.equal(await p.locator('#script-tree [data-script-path]').count(),1);await p.locator('#script-search').fill('');
       await p.locator('#script-core').click();assert.equal(await p.locator('.cm-content').getAttribute('contenteditable'),'false');assert.equal(await p.locator('#script-delete').isDisabled(),true);

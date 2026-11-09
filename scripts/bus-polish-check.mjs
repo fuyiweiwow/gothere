@@ -30,8 +30,9 @@ try{
     await shove.locator('[data-feedback-field=trigger-reason]').selectOption('hurt');
     let cue=(await draft(p)).scene.feedback.find(f=>f.id==='queue-a-shove');assert.deepEqual(cue.trigger,{type:'lost',cause:'passenger-b',reason:'hurt'});
     await p.locator('#editor-undo').click();await p.locator('#editor-undo').click();assert.deepEqual(await draft(p),before);
-    await shove.locator('[data-feedback-field=clip-frame-0]').selectOption('queueAShove2');
-    assert.equal((await draft(p)).scene.feedback.find(f=>f.id==='queue-a-shove').animation.frames[0],'queueAShove2');await p.locator('#editor-undo').click();
+    const secondFrame=before.scene.feedback.find(f=>f.id==='queue-a-shove').animation.frames[1];
+    await shove.locator('[data-feedback-field=clip-frame-0]').selectOption(secondFrame);
+    assert.equal((await draft(p)).scene.feedback.find(f=>f.id==='queue-a-shove').animation.frames[0],secondFrame);await p.locator('#editor-undo').click();
     assert.deepEqual(await readSourceLevel(p),before,'typed source export retains frame assets and object references');
     await p.locator('#sound-toggle').uncheck();await p.locator('#preview-toggle').click();await until(p,failure-4);
     await p.locator('#preview-step').click();while(await tick(p)<failure)await p.locator('#preview-step').click();

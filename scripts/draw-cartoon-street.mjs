@@ -112,7 +112,7 @@ add('stopShelter',shelter(181,204));add('blockShelter',shelter(158,108));
 function window(x,y,w,h,lit=false){return path(`M${x-3} ${y+2}q${w*.5} -8 ${w+6} -2l-2 ${h+5}q-${w*.5} 4-${w+4} 0Z`,P.cream,P.ink,2.2)+
   rect(x+2,y+3,w-4,h-5,lit?'#f3cf79':'#9dc4b4',4)+path(`M${x+w*.5} ${y+4}v${h-6}m-${w*.5-2}-${h*.42}h${w-4}`,'none',P.deep,2)+
   path(`M${x-5} ${y+h+5}q${w*.55} 4 ${w+10} 0`,'none',P.deep,3);}
-function building(w,h,kind='shop',floors=1){
+function building(w,h,kind='shop',floors=1,clock=true){
   const side=w*.1,front=w-side,roof=h*.12,base=h-6,shopH=floors===1?h*.57:h*.3,shopY=base-shopH,wall=kind==='food'?'#e4b983':kind==='office'?'#9dbba4':'#dfc899';
   let b=shadow(w*.5,h-2,w*.48)+path(`M0 ${roof} ${side} 3 ${w-2} 7 ${front} ${roof+3}Z`,'#86a391',P.ink,3)+
     path(`M${front} ${roof+3} ${w-2} 7 ${w-4} ${base-9} ${front-2} ${base}Z`,'#8b9d8c',P.ink,2.7)+path(`M1 ${roof}q${front*.5} 6 ${front-1} 3l-2 ${base-roof-3}H4Z`,wall,P.ink,3);
@@ -137,13 +137,13 @@ function building(w,h,kind='shop',floors=1){
     b+=path(`M${x-r} ${y}q${r} ${r} ${r*2} 0q-1 ${r} -${r} ${r}t-${r}-${r}Z`,P.cream,'',1)+path(`M${x-4} ${y-4}q-7-6 0-12m9 12q-7-6 0-12`,'none',P.cream,2);
     b+=rect(17,base-12,front*.35,5,P.coral,2,P.ink,1.5);
   }
-  if(kind==='office'){b+=path(`M${front*.48} ${shopY-10}h${front*.48}`,'none',P.gold,7)+circle(front*.72,roof+20,10,P.cream,P.ink,2)+path(`M${front*.72} ${roof+13}v7l5 2`);}
+  if(kind==='office'){b+=path(`M${front*.48} ${shopY-10}h${front*.48}`,'none',P.gold,7);if(clock)b+=circle(front*.72,roof+20,10,P.cream,P.ink,2)+path(`M${front*.72} ${roof+13}v7l5 2`);}
   b+=path(`M5 ${base}q${front*.5} 3 ${front-5} 0`,'none',P.ink,3);
   return b;
 }
 for(const [id,kind,floors]of [['stopCorner','food',3],['stopTenement','shop',3],['stopOfficeBlock','office',3],
   ['blockShop','shop',1],['blockBreakfast','food',1],['blockShutter','closed',1],['blockApartment','shop',3],['blockOffice','office',2]]){
-  const {width:w,height:h}=old.get(id);add(id,building(w,h,kind,floors));
+  const {width:w,height:h}=old.get(id);add(id,building(w,h,kind,floors,id!=='blockOffice'));
 }
 add('stopTree',shadow(65,205,54)+path('M60 202q-8-61 8-133l13 3q-15 73-8 130Z','#b89372',P.ink,3)+path('M65 138q-26-15-28-37m36 9 28-24','none',P.ink,4)+
   path('M18 116Q-5 101 14 79 1 53 29 42 26 11 60 18 91-2 105 32q31 0 18 34 17 26-9 42-2 28-32 18-31 21-42-2Z','#81ad89',P.ink,3)+

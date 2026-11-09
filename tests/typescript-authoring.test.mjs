@@ -133,7 +133,7 @@ test('injected contexts expose concrete resources, references and behavior slots
   // Probe inside the configure scope for actual inferred resource names.
   project.files['objects/bus.ts']=project.files['objects/bus.ts'].replace(probe,'').replace('    const context = this.context;','    const context = this.context;\n    context.assets.images.builtin.');
   const position=project.files['objects/bus.ts'].indexOf('context.assets.images.builtin.')+'context.assets.images.builtin.'.length;
-  assert.ok(service.completions(project,'objects/bus.ts',position).some(c=>c.label==='blockStreets'));
+  assert.ok(service.completions(project,'objects/bus.ts',position).some(c=>c.label==='toonBlockStreets'));
   project.files['objects/bus.ts']=project.files['objects/bus.ts'].replace('context.assets.images.builtin.','context.assets.images.builtin.missingPicture;');
   assert.ok(service.diagnostics(project).some(d=>d.code===2339&&d.path==='objects/bus.ts'));
 });

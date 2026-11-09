@@ -37,11 +37,11 @@ try{
     await p.locator('#editor-undo').click();assert.deepEqual(await draft(p),placed);
     await p.locator('#composition-copy').click();assert.equal((await draft(p)).entities.length,16);await p.locator('#editor-undo').click();assert.deepEqual(await draft(p),placed);
     await p.locator('[data-select-composition="'+c.id+'"]').click();await p.screenshot({path:'artifacts/templates-editor-'+index+'.png',fullPage:true});
-    const door=placed.scene.nodes.find(n=>n.asset==='stopBusDoor');await p.locator('[data-template-part="'+door.id+'"]').click();
+    const door=placed.scene.nodes.find(n=>n.label==='公交 / 门扇');await p.locator('[data-template-part="'+door.id+'"]').click();
     assert.equal(await p.locator('#art-bind').inputValue(),'entity:'+bus.id);await fill(p,'#art-y',-90);assert.deepEqual((await draft(p)).entities,placed.entities);await p.locator('#editor-undo').click();
     if(await p.locator('.feedback-slot').first().getAttribute('open')===null)await p.locator('.feedback-slot > summary').first().click();assert.equal(await p.locator('[data-feedback-field=sound]').first().inputValue(),'clack');
     await p.locator('[data-feedback-preview]').first().click();await p.clock.runFor(120);assert.ok(Number(await p.locator('#scene').getAttribute('data-feedback-active'))>0);await p.clock.runFor(500);
-    const passenger=placed.scene.nodes.find(n=>n.asset==='stopPassengerAIdle');await p.locator('[data-art-id="'+passenger.id+'"]').click();await p.locator('#art-state').selectOption('moving');
+    const passenger=placed.scene.nodes.find(n=>n.bind?.id===placed.entities.find(e=>e.label==='队尾的公文包乘客').id);await p.locator('[data-art-id="'+passenger.id+'"]').click();await p.locator('#art-state').selectOption('moving');
     assert.equal(await p.locator('#art-fps').inputValue(),'8');await fill(p,'#art-fps',10);await p.locator('#editor-undo').click();assert.deepEqual(await draft(p),placed);
     assert.deepEqual(await readSourceLevel(p),placed);
     await p.locator('#preview-toggle').click();await p.clock.runFor(3000);await p.locator('#scene-interactions [data-source="'+bus.id+'"]').click();await p.clock.runFor(1200);

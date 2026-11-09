@@ -15,7 +15,8 @@ const run=(level,bus)=>{const game=createSimulation(level).start();game.step(180
 
 test('background and building templates remain broad editable art with no inferred gameplay',()=>{
   const l=createTemplatePractice('practice');assert.equal(validateLevel(l).valid,true);assert.equal(l.entities.length,0);assert.equal(l.scene.compositions.length,1);
-  assert.ok(l.scene.nodes.some(n=>n.asset==='stopAtmosphere'));assert.ok(l.scene.nodes.some(n=>n.asset==='stopGround'));
+  const background=sceneTemplates().find(t=>t.id==='street-backdrop');
+  for(const n of background.nodes)assert.ok(l.scene.nodes.some(v=>v.asset===n.asset));
   const before=structuredClone(l.actor),id=placeTemplate(l,sceneTemplates()[2],{x:500,y:423});
   assert.equal(l.scene.compositions.find(c=>c.id===id).entities.length,0);assert.deepEqual(l.actor,before);
   const bounds=compositionBounds(l,id);moveComposition(l,id,30,-20);const after=compositionBounds(l,id);
@@ -26,8 +27,8 @@ test('template placement remaps internal rules, nested behaviors, art and animat
   const l=createTemplatePractice('practice'),id=placeTemplate(l,encounter()),c=l.scene.compositions.find(c=>c.id===id),bus=l.entities.find(e=>e.behaviors?.some(b=>b.id==='open'));
   assert.equal(validateLevel(l).valid,true);assert.equal(c.entities.length,8);assert.equal(c.nodes.length,5);
   assert.ok(l.scene.feedback.some(f=>f.trigger.source===bus.id&&f.sound==='clack'));
-  const person=l.scene.nodes.find(n=>n.asset==='stopPassengerAIdle'),e=l.entities.find(e=>e.id===person.bind.id);
-  assert.equal(artTransform(person,l,{tick:10,entities:{[e.id]:{...e,translation:{}}}}).asset,'stopPassengerAWalk');
+  const e=l.entities.find(e=>e.label==='队尾的公文包乘客'),person=l.scene.nodes.find(n=>n.bind?.id===e.id);
+  assert.equal(artTransform(person,l,{tick:10,entities:{[e.id]:{...e,translation:{}}}}).asset,person.variants.moving.animation.frames[1]);
   const game=run(l,bus.id);assert.equal(game.snapshot().status,'won');assert.ok(entityArtBounds(l,game.snapshot(),bus.id).x>1200);
   assert.deepEqual(replayRecording(l,game.recording()).snapshot(),game.snapshot());
 });

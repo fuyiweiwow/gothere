@@ -47,8 +47,8 @@ test('the closed bus starts as the walker approaches and moves continuously out 
 
 test('continuous scenery is independent editable data; grouping, history and JSON preserve gameplay',()=>{
   const l=createBusStopLevel(),s=createEditorStore();s.open('bus',l);
-  assert.ok(l.scene.nodes.some(n=>n.asset==='stopAtmosphere'&&n.width===1200));
-  assert.ok(l.scene.nodes.some(n=>n.asset==='stopGround'&&n.width===1200));
+  assert.ok(l.scene.nodes.some(n=>n.id==='stop-sky'&&n.width===1200));
+  assert.ok(l.scene.nodes.some(n=>n.id==='stop-ground'&&n.width===1200));
   s.change(d=>{moveArt(d,'stop-left',20,-8);d.scene.nodes.find(n=>n.id==='stop-left').group='街区建筑';});
   assert.deepEqual(run(s.document()).snapshot(),run(l).snapshot());
   assert.deepEqual(createEditorStore(s.serialize()).document(),s.document());s.undo();assert.deepEqual(s.document(),l);
@@ -58,10 +58,10 @@ test('continuous scenery is independent editable data; grouping, history and JSO
 
 test('any active moving object can use a moving animation, while inactive visibility and explicit previews take precedence',()=>{
   const l=createBusStopLevel(),game=createSimulation(l).start(),n=l.scene.nodes.find(n=>n.bind?.id==='passenger-c');
-  assert.equal(artTransform(n,l).asset,'stopPassengerCIdle');game.click('bus');game.step(8);const s=game.snapshot();
-  assert.equal(artTransform(n,l,s).asset,'stopPassengerCWalk');assert.equal(artTransform(n,l,s,{animate:false}).asset,'stopPassengerCIdle');
+  assert.equal(artTransform(n,l).asset,n.asset);game.click('bus');game.step(8);const s=game.snapshot();
+  assert.equal(artTransform(n,l,s).asset,n.variants.moving.animation.frames[1]);assert.equal(artTransform(n,l,s,{animate:false}).asset,n.asset);
   const withState=structuredClone(n);withState.variants.active={opacity:.4};assert.equal(artTransform(withState,l,s).opacity,.4);
-  assert.equal(artTransform(n,l,s,{variant:'inactive'}).visible,false);assert.equal(artTransform(n,l,s,{variant:'active'}).asset,'stopPassengerCIdle');
+  assert.equal(artTransform(n,l,s,{variant:'inactive'}).visible,false);assert.equal(artTransform(n,l,s,{variant:'active'}).asset,n.asset);
   game.step(100);assert.equal(artTransform(n,l,game.snapshot()).visible,false);
   const bus=l.entities.find(e=>e.id==='bus');assert.ok(entityArtBounds(l,undefined,bus.id).width>bus.width*8,'scene clicks use visible vehicle dimensions');
   const generic={...n,id:'generic',bind:{type:'entity',id:'boarding'},asset:'stopWorkerIdle',variants:{moving:{asset:'stopWorkerWalk'}}};

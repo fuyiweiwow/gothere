@@ -48,12 +48,12 @@ try{
     const time=new Date('2026-11-05T00:00:00Z');await p.clock.install({time});await p.clock.pauseAt(new Date(+time+1000));
     await p.goto(url);await p.locator('#scene[data-assets=ready]').waitFor();const before=await draft(p);assert.equal(before.id,'commute-chapter');
     await p.locator('#display-mode').selectOption('scene');
-    assert.deepEqual(await shelterPixel(p),[111,139,123,255],'the shelter roof must remain visible in front of the shop');
+    assert.deepEqual(await shelterPixel(p),[63,141,137,255],'the shelter roof must remain visible in front of the shop');
     await p.locator('#layer-search').fill('轻薄候车亭');await p.locator('#resource-layers .resource-layer').first().click();
     assert.equal(await p.locator('#art-plane').inputValue(),'front');assert.match(await p.locator('#art-layer').evaluate(e=>e.closest('label').textContent),/层内显示顺序/);
     await p.locator('#art-layer').fill('-80');await p.locator('#art-layer').press('Enter');
-    assert.notDeepEqual(await shelterPixel(p),[111,139,123,255],'layer editing changes the actual canvas order');
-    await p.locator('#editor-undo').click();assert.deepEqual(await draft(p),before);assert.deepEqual(await shelterPixel(p),[111,139,123,255]);
+    assert.notDeepEqual(await shelterPixel(p),[63,141,137,255],'layer editing changes the actual canvas order');
+    await p.locator('#editor-undo').click();assert.deepEqual(await draft(p),before);assert.deepEqual(await shelterPixel(p),[63,141,137,255]);
     await p.locator('#layer-search').fill('');await p.locator('#scene').screenshot({path:'artifacts/chapter-initial-'+index+'.png'});
     for(const mode of ['scene','logic']){await solution(p,index,mode);assert.deepEqual(await draft(p),before);}
     assert.deepEqual(await readSourceLevel(p),before);

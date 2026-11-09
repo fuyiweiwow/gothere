@@ -5,6 +5,7 @@ import {createCommuteChapter} from '../src/editor/commute-chapter.js';
 import {artBounds} from '../src/render/resources.js';
 import {ASSETS} from '../src/content/library.js';
 import {createSimulation,validateLevel} from '../src/core/engine.js';
+import {CARTOON_ART} from '../src/editor/cartoon-art.js';
 
 test('the queue waits under its shelter and boards within one adult step of the canopy',()=>{
   for(const level of [createBusStopLevel(),createCommuteChapter()]){
@@ -20,6 +21,10 @@ test('the queue waits under its shelter and boards within one adult step of the 
 
 test('cartoon artwork is replaceable scene data and keeps old assets and frame geometry available',()=>{
   const library=new Map(ASSETS.map(a=>[a.id,a]));
+  for(const [oldId,newId]of Object.entries(CARTOON_ART)){
+    assert.ok(library.has(newId),newId);
+    assert.equal(library.get(newId).width,library.get(oldId).width);assert.equal(library.get(newId).height,library.get(oldId).height);
+  }
   for(const level of [createBusStopLevel(),createCommuteChapter()]){
     const actor=level.scene.nodes.find(n=>n.bind?.type==='actor');
     assert.equal(actor.asset,'toonCommuterIdle');

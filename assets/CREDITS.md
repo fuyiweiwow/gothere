@@ -15,6 +15,8 @@ Palette adaptations wallLavender, wallTeal, wallIndigo, wallRose, wallStone and 
 
 library.json records the source, license, size and relative file of every library entry. Run `node scripts/pack-assets.mjs` after changing artwork or the manifest to regenerate the embedded library used by both online and offline editors. The delivered HTML contains the artwork locally and needs no CDN or network requests.
 
+The v0.38.0 cartoon study adds 86 original CC0 SVG variants with `toon*` IDs/files. `scripts/draw-cartoon-street.mjs` preserves their construction. Characters have exaggerated heads and hands; the bus, shelter, architecture and trees are drawn in a simpler cartoon style. Ground layouts retain the project-authored geometry with a revised palette. Original files/IDs remain available for existing drafts. All use LICENSE-original.txt; no third-party or original-game artwork was added.
+
 The v0.37.0 character and bus-stop polish adds 63 original CC0 SVGs under `original/commute/`: commuterIdle, commuterWalk1–8, commuterIn1–8, commuterOut1–8, commuterFall1–8, and queue[A/B/C]Ready1–4 / Shove1–6. Source: `scripts/draw-commuter.mjs`, under LICENSE-original.txt. Hero frames share a 112×96 canvas and (56,90) foot origin. These are editable prototype poses; no original-game or third-party character artwork was used for them.
 
 The v0.26.0 scooter encounter adds 7 original CC0 SVGs under `original/commute/scoot*.svg`: apartment alley, fixed posts, movable barrier, parked bicycles, bins and two rider states. Source drawings are preserved in `scripts/draw-scooter.mjs`. They share the existing street palette and contain no original-game artwork.
