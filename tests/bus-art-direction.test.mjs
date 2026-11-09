@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {createBusStopLevel} from '../src/editor/bus-stop-level.js';
 import {createCommuteChapter} from '../src/editor/commute-chapter.js';
 import {artBounds} from '../src/render/resources.js';
+import {ASSETS} from '../src/content/library.js';
+import {createSimulation,validateLevel} from '../src/core/engine.js';
 
 test('the queue waits under its shelter and boards within one adult step of the canopy',()=>{
   for(const level of [createBusStopLevel(),createCommuteChapter()]){
@@ -14,4 +16,21 @@ test('the queue waits under its shelter and boards within one adult step of the 
       assert.ok(destination>bounds.x&&destination-bounds.x-bounds.width<=hero.height*.75,'boarding must be next to the shelter');
     }
   }
+});
+
+test('cartoon artwork is replaceable scene data and keeps old assets and frame geometry available',()=>{
+  const library=new Map(ASSETS.map(a=>[a.id,a]));
+  for(const level of [createBusStopLevel(),createCommuteChapter()]){
+    const actor=level.scene.nodes.find(n=>n.bind?.type==='actor');
+    assert.equal(actor.asset,'toonCommuterIdle');
+    for(const frame of [...actor.animation.frames,...Object.values(actor.variants).flatMap(v=>v.animation?.frames??[]),
+      ...level.scene.feedback.filter(f=>f.target===actor.id).flatMap(f=>f.animation?.frames??[])]){
+      assert.equal(library.get(frame)?.width,112);assert.equal(library.get(frame)?.height,96);
+    }
+    assert.equal(level.scene.nodes.find(n=>n.id==='stop-person-a').asset,'toonStopPassengerAIdle');
+    assert.equal(validateLevel(level).valid,true);
+    const bare=structuredClone(level);delete bare.scene;
+    assert.deepEqual(createSimulation(level).start().step(1000).snapshot(),createSimulation(bare).start().step(1000).snapshot());
+  }
+  for(const id of ['commuterIdle','stopPassengerAIdle','stopBus','blockShelter'])assert.ok(library.has(id),'saved drafts retain '+id);
 });
