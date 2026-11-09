@@ -200,9 +200,9 @@ export function initializeSpatialActor(level,actor) {
 /** Advance only world movement. Events, behavior calls, input and timers belong to the shared engine. */
 export function advanceSpatialActor(level,entities,actor) {
   let remaining=1/60,transitions=0;const trace=[],landings=[],crossings=[],nodes=level.spatial.nodes,allSurfaces=spaceSurfaces(level,entities,actor.holding),layered=isLayered(level);
-  // Presentation odometer: measure the actual supported screen path, including
-  // a passage's authored distance/projection. It never drives world movement.
-  const walked=(from,state)=>{const a=projectSpace(level,from),b=projectSpace(level,position(actor));recordWalk(actor,Math.hypot(b.x-a.x,b.y-a.y),state);};
+  // Presentation odometer in world units. Projection edits must not change
+  // snapshots/replays, and this counter never drives movement or contact.
+  const walked=(from,state)=>{const to=position(actor);recordWalk(actor,Math.hypot(to.x-from.x,to.depth-from.depth,to.height-from.height),state);};
   while(remaining>EPS&&transitions++<64){
     if(layered&&actor.passage){
       const p=actor.passage,a=nodes.find(n=>n.id===p.from),b=nodes.find(n=>n.id===p.to),distance=p.distance;
