@@ -5,6 +5,7 @@ import {createScooterScene} from './scooter-scene.js';
 import {feedbackDefault} from '../content/feedback-presets.js';
 import {projectSpace} from '../core/spatial.js';
 import {commuterVisual,commuterFeedback} from './commuter-presentation.js';
+import {cartoonArt} from './cartoon-art.js';
 
 /** One elevated parallel view: shared ground bands, shallow roofs and constant
  * adult scale. Paving, architecture and performers remain editable resources. */
@@ -85,5 +86,5 @@ export function createCommuteChapterScene(level){
       nodes:scene.nodes.filter(n=>n.bind?.type==='entity'&&level.entities.find(e=>e.id===n.bind.id)?.space.plane===plane).map(n=>n.id),
       entities:level.entities.filter(e=>e.space.plane===plane).map(e=>e.id)})),
   ];
-  return scene;
+  return cartoonArt(scene);
 }

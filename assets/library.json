@@ -3168,5 +3168,865 @@
     "height": 78,
     "source": "gothere-original",
     "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterIdle",
+    "label": "漫画 · 赶路职员 · 厚镜片与工牌",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterIdle.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterWalk1",
+    "label": "漫画 · 赶路职员 · 横走 1",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterWalk1.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterIn1",
+    "label": "漫画 · 赶路职员 · 向里 1",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterIn1.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterOut1",
+    "label": "漫画 · 赶路职员 · 向外 1",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterOut1.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterFall1",
+    "label": "漫画 · 赶路职员 · 失衡倒地 1",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterFall1.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterWalk2",
+    "label": "漫画 · 赶路职员 · 横走 2",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterWalk2.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterIn2",
+    "label": "漫画 · 赶路职员 · 向里 2",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterIn2.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterOut2",
+    "label": "漫画 · 赶路职员 · 向外 2",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterOut2.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterFall2",
+    "label": "漫画 · 赶路职员 · 失衡倒地 2",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterFall2.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterWalk3",
+    "label": "漫画 · 赶路职员 · 横走 3",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterWalk3.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterIn3",
+    "label": "漫画 · 赶路职员 · 向里 3",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterIn3.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterOut3",
+    "label": "漫画 · 赶路职员 · 向外 3",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterOut3.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterFall3",
+    "label": "漫画 · 赶路职员 · 失衡倒地 3",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterFall3.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterWalk4",
+    "label": "漫画 · 赶路职员 · 横走 4",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterWalk4.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterIn4",
+    "label": "漫画 · 赶路职员 · 向里 4",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterIn4.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterOut4",
+    "label": "漫画 · 赶路职员 · 向外 4",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterOut4.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterFall4",
+    "label": "漫画 · 赶路职员 · 失衡倒地 4",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterFall4.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterWalk5",
+    "label": "漫画 · 赶路职员 · 横走 5",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterWalk5.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterIn5",
+    "label": "漫画 · 赶路职员 · 向里 5",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterIn5.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterOut5",
+    "label": "漫画 · 赶路职员 · 向外 5",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterOut5.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterFall5",
+    "label": "漫画 · 赶路职员 · 失衡倒地 5",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterFall5.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterWalk6",
+    "label": "漫画 · 赶路职员 · 横走 6",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterWalk6.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterIn6",
+    "label": "漫画 · 赶路职员 · 向里 6",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterIn6.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterOut6",
+    "label": "漫画 · 赶路职员 · 向外 6",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterOut6.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterFall6",
+    "label": "漫画 · 赶路职员 · 失衡倒地 6",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterFall6.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterWalk7",
+    "label": "漫画 · 赶路职员 · 横走 7",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterWalk7.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterIn7",
+    "label": "漫画 · 赶路职员 · 向里 7",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterIn7.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterOut7",
+    "label": "漫画 · 赶路职员 · 向外 7",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterOut7.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterFall7",
+    "label": "漫画 · 赶路职员 · 失衡倒地 7",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterFall7.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterWalk8",
+    "label": "漫画 · 赶路职员 · 横走 8",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterWalk8.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterIn8",
+    "label": "漫画 · 赶路职员 · 向里 8",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterIn8.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterOut8",
+    "label": "漫画 · 赶路职员 · 向外 8",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterOut8.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonCommuterFall8",
+    "label": "漫画 · 赶路职员 · 失衡倒地 8",
+    "category": "街景角色",
+    "file": "original/commute/toonCommuterFall8.svg",
+    "width": 112,
+    "height": 96,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonStopPassengerAIdle",
+    "label": "漫画 · 排队乘客 · 赭色站立",
+    "category": "街景角色",
+    "file": "original/commute/toonStopPassengerAIdle.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonStopPassengerAWalk",
+    "label": "漫画 · 排队乘客 · 赭色行走",
+    "category": "街景角色",
+    "file": "original/commute/toonStopPassengerAWalk.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueAReady1",
+    "label": "漫画 · 候车乘客 A · 留意队尾 1",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueAReady1.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueAReady2",
+    "label": "漫画 · 候车乘客 A · 留意队尾 2",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueAReady2.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueAReady3",
+    "label": "漫画 · 候车乘客 A · 留意队尾 3",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueAReady3.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueAReady4",
+    "label": "漫画 · 候车乘客 A · 留意队尾 4",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueAReady4.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueAShove1",
+    "label": "漫画 · 候车乘客 A · 挤开赶路者 1",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueAShove1.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueAShove2",
+    "label": "漫画 · 候车乘客 A · 挤开赶路者 2",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueAShove2.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueAShove3",
+    "label": "漫画 · 候车乘客 A · 挤开赶路者 3",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueAShove3.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueAShove4",
+    "label": "漫画 · 候车乘客 A · 挤开赶路者 4",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueAShove4.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueAShove5",
+    "label": "漫画 · 候车乘客 A · 挤开赶路者 5",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueAShove5.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueAShove6",
+    "label": "漫画 · 候车乘客 A · 挤开赶路者 6",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueAShove6.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonStopPassengerBIdle",
+    "label": "漫画 · 排队乘客 · 深绿站立",
+    "category": "街景角色",
+    "file": "original/commute/toonStopPassengerBIdle.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonStopPassengerBWalk",
+    "label": "漫画 · 排队乘客 · 深绿行走",
+    "category": "街景角色",
+    "file": "original/commute/toonStopPassengerBWalk.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueBReady1",
+    "label": "漫画 · 候车乘客 B · 留意队尾 1",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueBReady1.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueBReady2",
+    "label": "漫画 · 候车乘客 B · 留意队尾 2",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueBReady2.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueBReady3",
+    "label": "漫画 · 候车乘客 B · 留意队尾 3",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueBReady3.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueBReady4",
+    "label": "漫画 · 候车乘客 B · 留意队尾 4",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueBReady4.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueBShove1",
+    "label": "漫画 · 候车乘客 B · 挤开赶路者 1",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueBShove1.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueBShove2",
+    "label": "漫画 · 候车乘客 B · 挤开赶路者 2",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueBShove2.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueBShove3",
+    "label": "漫画 · 候车乘客 B · 挤开赶路者 3",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueBShove3.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueBShove4",
+    "label": "漫画 · 候车乘客 B · 挤开赶路者 4",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueBShove4.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueBShove5",
+    "label": "漫画 · 候车乘客 B · 挤开赶路者 5",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueBShove5.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueBShove6",
+    "label": "漫画 · 候车乘客 B · 挤开赶路者 6",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueBShove6.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonStopPassengerCIdle",
+    "label": "漫画 · 排队乘客 · 米色站立",
+    "category": "街景角色",
+    "file": "original/commute/toonStopPassengerCIdle.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonStopPassengerCWalk",
+    "label": "漫画 · 排队乘客 · 米色行走",
+    "category": "街景角色",
+    "file": "original/commute/toonStopPassengerCWalk.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueCReady1",
+    "label": "漫画 · 候车乘客 C · 留意队尾 1",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueCReady1.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueCReady2",
+    "label": "漫画 · 候车乘客 C · 留意队尾 2",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueCReady2.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueCReady3",
+    "label": "漫画 · 候车乘客 C · 留意队尾 3",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueCReady3.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueCReady4",
+    "label": "漫画 · 候车乘客 C · 留意队尾 4",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueCReady4.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueCShove1",
+    "label": "漫画 · 候车乘客 C · 挤开赶路者 1",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueCShove1.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueCShove2",
+    "label": "漫画 · 候车乘客 C · 挤开赶路者 2",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueCShove2.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueCShove3",
+    "label": "漫画 · 候车乘客 C · 挤开赶路者 3",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueCShove3.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueCShove4",
+    "label": "漫画 · 候车乘客 C · 挤开赶路者 4",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueCShove4.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueCShove5",
+    "label": "漫画 · 候车乘客 C · 挤开赶路者 5",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueCShove5.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonQueueCShove6",
+    "label": "漫画 · 候车乘客 C · 挤开赶路者 6",
+    "category": "街景角色",
+    "file": "original/commute/toonQueueCShove6.svg",
+    "width": 48,
+    "height": 78,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonStopBus",
+    "label": "漫画 · 街景 · 公交车身",
+    "category": "街景角色",
+    "file": "original/commute/toonStopBus.svg",
+    "width": 365,
+    "height": 132,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonBlockBusBack",
+    "label": "漫画 · 街区 · 看不到乘客门的一侧公交",
+    "category": "街景构图",
+    "file": "original/commute/toonBlockBusBack.svg",
+    "width": 365,
+    "height": 132,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonStopBusDoor",
+    "label": "漫画 · 街景 · 可开合公交门",
+    "category": "街景角色",
+    "file": "original/commute/toonStopBusDoor.svg",
+    "width": 43,
+    "height": 94,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonStopShelter",
+    "label": "漫画 · 街景 · 透视候车亭",
+    "category": "街景构图",
+    "file": "original/commute/toonStopShelter.svg",
+    "width": 181,
+    "height": 204,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonBlockShelter",
+    "label": "漫画 · 街区 · 低矮轻薄的候车亭",
+    "category": "街景构图",
+    "file": "original/commute/toonBlockShelter.svg",
+    "width": 158,
+    "height": 108,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonStopCorner",
+    "label": "漫画 · 街景 · 转角早餐铺",
+    "category": "街景构图",
+    "file": "original/commute/toonStopCorner.svg",
+    "width": 350,
+    "height": 351,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonStopTenement",
+    "label": "漫画 · 街景 · 旧公寓整栋",
+    "category": "街景构图",
+    "file": "original/commute/toonStopTenement.svg",
+    "width": 344,
+    "height": 309,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonStopOfficeBlock",
+    "label": "漫画 · 街景 · 街角办公楼外立面",
+    "category": "街景构图",
+    "file": "original/commute/toonStopOfficeBlock.svg",
+    "width": 382,
+    "height": 332,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonBlockShop",
+    "label": "漫画 · 街区 · 露出屋顶的沿街小店",
+    "category": "街景构图",
+    "file": "original/commute/toonBlockShop.svg",
+    "width": 200,
+    "height": 120,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonBlockBreakfast",
+    "label": "漫画 · 街区 · 带侧墙的早餐铺",
+    "category": "街景构图",
+    "file": "original/commute/toonBlockBreakfast.svg",
+    "width": 200,
+    "height": 120,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonBlockShutter",
+    "label": "漫画 · 街区 · 卷帘门与小窗店面",
+    "category": "街景构图",
+    "file": "original/commute/toonBlockShutter.svg",
+    "width": 200,
+    "height": 120,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonBlockApartment",
+    "label": "漫画 · 街区 · 同视角的沿街公寓",
+    "category": "街景构图",
+    "file": "original/commute/toonBlockApartment.svg",
+    "width": 222,
+    "height": 180,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonBlockOffice",
+    "label": "漫画 · 街区 · 同视角的公司外门",
+    "category": "街景构图",
+    "file": "original/commute/toonBlockOffice.svg",
+    "width": 178,
+    "height": 190,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonStopTree",
+    "label": "漫画 · 街景 · 树池与树影",
+    "category": "街景构图",
+    "file": "original/commute/toonStopTree.svg",
+    "width": 132,
+    "height": 210,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonStopAtmosphere",
+    "label": "漫画 · 街景 · 晨雾与远城",
+    "category": "街景构图",
+    "file": "original/commute/toonStopAtmosphere.svg",
+    "width": 1200,
+    "height": 640,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonStopGround",
+    "label": "漫画 · 街景 · 连续人行道与车道",
+    "category": "街景构图",
+    "file": "original/commute/toonStopGround.svg",
+    "width": 1200,
+    "height": 222,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "toonBlockStreets",
+    "label": "漫画 · 街区 · 同一地面上的三条街",
+    "category": "街景构图",
+    "file": "original/commute/toonBlockStreets.svg",
+    "width": 1200,
+    "height": 640,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
   }
 ]

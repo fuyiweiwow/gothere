@@ -1,5 +1,6 @@
 import {feedbackDefault} from '../content/feedback-presets.js';
 import {commuterVisual,commuterFeedback,queueFeedback} from './commuter-presentation.js';
+import {cartoonArt} from './cartoon-art.js';
 
 /** Art direction is data, composed from broad continuous environment pieces,
  * editable architecture and small independently animated performers. */
@@ -33,5 +34,5 @@ export function createBusStopScene(){
     {id:'stop-background',label:'晨间街景 · 背景',origin:{x:0,y:0},nodes:scene.nodes.filter(n=>!n.bind).map(n=>n.id),entities:[]},
     {id:'stop-encounter',label:'公交与候车队伍',origin:{x:680,y:490},nodes:scene.nodes.filter(n=>n.bind?.type==='entity').map(n=>n.id),entities:['bus','boarding','depart-ready','passenger-a','passenger-b','passenger-c','approach','queue-approach']},
   ];
-  return scene;
+  return cartoonArt(scene);
 }
