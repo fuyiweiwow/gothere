@@ -7,14 +7,14 @@ const P={ink:'#333d49',teal:'#3f8d89',deep:'#356b73',cream:'#fff1ce',gold:'#edb9
 const path=(d,fill='none',stroke=P.ink,width=2.4)=>`<path d="${d}" fill="${fill}"${stroke?` stroke="${stroke}" stroke-width="${width}" stroke-linejoin="round" stroke-linecap="round"`:''}/>`;
 const rect=(x,y,w,h,fill,r=3,stroke='',sw=2)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="${fill}"${stroke?` stroke="${stroke}" stroke-width="${sw}"`:''}/>`;
 const circle=(x,y,r,fill,stroke='',sw=2)=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}"${stroke?` stroke="${stroke}" stroke-width="${sw}"`:''}/>`;
-const ellipse=(x,y,rx,ry,fill)=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${fill}"/>`;
 const shadow=(x,y,rx)=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="2.2" fill="${P.ink}" opacity=".14"/>`;
 const limb=(points,color,width)=>path('M'+points.map(p=>p.join(' ')).join('L'),'none',P.ink,width+2.6)+path('M'+points.map(p=>p.join(' ')).join('L'),'none',color,width);
 const assets=[],manifestURL=new URL('../assets/library.json',import.meta.url),manifest=JSON.parse(await readFile(manifestURL,'utf8'));
 const old=new Map(manifest.map(a=>[a.id,a]));
 const toon=id=>'toon'+id[0].toUpperCase()+id.slice(1);
 function add(id,body,w,h){const source=old.get(id)??old.get(id.replace(/Cycle\d+$/,'1'));w??=source.width;h??=source.height;
-  assets.push({id:toon(id),label:'漫画 · '+source.label,category:source.category,file:'original/commute/'+toon(id)+'.svg',width:w,height:h,
+  const direction=id.includes('Walk')?'横走':id.includes('In')?'向里':'向外';
+  assets.push({id:toon(id),label:'漫画 · 赶路职员 · '+direction+'循环 '+id.match(/\d+$/)[0],category:source.category,file:'original/commute/'+toon(id)+'.svg',width:w,height:h,
     source:'gothere-original',license:'CC0-1.0',body:`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${body}</svg>\n`});}
 
 function heroHead(front=false,back=false){

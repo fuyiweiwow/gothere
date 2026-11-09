@@ -4031,7 +4031,7 @@
   },
   {
     "id": "toonCommuterWalkCycle1",
-    "label": "漫画 · 赶路职员 · 横走 1",
+    "label": "漫画 · 赶路职员 · 横走循环 1",
     "category": "街景角色",
     "file": "original/commute/toonCommuterWalkCycle1.svg",
     "width": 112,
@@ -4041,7 +4041,7 @@
   },
   {
     "id": "toonCommuterInCycle1",
-    "label": "漫画 · 赶路职员 · 向里 1",
+    "label": "漫画 · 赶路职员 · 向里循环 1",
     "category": "街景角色",
     "file": "original/commute/toonCommuterInCycle1.svg",
     "width": 112,
@@ -4051,7 +4051,7 @@
   },
   {
     "id": "toonCommuterOutCycle1",
-    "label": "漫画 · 赶路职员 · 向外 1",
+    "label": "漫画 · 赶路职员 · 向外循环 1",
     "category": "街景角色",
     "file": "original/commute/toonCommuterOutCycle1.svg",
     "width": 112,
@@ -4061,7 +4061,7 @@
   },
   {
     "id": "toonCommuterWalkCycle2",
-    "label": "漫画 · 赶路职员 · 横走 1",
+    "label": "漫画 · 赶路职员 · 横走循环 2",
     "category": "街景角色",
     "file": "original/commute/toonCommuterWalkCycle2.svg",
     "width": 112,
@@ -4071,7 +4071,7 @@
   },
   {
     "id": "toonCommuterInCycle2",
-    "label": "漫画 · 赶路职员 · 向里 1",
+    "label": "漫画 · 赶路职员 · 向里循环 2",
     "category": "街景角色",
     "file": "original/commute/toonCommuterInCycle2.svg",
     "width": 112,
@@ -4081,7 +4081,7 @@
   },
   {
     "id": "toonCommuterOutCycle2",
-    "label": "漫画 · 赶路职员 · 向外 1",
+    "label": "漫画 · 赶路职员 · 向外循环 2",
     "category": "街景角色",
     "file": "original/commute/toonCommuterOutCycle2.svg",
     "width": 112,
@@ -4091,7 +4091,7 @@
   },
   {
     "id": "toonCommuterWalkCycle3",
-    "label": "漫画 · 赶路职员 · 横走 1",
+    "label": "漫画 · 赶路职员 · 横走循环 3",
     "category": "街景角色",
     "file": "original/commute/toonCommuterWalkCycle3.svg",
     "width": 112,
@@ -4101,7 +4101,7 @@
   },
   {
     "id": "toonCommuterInCycle3",
-    "label": "漫画 · 赶路职员 · 向里 1",
+    "label": "漫画 · 赶路职员 · 向里循环 3",
     "category": "街景角色",
     "file": "original/commute/toonCommuterInCycle3.svg",
     "width": 112,
@@ -4111,7 +4111,7 @@
   },
   {
     "id": "toonCommuterOutCycle3",
-    "label": "漫画 · 赶路职员 · 向外 1",
+    "label": "漫画 · 赶路职员 · 向外循环 3",
     "category": "街景角色",
     "file": "original/commute/toonCommuterOutCycle3.svg",
     "width": 112,
@@ -4121,7 +4121,7 @@
   },
   {
     "id": "toonCommuterWalkCycle4",
-    "label": "漫画 · 赶路职员 · 横走 1",
+    "label": "漫画 · 赶路职员 · 横走循环 4",
     "category": "街景角色",
     "file": "original/commute/toonCommuterWalkCycle4.svg",
     "width": 112,
@@ -4131,7 +4131,7 @@
   },
   {
     "id": "toonCommuterInCycle4",
-    "label": "漫画 · 赶路职员 · 向里 1",
+    "label": "漫画 · 赶路职员 · 向里循环 4",
     "category": "街景角色",
     "file": "original/commute/toonCommuterInCycle4.svg",
     "width": 112,
@@ -4141,7 +4141,7 @@
   },
   {
     "id": "toonCommuterOutCycle4",
-    "label": "漫画 · 赶路职员 · 向外 1",
+    "label": "漫画 · 赶路职员 · 向外循环 4",
     "category": "街景角色",
     "file": "original/commute/toonCommuterOutCycle4.svg",
     "width": 112,
@@ -4151,7 +4151,7 @@
   },
   {
     "id": "toonCommuterWalkCycle5",
-    "label": "漫画 · 赶路职员 · 横走 1",
+    "label": "漫画 · 赶路职员 · 横走循环 5",
     "category": "街景角色",
     "file": "original/commute/toonCommuterWalkCycle5.svg",
     "width": 112,
@@ -4161,7 +4161,7 @@
   },
   {
     "id": "toonCommuterInCycle5",
-    "label": "漫画 · 赶路职员 · 向里 1",
+    "label": "漫画 · 赶路职员 · 向里循环 5",
     "category": "街景角色",
     "file": "original/commute/toonCommuterInCycle5.svg",
     "width": 112,
@@ -4171,7 +4171,7 @@
   },
   {
     "id": "toonCommuterOutCycle5",
-    "label": "漫画 · 赶路职员 · 向外 1",
+    "label": "漫画 · 赶路职员 · 向外循环 5",
     "category": "街景角色",
     "file": "original/commute/toonCommuterOutCycle5.svg",
     "width": 112,
@@ -4181,7 +4181,7 @@
   },
   {
     "id": "toonCommuterWalkCycle6",
-    "label": "漫画 · 赶路职员 · 横走 1",
+    "label": "漫画 · 赶路职员 · 横走循环 6",
     "category": "街景角色",
     "file": "original/commute/toonCommuterWalkCycle6.svg",
     "width": 112,
@@ -4191,7 +4191,7 @@
   },
   {
     "id": "toonCommuterInCycle6",
-    "label": "漫画 · 赶路职员 · 向里 1",
+    "label": "漫画 · 赶路职员 · 向里循环 6",
     "category": "街景角色",
     "file": "original/commute/toonCommuterInCycle6.svg",
     "width": 112,
@@ -4201,7 +4201,7 @@
   },
   {
     "id": "toonCommuterOutCycle6",
-    "label": "漫画 · 赶路职员 · 向外 1",
+    "label": "漫画 · 赶路职员 · 向外循环 6",
     "category": "街景角色",
     "file": "original/commute/toonCommuterOutCycle6.svg",
     "width": 112,
@@ -4211,7 +4211,7 @@
   },
   {
     "id": "toonCommuterWalkCycle7",
-    "label": "漫画 · 赶路职员 · 横走 1",
+    "label": "漫画 · 赶路职员 · 横走循环 7",
     "category": "街景角色",
     "file": "original/commute/toonCommuterWalkCycle7.svg",
     "width": 112,
@@ -4221,7 +4221,7 @@
   },
   {
     "id": "toonCommuterInCycle7",
-    "label": "漫画 · 赶路职员 · 向里 1",
+    "label": "漫画 · 赶路职员 · 向里循环 7",
     "category": "街景角色",
     "file": "original/commute/toonCommuterInCycle7.svg",
     "width": 112,
@@ -4231,7 +4231,7 @@
   },
   {
     "id": "toonCommuterOutCycle7",
-    "label": "漫画 · 赶路职员 · 向外 1",
+    "label": "漫画 · 赶路职员 · 向外循环 7",
     "category": "街景角色",
     "file": "original/commute/toonCommuterOutCycle7.svg",
     "width": 112,
@@ -4241,7 +4241,7 @@
   },
   {
     "id": "toonCommuterWalkCycle8",
-    "label": "漫画 · 赶路职员 · 横走 1",
+    "label": "漫画 · 赶路职员 · 横走循环 8",
     "category": "街景角色",
     "file": "original/commute/toonCommuterWalkCycle8.svg",
     "width": 112,
@@ -4251,7 +4251,7 @@
   },
   {
     "id": "toonCommuterInCycle8",
-    "label": "漫画 · 赶路职员 · 向里 1",
+    "label": "漫画 · 赶路职员 · 向里循环 8",
     "category": "街景角色",
     "file": "original/commute/toonCommuterInCycle8.svg",
     "width": 112,
@@ -4261,7 +4261,7 @@
   },
   {
     "id": "toonCommuterOutCycle8",
-    "label": "漫画 · 赶路职员 · 向外 1",
+    "label": "漫画 · 赶路职员 · 向外循环 8",
     "category": "街景角色",
     "file": "original/commute/toonCommuterOutCycle8.svg",
     "width": 112,
@@ -4271,7 +4271,7 @@
   },
   {
     "id": "toonCommuterWalkCycle9",
-    "label": "漫画 · 赶路职员 · 横走 1",
+    "label": "漫画 · 赶路职员 · 横走循环 9",
     "category": "街景角色",
     "file": "original/commute/toonCommuterWalkCycle9.svg",
     "width": 112,
@@ -4281,7 +4281,7 @@
   },
   {
     "id": "toonCommuterInCycle9",
-    "label": "漫画 · 赶路职员 · 向里 1",
+    "label": "漫画 · 赶路职员 · 向里循环 9",
     "category": "街景角色",
     "file": "original/commute/toonCommuterInCycle9.svg",
     "width": 112,
@@ -4291,7 +4291,7 @@
   },
   {
     "id": "toonCommuterOutCycle9",
-    "label": "漫画 · 赶路职员 · 向外 1",
+    "label": "漫画 · 赶路职员 · 向外循环 9",
     "category": "街景角色",
     "file": "original/commute/toonCommuterOutCycle9.svg",
     "width": 112,
@@ -4301,7 +4301,7 @@
   },
   {
     "id": "toonCommuterWalkCycle10",
-    "label": "漫画 · 赶路职员 · 横走 1",
+    "label": "漫画 · 赶路职员 · 横走循环 10",
     "category": "街景角色",
     "file": "original/commute/toonCommuterWalkCycle10.svg",
     "width": 112,
@@ -4311,7 +4311,7 @@
   },
   {
     "id": "toonCommuterInCycle10",
-    "label": "漫画 · 赶路职员 · 向里 1",
+    "label": "漫画 · 赶路职员 · 向里循环 10",
     "category": "街景角色",
     "file": "original/commute/toonCommuterInCycle10.svg",
     "width": 112,
@@ -4321,7 +4321,7 @@
   },
   {
     "id": "toonCommuterOutCycle10",
-    "label": "漫画 · 赶路职员 · 向外 1",
+    "label": "漫画 · 赶路职员 · 向外循环 10",
     "category": "街景角色",
     "file": "original/commute/toonCommuterOutCycle10.svg",
     "width": 112,
@@ -4331,7 +4331,7 @@
   },
   {
     "id": "toonCommuterWalkCycle11",
-    "label": "漫画 · 赶路职员 · 横走 1",
+    "label": "漫画 · 赶路职员 · 横走循环 11",
     "category": "街景角色",
     "file": "original/commute/toonCommuterWalkCycle11.svg",
     "width": 112,
@@ -4341,7 +4341,7 @@
   },
   {
     "id": "toonCommuterInCycle11",
-    "label": "漫画 · 赶路职员 · 向里 1",
+    "label": "漫画 · 赶路职员 · 向里循环 11",
     "category": "街景角色",
     "file": "original/commute/toonCommuterInCycle11.svg",
     "width": 112,
@@ -4351,7 +4351,7 @@
   },
   {
     "id": "toonCommuterOutCycle11",
-    "label": "漫画 · 赶路职员 · 向外 1",
+    "label": "漫画 · 赶路职员 · 向外循环 11",
     "category": "街景角色",
     "file": "original/commute/toonCommuterOutCycle11.svg",
     "width": 112,
@@ -4361,7 +4361,7 @@
   },
   {
     "id": "toonCommuterWalkCycle12",
-    "label": "漫画 · 赶路职员 · 横走 1",
+    "label": "漫画 · 赶路职员 · 横走循环 12",
     "category": "街景角色",
     "file": "original/commute/toonCommuterWalkCycle12.svg",
     "width": 112,
@@ -4371,7 +4371,7 @@
   },
   {
     "id": "toonCommuterInCycle12",
-    "label": "漫画 · 赶路职员 · 向里 1",
+    "label": "漫画 · 赶路职员 · 向里循环 12",
     "category": "街景角色",
     "file": "original/commute/toonCommuterInCycle12.svg",
     "width": 112,
@@ -4381,7 +4381,7 @@
   },
   {
     "id": "toonCommuterOutCycle12",
-    "label": "漫画 · 赶路职员 · 向外 1",
+    "label": "漫画 · 赶路职员 · 向外循环 12",
     "category": "街景角色",
     "file": "original/commute/toonCommuterOutCycle12.svg",
     "width": 112,

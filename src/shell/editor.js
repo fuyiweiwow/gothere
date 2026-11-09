@@ -41,7 +41,7 @@ const graybox=params.get('sample')==='graybox',busStop=params.get('sample')==='b
 const oldSpatial=params.has('spatial')||params.get('sample')==='spatial-commute',layeredDemo=params.get('sample')==='layered';
 const layeredEntry=spatialEntry&&!graybox&&!oldSpatial;
 const sample=spatialEntry?(chapterEntry?createCommuteChapter:scooterEntry?createScooterLevel:crossEntry?createCrosswalkLevel:towEntry?createTowStreetLevel:templateEntry?()=>createTemplatePractice('template-practice'):graybox?createSpatialLevel:oldSpatial?createCommuteLevel:layeredDemo?createLayeredLevel:busStop?createBusStopLevel:createStreetLevel):createFirstLevel;
-const sampleKey=spatialEntry?(chapterEntry?'commute:chapter:06':scooterEntry?'commute:scooter:01':crossEntry?'commute:crosswalk:01':towEntry?'commute:tow-street:01':templateEntry?'templates:practice:01':graybox?'spatial:01':oldSpatial?'commute:spatial:01':layeredDemo?'layered:graybox:01':busStop?'commute:bus-stop:05':'commute:layered:02'):'milestone:02:v017';
+const sampleKey=spatialEntry?(chapterEntry?'commute:chapter:07':scooterEntry?'commute:scooter:01':crossEntry?'commute:crosswalk:01':towEntry?'commute:tow-street:01':templateEntry?'templates:practice:01':graybox?'spatial:01':oldSpatial?'commute:spatial:01':layeredDemo?'layered:graybox:01':busStop?'commute:bus-stop:06':'commute:layered:02'):'milestone:02:v017';
 const standaloneHTML=document.getElementById('standalone-editor')?'<!doctype html>\n'+document.documentElement.outerHTML:null;
 let editor,resourceUI,bindingUI,authoringUI,lastDraft,loadSerial=0,preview=null,previewLevel=null,accumulator=0,last=0,debugLast=0,toastTimer,serial=0;
 let feedback=null,feedbackFrame=null,audition=null,endingTicks=0;

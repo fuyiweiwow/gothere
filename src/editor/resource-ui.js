@@ -133,10 +133,11 @@ export function createResourceUI({editor,notify,preview,requestBind=()=>{},inspe
         box.append(select('动画帧 '+(i+1),library.map(a=>[a.id,a.label]),id,v=>{const a=structuredClone(animation);a.frames[i]=v;setAnimation(a);},'art-frame-'+i));
         if(animation.frames.length>1)box.append(button('移除第 '+(i+1)+' 帧',()=>{const a=structuredClone(animation);a.frames.splice(i,1);setAnimation(a);},'text-button'));
       });
-      box.append(field('动画帧率',animation.fps,v=>setAnimation({...animation,fps:v}),{id:'art-fps',min:1,max:30}));
-      if(n.bind?.type==='actor'){
+      box.append(field(animation.stride===undefined?'动画帧率':'静态预览帧率',animation.fps,v=>setAnimation({...animation,fps:v}),{id:'art-fps',min:1,max:30}));
+      if(n.bind?.type==='actor'&&(!variant||['walking','walk-left','walk-right','inward','outward'].includes(variant))){
         box.append(checkbox('按行走距离播放',animation.stride!==undefined,v=>{const a={...animation};if(v)a.stride=.75;else delete a.stride;setAnimation(a);},'art-distance-cycle'));
         if(animation.stride!==undefined)box.append(field('每轮步幅（图高倍数）',animation.stride,v=>setAnimation({...animation,stride:v}),{id:'art-stride',min:.05,max:4,step:.05}));
+        if(animation.stride!==undefined)box.append(el('p','步幅 0.75 表示每走过图片高度的 75% 播放一轮；缩放图片时步幅同比调整。帧率用于静态预览。','panel-note'));
       }
       if(animation.frames.length<24)box.append(button('＋ 动画帧',()=>setAnimation({...animation,frames:[...animation.frames,animation.frames.at(-1)]}),'text-button'));
     }
