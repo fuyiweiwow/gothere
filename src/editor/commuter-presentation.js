@@ -9,15 +9,15 @@ export function commuterVisual(id='stop-player',height=70){
     animation:{frames:frames('toonCommuterWalkCycle',12),fps:12,stride:.75},variants:{
       'walk-left':{},'walk-right':{},inward:{animation:{frames:frames('toonCommuterInCycle',12),fps:12,stride:.4},flipWithDirection:false},
       outward:{animation:{frames:frames('toonCommuterOutCycle',12),fps:12,stride:.4},flipWithDirection:false},
-      lost:{asset:'toonCommuterFall1',animation:null},won:{asset:'toonCommuterIdle',animation:null}}};
+      lost:{asset:'toonCommuterDrop1',animation:null},won:{asset:'toonCommuterIdle',animation:null}}};
 }
 
 export function commuterFeedback(player){
   const cue=(id,trigger,options)=>({...feedbackDefault(player,id),trigger,...options});
   return [
-    cue(player+'-stagger',{type:'lost'},{label:'受击失衡到倒地',motion:'none',animation:{frames:frames('commuterFall',8),fps:10},duration:60,hold:true}),
+    cue(player+'-stagger',{type:'lost'},{label:'受击失衡到倒地',motion:'none',animation:{frames:frames('toonCommuterDrop',8),fps:10},duration:60,hold:true}),
     cue(player+'-impact',{type:'lost',reason:'hurt'},{label:'接触时短促声音',motion:'none',sound:'clack',delay:6,duration:6,volume:.12}),
-    cue(player+'-landing',{type:'lost'},{label:'身体落地后扬尘',motion:'none',particles:'dust',sound:'thud',delay:38,duration:18,anchor:{x:.42,y:.98},count:7,strength:.18,volume:.16}),
+    cue(player+'-landing',{type:'lost'},{label:'身体落地后扬尘',motion:'none',particles:'dust',sound:'thud',delay:38,duration:18,anchor:{x:.42,y:.9375},count:7,strength:.18,volume:.16}),
     cue(player+'-arrival',{type:'won'},{label:'终于到了',motion:'hop',sound:'success',duration:40,strength:.15}),
   ];
 }

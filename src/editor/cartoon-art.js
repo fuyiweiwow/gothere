@@ -1,5 +1,9 @@
 // Sample art direction only. The output remains ordinary editable scene data.
 const images=['stopAtmosphere','stopGround','stopCorner','stopTenement','stopOfficeBlock','stopShelter','stopTree','stopBus','stopBusDoor',
+  'towCallerAngry','towCallerPoint','towCallerPhone','towOwnerIdle','towOwnerRun','towCar','towTruck','towTruckRoll',
+  'crossOfficerPhone','crossOfficerWhistle','crossOfficerWalk1','crossOfficerWalk2',
+  'crossWalkerPhone','crossWalkerListen','crossWalkerWalk1','crossWalkerWalk2',
+  'scootRider','scootRiderPhone','blockRider','streetDog',
   'blockBusBack','blockShelter','blockShop','blockBreakfast','blockShutter','blockApartment','blockOffice','blockStreets','commuterIdle',
   ...['Walk','In','Out','Fall'].flatMap(p=>Array.from({length:8},(_,i)=>'commuter'+p+(i+1))),
   ...['A','B','C'].flatMap(s=>['stopPassenger'+s+'Idle','stopPassenger'+s+'Walk',

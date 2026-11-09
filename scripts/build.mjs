@@ -39,15 +39,17 @@ export async function buildEditor() {
   const typeScriptPath=resolve(ROOT,'src/vendor/typescript-service.js');
   let oldTypes='';try{oldTypes=await readFile(typeScriptPath,'utf8');}catch(error){if(error.code!=='ENOENT')throw error;}
   if(oldTypes!==typeScriptSource)await writeFile(typeScriptPath,typeScriptSource);
-  const [bundle,template,css]=await Promise.all([bundleEntry('src/shell/editor.js'),
+  const [bundle,template,css]=await Promise.all([bundleEntry('src/shell/entry.js'),
     readFile(resolve(ROOT,'editor.html'),'utf8'),readFile(resolve(ROOT,'src/editor/editor.css'),'utf8')]);
   const html=template.replace('<link rel="stylesheet" href="/src/editor/editor.css">','<style>\n'+css.replace(/^@charset[^;]+;\s*/, '')+'\n</style>')
     .replace('<script src="/src/vendor/code-editor.js"></script>',()=>'<script>\n'+codeEditor.replace(/<\/script/gi,'<\\/script')+'\n</script>')
     .replace('<script src="/src/vendor/typescript-service.js"></script>',()=>'<script>\n'+typeScriptSource.replace(/<\/script/gi,'<\\/script')+'\n</script>')
-    .replace('<script type="module" src="/src/shell/editor.js"></script>',()=>'<script id="standalone-editor" type="application/json">{}</script>\n<script type="module">\n'+bundle.script+'\n</script>');
+    .replace('<script type="module" src="/src/shell/entry.js"></script>',()=>'<script id="standalone-editor" type="application/json">{}</script>\n<script type="module">\n'+bundle.script+'\n</script>');
   if(/<script[^>]+src=/i.test(html)||/<link[^>]+rel="stylesheet"/i.test(html))throw new Error('Editor packaging left external app assets.');
   await Promise.all([saveHTML('index.html',html),saveHTML('editor.html',html),saveHTML('gothere-editor.html',html)]);
-  await rm(resolve(ROOT,'dist/gothere-play.html'),{force:true});
+  const playBundle=await bundleEntry('src/shell/play-entry.js');
+  const playHTML='<!doctype html>\n<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#ece3c9"><title>一定要到达那里 · 试玩</title></head><body><script id="standalone-play" type="application/json">{}</script><script type="module">\n'+playBundle.script+'\n</script></body></html>\n';
+  await Promise.all([saveHTML('play.html',playHTML),saveHTML('gothere-play.html',playHTML)]);
   return {path:resolve(ROOT,'dist/gothere-editor.html'),bytes:Buffer.byteLength(html),modules:bundle.modules};
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
