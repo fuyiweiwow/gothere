@@ -13,7 +13,7 @@ test('serves the editor, its modules, project document and correct MIME types', 
   }
 });
 test('does not expose arbitrary workspace files or traversal paths', async () => {
-  for(const path of ['/play.html','/gothere-play.html','/src/main.js','/src/style.css','/package.json','/server.mjs','/.git/config','/src/%2e%2e/package.json','/src/%2e%2e%5cpackage.json','/src/%00','/src/%ZZ','/src/does-not-exist.js']) {
+  for(const path of ['/src/main.js','/src/style.css','/package.json','/server.mjs','/.git/config','/src/%2e%2e/package.json','/src/%2e%2e%5cpackage.json','/src/%00','/src/%ZZ','/src/does-not-exist.js']) {
     assert.equal((await fetch(base+path)).status,404,path);
   }
 });
@@ -22,7 +22,7 @@ test('supports HEAD and rejects write requests', async () => {
   assert.equal((await fetch(base+'/',{method:'POST'})).status,405);
 });
 
-test('public preview serves only the self-contained editor and its download', async () => {
+test('public preview serves the self-contained editor and formal play with their downloads', async () => {
   const { buildEditor } = await import('../scripts/build.mjs');await buildEditor();
   const preview = makeServer({ portableOnly: true });
   await new Promise(resolve=>preview.listen(0,'127.0.0.1',resolve));
@@ -33,7 +33,12 @@ test('public preview serves only the self-contained editor and its download', as
     assert.ok(page.headers.get('content-security-policy').includes("connect-src 'none'"));
     const editor=await fetch(publicBase+'/editor.html');assert.equal(editor.status,200);assert.ok((await editor.text()).includes('id="standalone-editor"'));
     const editorDownload=await fetch(publicBase+'/gothere-editor.html');assert.equal(editorDownload.status,200);assert.ok(editorDownload.headers.get('content-disposition').includes('gothere-editor.html'));
-    for(const path of ['/play.html','/gothere-play.html','/project.md','/src/main.js','/package.json','/artifacts/share.json']) {
+    for(const path of ['/play.html','/gothere-play.html']){
+      const response=await fetch(publicBase+path);assert.equal(response.status,200);
+      assert.ok(!(await response.text()).includes('id="level-hint"'));
+      if(path==='/gothere-play.html')assert.ok(response.headers.get('content-disposition').includes('gothere-play.html'));
+    }
+    for(const path of ['/project.md','/src/main.js','/package.json','/artifacts/share.json']) {
       assert.equal((await fetch(publicBase+path)).status,404,path);
     }
   } finally { await new Promise(resolve=>preview.close(resolve)); }
