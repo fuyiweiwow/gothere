@@ -27,7 +27,7 @@ test('walking frames follow distance, so doubling speed does not slide the same 
   assert.equal(artTransform(node,slow,paused,{tick:999}).asset,artTransform(node,slow,a).asset);
 });
 
-test('stride measures the projected foot route through inward and outward passages and survives pause/reset/replay',()=>{
+test('stride measures the real equal-height route through inward and outward passages and survives pause/reset/replay',()=>{
   const level=createLayeredLevel(),nodes=level.spatial.nodes;
   nodes.find(n=>n.id==='back-entry').next='front-turn';nodes.find(n=>n.id==='back-entry').via='alley';
   nodes.find(n=>n.id==='front-turn').next='start';delete nodes.find(n=>n.id==='front-turn').via;
@@ -81,6 +81,7 @@ test('inward/outward artwork does not inherit the previous horizontal mirror or 
 test('sample walking clips expose a configurable stride while still preserving legacy fps-only animations',async()=>{
   for(const level of [createBusStopLevel(),createCommuteChapter()]){
     const node=hero(level);
+    assert.match(node.animation.frames[0],/^toonCommuterWalkCycle/,'new cycles leave the earlier eight-frame assets available for saved drafts');
     for(const animation of [node.animation,node.variants.inward.animation,node.variants.outward.animation]){
       assert.ok(animation.frames.length>=12);assert.ok(animation.stride>0);
     }
