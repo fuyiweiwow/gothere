@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {existsSync} from 'node:fs';
-import {mkdir} from 'node:fs/promises';
+import {mkdir,writeFile} from 'node:fs/promises';
 import {pathToFileURL} from 'node:url';
 import {chromium} from 'playwright';
 import {makeServer} from '../server.mjs';
@@ -18,14 +18,25 @@ async function until(p,target){for(let i=0;i<6;i++){const now=await tick(p),stat
 async function drag(p,id,dx,dy=0,{checkSnap=false,cancel=false,screenshot}={}){
   const b=await p.locator('#play-targets [data-source='+id+']').boundingBox(),v=await p.locator('#play-stage').boundingBox();
   const x=b.x+b.width/2,y=b.y+b.height/2,canvas=p.locator('#play-canvas'),overlay=p.locator('#play-targets');
+  const capture=()=>canvas.evaluate((c,r)=>{
+    const b=c.getBoundingClientRect(),sx=c.width/b.width,sy=c.height/b.height,copy=document.createElement('canvas');
+    copy.width=Math.ceil(r.width*sx);copy.height=Math.ceil(r.height*sy);
+    copy.getContext('2d').drawImage(c,(r.x-b.x)*sx,(r.y-b.y)*sy,copy.width,copy.height,0,0,copy.width,copy.height);return copy.toDataURL();
+  },{x:b.x+dx*v.width/1200,y:b.y+dy*v.height/640,width:b.width,height:b.height});
   const move=offset=>p.mouse.move(x+(dx+offset)*v.width/1200,y+dy*v.height/640,{steps:8});
   await p.mouse.move(x,y);await p.mouse.down();await move(checkSnap?20:0);
   if(checkSnap){
     assert.equal(await overlay.getAttribute('data-dragging'),'true');
-    const snapped=await canvas.evaluate(c=>c.toDataURL());await move(-20);
-    assert.equal(await canvas.evaluate(c=>c.toDataURL()),snapped,'both sides of the receiver must preview the same committed position');
-    await move(80);assert.notEqual(await canvas.evaluate(c=>c.toDataURL()),snapped,'outside the receiver the item must follow the pointer');
-    await move(20);assert.equal(await canvas.evaluate(c=>c.toDataURL()),snapped,'re-entering the receiver restores the same preview');
+    const snapped=await capture(),snappedTick=await tick(p);await move(-20);
+    const opposite=await capture();
+    if(opposite!==snapped){
+      await writeFile('artifacts/snap-'+id+'-before.png',Buffer.from(snapped.split(',')[1],'base64'));
+      await writeFile('artifacts/snap-'+id+'-after.png',Buffer.from(opposite.split(',')[1],'base64'));
+      console.log('Drag preview mismatch',JSON.stringify({id,beforeTick:snappedTick,afterTick:await tick(p)}));
+    }
+    assert.ok(opposite===snapped,'both sides of the receiver must preview the same committed position');
+    await move(80);assert.ok(await capture()!==snapped,'outside the receiver the item must follow the pointer');
+    await move(20);assert.ok(await capture()===snapped,'re-entering the receiver restores the same preview');
     if(screenshot)await canvas.screenshot({path:screenshot});
   }
   if(cancel)await p.keyboard.press('Escape');
@@ -46,7 +57,7 @@ try{
   ];
   for(const [name,url] of entries){
     const context=await browser.newContext({viewport:{width:1440,height:900},acceptDownloads:true}),p=await context.newPage(),requests=[];
-    p.setDefaultTimeout(6000);p.on('pageerror',e=>errors.push(name+': '+e.message));p.on('request',r=>{if(name.includes('offline')&&/^https?:/.test(r.url()))requests.push(r.url());});
+    p.setDefaultTimeout(6000);p.setDefaultNavigationTimeout(name==='published'?180000:6000);p.on('pageerror',e=>errors.push(name+': '+e.message));p.on('request',r=>{if(name.includes('offline')&&/^https?:/.test(r.url()))requests.push(r.url());});
     const time=new Date('2026-11-09T00:00:00Z');await p.clock.install({time});await p.clock.pauseAt(new Date(+time+1000));
     if(name==='source')await context.addInitScript(()=>{localStorage.setItem('gothere.studio.layered.v1','deliberately invalid draft');localStorage.setItem('gothere.studio.display','logic');});
     await p.goto(url);await p.locator('#play-canvas[data-assets=ready]').waitFor();

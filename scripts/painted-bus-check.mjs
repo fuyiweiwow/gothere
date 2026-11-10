@@ -49,7 +49,7 @@ try{
 
   for(const [name,url]of [
     ['online',base+'/?play&sample=painted-bus-stop'],
-    ['offline',pathToFileURL(fileURLToPath(new URL('../dist/gothere-painted-bus.html',import.meta.url))).href],
+    ['offline',pathToFileURL(fileURLToPath(new URL('../dist/gothere-painted-bus.html',import.meta.url))).href+'?sample=chapter'],
   ]){
     const context=await browser.newContext({viewport:{width:1440,height:900}}),p=await context.newPage(),requests=[];
     p.on('pageerror',e=>errors.push(e.message));p.on('request',r=>{if(name==='offline'&&/^https?:/.test(r.url()))requests.push(r.url());});

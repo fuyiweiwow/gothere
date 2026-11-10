@@ -14,7 +14,8 @@ import {PLAY_STYLE,PLAY_MARKUP} from './play-view.js';
  * It never reads drafts or exposes editing, timing advice or debug panels. */
 export async function startPlay(){
   const settings=document.getElementById('standalone-play');
-  const sample=new URLSearchParams(location.search).get('sample')??(settings?JSON.parse(settings.textContent||'{}').sample:undefined);
+  // A standalone package contains this level's assets; editor/source entries use URL selection.
+  const sample=settings?JSON.parse(settings.textContent||'{}').sample:new URLSearchParams(location.search).get('sample');
   const paintedBus=sample==='painted-bus-stop';
   if(settings)settings.textContent=JSON.stringify(paintedBus?{sample}:{});
   const portable=settings?'<!doctype html>\n'+document.documentElement.outerHTML:null;

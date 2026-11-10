@@ -3,6 +3,10 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { readFile, readdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import {ASSETS} from '../src/content/library.js';
+import {createCommuteChapter} from '../src/editor/commute-chapter.js';
+import {createPaintedBusStopLevel} from '../src/editor/painted-bus-stop.js';
+import {standaloneAssets} from '../scripts/standalone-assets.mjs';
 
 test('builds the editor and a self-contained hint-free play entry on the same engine', async () => {
   const root = fileURLToPath(new URL('../', import.meta.url));
@@ -17,9 +21,12 @@ test('builds the editor and a self-contained hint-free play entry on the same en
   }
   const files=await readdir(new URL('../dist/',import.meta.url));assert.ok(files.includes('gothere-play.html'));
   const play=await readFile(new URL('../dist/gothere-play.html',import.meta.url),'utf8');
+  assert.ok(!play.includes(ASSETS.find(a=>a.id==='paintedBusBack').src),'the chapter must not ship unrelated painted-bus pixels');
+  for(const asset of standaloneAssets(createCommuteChapter(),ASSETS))assert.ok(play.includes(asset.src),'missing chapter image '+asset.id);
   assert.ok(play.includes('function createSimulation'));assert.ok(play.includes('function startPlay'));
   assert.ok(!play.includes('id="level-hint"'));assert.ok(!play.includes('script-dialog'));assert.ok(!play.includes('CodeMirror'));
   assert.ok(!/<script[^>]+src=/i.test(play));assert.ok(!/<link[^>]+rel="stylesheet"/i.test(play));
   const painted=await readFile(new URL('../dist/gothere-painted-bus.html',import.meta.url),'utf8');
+  for(const asset of standaloneAssets(createPaintedBusStopLevel(),ASSETS))assert.ok(painted.includes(asset.src),'missing painted image '+asset.id);
   assert.ok(painted.includes('<script id="standalone-play" type="application/json">{"sample":"painted-bus-stop"}</script>'));
 });
