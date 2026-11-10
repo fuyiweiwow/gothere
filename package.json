@@ -1,6 +1,6 @@
 {
   "name": "gothere",
-  "version": "0.39.0",
+  "version": "0.40.2",
   "private": true,
   "type": "module",
   "description": "A lighthearted, data-driven puzzle about getting there, no matter what",
@@ -13,7 +13,7 @@
     "build": "node scripts/build.mjs",
     "test": "node --test tests/*.test.mjs",
     "test:coverage": "node --experimental-test-coverage --test --test-coverage-include=src/core/*.js --test-coverage-include=src/render/feedback.js --test-coverage-include=src/render/audio.js --test-coverage-include=src/render/depth-buffer.js --test-coverage-include=src/editor/surface-snapping.js --test-coverage-include=src/editor/spatial-snapping.js --test-coverage-include=src/editor/wire-creation.js --test-coverage-lines=80 --test-coverage-functions=80 --test-coverage-branches=80 tests/*.test.mjs",
-    "test:e2e": "node scripts/studio-check.mjs && node scripts/resources-check.mjs && node scripts/canvas-check.mjs && node scripts/feedback-check.mjs && node scripts/selection-check.mjs && node scripts/surface-snap-check.mjs && node scripts/wire-drag-check.mjs && node scripts/spatial-check.mjs && node scripts/spatial-occlusion-check.mjs && node scripts/spatial-migration-check.mjs && node scripts/commute-check.mjs && node scripts/layered-check.mjs && node scripts/bus-stop-check.mjs && node scripts/bus-polish-check.mjs && node scripts/locomotion-check.mjs && node scripts/templates-check.mjs && node scripts/tow-street-check.mjs && node scripts/crosswalk-check.mjs && node scripts/scooter-check.mjs && node scripts/commute-chapter-check.mjs && node scripts/javascript-editor-check.mjs && node scripts/authoring-workflow-check.mjs && node scripts/authoring-check.mjs && node scripts/project-assets-check.mjs && node scripts/project-assembly-check.mjs && node scripts/landing-check.mjs && node scripts/play-check.mjs"
+    "test:e2e": "node scripts/studio-check.mjs && node scripts/resources-check.mjs && node scripts/canvas-check.mjs && node scripts/feedback-check.mjs && node scripts/selection-check.mjs && node scripts/surface-snap-check.mjs && node scripts/wire-drag-check.mjs && node scripts/spatial-check.mjs && node scripts/spatial-occlusion-check.mjs && node scripts/spatial-migration-check.mjs && node scripts/commute-check.mjs && node scripts/layered-check.mjs && node scripts/bus-stop-check.mjs && node scripts/bus-polish-check.mjs && node scripts/painted-bus-check.mjs && node scripts/locomotion-check.mjs && node scripts/templates-check.mjs && node scripts/tow-street-check.mjs && node scripts/crosswalk-check.mjs && node scripts/scooter-check.mjs && node scripts/commute-chapter-check.mjs && node scripts/javascript-editor-check.mjs && node scripts/authoring-workflow-check.mjs && node scripts/authoring-check.mjs && node scripts/project-assets-check.mjs && node scripts/project-assembly-check.mjs && node scripts/landing-check.mjs && node scripts/play-check.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",

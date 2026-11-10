@@ -13,9 +13,16 @@ const server=makeServer();await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const browser=await chromium.launch({headless:true,args:['--mute-audio'],...(!existsSync(chromium.executablePath())?{channel:'msedge'}:{})});
 const draft=p=>p.evaluate(()=>{const s=JSON.parse(localStorage.getItem('gothere.studio.layered.v1'));return s.documents.find(d=>d.key===s.activeKey).level;});
 const errors=[];
-async function drag(p,dx,dy,{cancel=false,release=true}={}){
+async function drag(p,dx,dy,{cancel=false,release=true,checkSnap=false}={}){
   const target=p.locator('#scene-interactions [data-source=barrier]'),b=await target.boundingBox(),v=await p.locator('#viewport').boundingBox();
-  const x=b.x+b.width/2,y=b.y+b.height/2;await p.mouse.move(x,y);await p.mouse.down();await p.mouse.move(x+dx*v.width/1200,y+dy*v.height/640,{steps:10});
+  const x=b.x+b.width/2,y=b.y+b.height/2,move=offset=>p.mouse.move(x+(dx+offset)*v.width/1200,y+dy*v.height/640,{steps:10});
+  await p.mouse.move(x,y);await p.mouse.down();await move(checkSnap?20:0);
+  if(checkSnap){
+    const canvas=p.locator('#scene'),snapped=await canvas.evaluate(c=>c.toDataURL());
+    await move(-20);assert.equal(await canvas.evaluate(c=>c.toDataURL()),snapped,'zoomed editor previews the receiver on both sides');
+    await move(80);assert.notEqual(await canvas.evaluate(c=>c.toDataURL()),snapped,'leaving the receiver returns to pointer movement');
+    await move(20);assert.equal(await canvas.evaluate(c=>c.toDataURL()),snapped);
+  }
   if(cancel)await p.keyboard.press('Escape');if(release)await p.mouse.up();
 }
 try{
@@ -38,7 +45,7 @@ try{
       let box=await p.locator('#scene-interactions [data-source=barrier]').boundingBox();const original=box.x;
       await drag(p,582,0,{cancel:true});await p.clock.runFor(300);box=await p.locator('#scene-interactions [data-source=barrier]').boundingBox();assert.ok(Math.abs(original-box.x)<1);
       await p.locator('#preview-toggle').click();assert.equal(await p.locator('#scene-interactions [data-source=barrier]').isDisabled(),true);await p.locator('#preview-toggle').click();
-      await p.locator('#zoom-in').click();await p.locator('#zoom-in').click();await drag(p,582,0);await p.clock.runFor(300);
+      await p.locator('#zoom-in').click();await p.locator('#zoom-in').click();await drag(p,582,0,{checkSnap:true});await p.clock.runFor(300);
       assert.match(await p.locator('#runtime-log').innerText(),/两根路桩之间/);assert.equal(await p.locator('#scene-interactions [data-source=barrier]').isDisabled(),true);
       await p.locator('#zoom-fit').click();await p.clock.runFor(6800);
       if(mode==='scene')await p.locator('#scene').screenshot({path:'artifacts/scooter-blocked-'+index+'.png'});

@@ -13,15 +13,15 @@ export function makeServer({ portableOnly = false } = {}) {
     if (!['GET','HEAD'].includes(request.method)) { send(405, 'Method not allowed'); return; }
     try {
       const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
-      if (portableOnly || ['/gothere-editor.html','/play.html','/gothere-play.html'].includes(pathname)) {
-        if (!['/', '/index.html', '/editor.html', '/gothere-editor.html','/play.html','/gothere-play.html'].includes(pathname)) { send(404, 'Not found'); return; }
-        const play=['/play.html','/gothere-play.html'].includes(pathname),name=play?'gothere-play.html':'gothere-editor.html';
+      if (portableOnly || ['/gothere-editor.html','/play.html','/gothere-play.html','/gothere-painted-bus.html'].includes(pathname)) {
+        if (!['/', '/index.html', '/editor.html', '/gothere-editor.html','/play.html','/gothere-play.html','/gothere-painted-bus.html'].includes(pathname)) { send(404, 'Not found'); return; }
+        const play=['/play.html','/gothere-play.html'].includes(pathname),name=pathname==='/gothere-painted-bus.html'?'gothere-painted-bus.html':play?'gothere-play.html':'gothere-editor.html';
         const html = await readFile(resolve(ROOT,'dist',name));
         response.writeHead(200, {
           'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store',
           'X-Content-Type-Options': 'nosniff',
           'Content-Security-Policy': "default-src 'none'; script-src 'unsafe-inline' blob:; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; worker-src blob:; object-src 'none'; base-uri 'none'; form-action 'none'",
-          ...(['/gothere-editor.html','/gothere-play.html'].includes(pathname)?{'Content-Disposition':'attachment; filename="'+name+'"'}:{}),
+          ...(['/gothere-editor.html','/gothere-play.html','/gothere-painted-bus.html'].includes(pathname)?{'Content-Disposition':'attachment; filename="'+name+'"'}:{}),
         });
         response.end(request.method === 'HEAD' ? undefined : html);
         return;

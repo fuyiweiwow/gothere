@@ -33,7 +33,8 @@ jobs:
       - name: Stage static site
         run: |
           mkdir _site
-          cp dist/index.html dist/editor.html dist/gothere-editor.html dist/play.html dist/gothere-play.html _site/
+          cp dist/*.html _site/
+          node --input-type=module -e "import {readFileSync,writeFileSync} from 'node:fs'; const {version}=JSON.parse(readFileSync('package.json','utf8')); writeFileSync('_site/version.json',JSON.stringify({version,commit:process.env.GITHUB_SHA}));"
           touch _site/.nojekyll
       - name: Configure Pages
         uses: actions/configure-pages@v5

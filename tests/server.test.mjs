@@ -33,10 +33,11 @@ test('public preview serves the self-contained editor and formal play with their
     assert.ok(page.headers.get('content-security-policy').includes("connect-src 'none'"));
     const editor=await fetch(publicBase+'/editor.html');assert.equal(editor.status,200);assert.ok((await editor.text()).includes('id="standalone-editor"'));
     const editorDownload=await fetch(publicBase+'/gothere-editor.html');assert.equal(editorDownload.status,200);assert.ok(editorDownload.headers.get('content-disposition').includes('gothere-editor.html'));
-    for(const path of ['/play.html','/gothere-play.html']){
+    for(const path of ['/play.html','/gothere-play.html','/gothere-painted-bus.html']){
       const response=await fetch(publicBase+path);assert.equal(response.status,200);
       assert.ok(!(await response.text()).includes('id="level-hint"'));
       if(path==='/gothere-play.html')assert.ok(response.headers.get('content-disposition').includes('gothere-play.html'));
+      if(path==='/gothere-painted-bus.html')assert.ok(response.headers.get('content-disposition').includes('gothere-painted-bus.html'));
     }
     for(const path of ['/project.md','/src/main.js','/package.json','/artifacts/share.json']) {
       assert.equal((await fetch(publicBase+path)).status,404,path);

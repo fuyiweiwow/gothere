@@ -20,4 +20,6 @@ test('builds the editor and a self-contained hint-free play entry on the same en
   assert.ok(play.includes('function createSimulation'));assert.ok(play.includes('function startPlay'));
   assert.ok(!play.includes('id="level-hint"'));assert.ok(!play.includes('script-dialog'));assert.ok(!play.includes('CodeMirror'));
   assert.ok(!/<script[^>]+src=/i.test(play));assert.ok(!/<link[^>]+rel="stylesheet"/i.test(play));
+  const painted=await readFile(new URL('../dist/gothere-painted-bus.html',import.meta.url),'utf8');
+  assert.ok(painted.includes('<script id="standalone-play" type="application/json">{"sample":"painted-bus-stop"}</script>'));
 });

@@ -4678,5 +4678,415 @@
     "height": 96,
     "source": "gothere-original",
     "license": "CC0-1.0"
+  },
+  {
+    "id": "paintedBusDoor",
+    "label": "paintedBusDoor",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/bus-door.png",
+    "width": 72,
+    "height": 180,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedBusBody",
+    "label": "paintedBusBody",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/bus.png",
+    "width": 600,
+    "height": 248,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedBusCorner",
+    "label": "paintedBusCorner",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/corner.png",
+    "width": 321,
+    "height": 356,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedBusEdge",
+    "label": "paintedBusEdge",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/edge.png",
+    "width": 118,
+    "height": 312,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedBusGround",
+    "label": "paintedBusGround",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/ground.webp",
+    "width": 1200,
+    "height": 198,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedHeroFall1",
+    "label": "paintedHeroFall1",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/hero-fall-1.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedHeroFall2",
+    "label": "paintedHeroFall2",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/hero-fall-2.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedHeroFall3",
+    "label": "paintedHeroFall3",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/hero-fall-3.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedHeroFall4",
+    "label": "paintedHeroFall4",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/hero-fall-4.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedHeroFall5",
+    "label": "paintedHeroFall5",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/hero-fall-5.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedHeroFall6",
+    "label": "paintedHeroFall6",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/hero-fall-6.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedHeroIdle",
+    "label": "paintedHeroIdle",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/hero-idle.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedHeroWalk1",
+    "label": "paintedHeroWalk1",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/hero-walk-1.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedHeroWalk2",
+    "label": "paintedHeroWalk2",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/hero-walk-2.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedHeroWalk3",
+    "label": "paintedHeroWalk3",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/hero-walk-3.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedHeroWalk4",
+    "label": "paintedHeroWalk4",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/hero-walk-4.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedHeroWalk5",
+    "label": "paintedHeroWalk5",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/hero-walk-5.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedHeroWalk6",
+    "label": "paintedHeroWalk6",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/hero-walk-6.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedHeroWalk7",
+    "label": "paintedHeroWalk7",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/hero-walk-7.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedHeroWalk8",
+    "label": "paintedHeroWalk8",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/hero-walk-8.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedBusOffice",
+    "label": "paintedBusOffice",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/office.png",
+    "width": 371,
+    "height": 338,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedPassengerAIdle",
+    "label": "paintedPassengerAIdle",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/passenger-a-idle.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedPassengerAWalk1",
+    "label": "paintedPassengerAWalk1",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/passenger-a-walk-1.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedPassengerAWalk2",
+    "label": "paintedPassengerAWalk2",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/passenger-a-walk-2.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedPassengerAWalk3",
+    "label": "paintedPassengerAWalk3",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/passenger-a-walk-3.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedPassengerAWalk4",
+    "label": "paintedPassengerAWalk4",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/passenger-a-walk-4.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedPassengerBIdle",
+    "label": "paintedPassengerBIdle",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/passenger-b-idle.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedPassengerBWalk1",
+    "label": "paintedPassengerBWalk1",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/passenger-b-walk-1.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedPassengerBWalk2",
+    "label": "paintedPassengerBWalk2",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/passenger-b-walk-2.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedPassengerBWalk3",
+    "label": "paintedPassengerBWalk3",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/passenger-b-walk-3.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedPassengerBWalk4",
+    "label": "paintedPassengerBWalk4",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/passenger-b-walk-4.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedPassengerCIdle",
+    "label": "paintedPassengerCIdle",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/passenger-c-idle.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedPassengerCWalk1",
+    "label": "paintedPassengerCWalk1",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/passenger-c-walk-1.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedPassengerCWalk2",
+    "label": "paintedPassengerCWalk2",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/passenger-c-walk-2.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedPassengerCWalk3",
+    "label": "paintedPassengerCWalk3",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/passenger-c-walk-3.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedPassengerCWalk4",
+    "label": "paintedPassengerCWalk4",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/passenger-c-walk-4.png",
+    "width": 192,
+    "height": 192,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedBusShelter",
+    "label": "paintedBusShelter",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/shelter.png",
+    "width": 400,
+    "height": 273,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedBusSky",
+    "label": "paintedBusSky",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/sky.webp",
+    "width": 1200,
+    "height": 442,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedBusTenement",
+    "label": "paintedBusTenement",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/tenement.png",
+    "width": 328,
+    "height": 314,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedBusTree",
+    "label": "paintedBusTree",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/tree.png",
+    "width": 210,
+    "height": 273,
+    "source": "SpriteCook / GPT Image 2; generation.json",
+    "license": "AI-generated; see CREDITS.md"
+  },
+  {
+    "id": "paintedBusBack",
+    "label": "公交 · 道路侧无门车身",
+    "category": "手绘试作",
+    "file": "generated/painted-bus-v1/bus-back.png",
+    "width": 600,
+    "height": 248,
+    "source": "Local derivative of SpriteCook bus; processing.json",
+    "license": "AI-generated derivative; see CREDITS.md"
   }
 ]

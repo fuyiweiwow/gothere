@@ -1,0 +1,166 @@
+{
+  "bus-door.png": [
+    72,
+    180
+  ],
+  "bus.png": [
+    600,
+    248
+  ],
+  "corner.png": [
+    321,
+    356
+  ],
+  "edge.png": [
+    118,
+    312
+  ],
+  "ground.webp": [
+    1200,
+    198
+  ],
+  "hero-fall-1.png": [
+    192,
+    192
+  ],
+  "hero-fall-2.png": [
+    192,
+    192
+  ],
+  "hero-fall-3.png": [
+    192,
+    192
+  ],
+  "hero-fall-4.png": [
+    192,
+    192
+  ],
+  "hero-fall-5.png": [
+    192,
+    192
+  ],
+  "hero-fall-6.png": [
+    192,
+    192
+  ],
+  "hero-idle.png": [
+    192,
+    192
+  ],
+  "hero-walk-1.png": [
+    192,
+    192
+  ],
+  "hero-walk-2.png": [
+    192,
+    192
+  ],
+  "hero-walk-3.png": [
+    192,
+    192
+  ],
+  "hero-walk-4.png": [
+    192,
+    192
+  ],
+  "hero-walk-5.png": [
+    192,
+    192
+  ],
+  "hero-walk-6.png": [
+    192,
+    192
+  ],
+  "hero-walk-7.png": [
+    192,
+    192
+  ],
+  "hero-walk-8.png": [
+    192,
+    192
+  ],
+  "office.png": [
+    371,
+    338
+  ],
+  "passenger-a-idle.png": [
+    192,
+    192
+  ],
+  "passenger-a-walk-1.png": [
+    192,
+    192
+  ],
+  "passenger-a-walk-2.png": [
+    192,
+    192
+  ],
+  "passenger-a-walk-3.png": [
+    192,
+    192
+  ],
+  "passenger-a-walk-4.png": [
+    192,
+    192
+  ],
+  "passenger-b-idle.png": [
+    192,
+    192
+  ],
+  "passenger-b-walk-1.png": [
+    192,
+    192
+  ],
+  "passenger-b-walk-2.png": [
+    192,
+    192
+  ],
+  "passenger-b-walk-3.png": [
+    192,
+    192
+  ],
+  "passenger-b-walk-4.png": [
+    192,
+    192
+  ],
+  "passenger-c-idle.png": [
+    192,
+    192
+  ],
+  "passenger-c-walk-1.png": [
+    192,
+    192
+  ],
+  "passenger-c-walk-2.png": [
+    192,
+    192
+  ],
+  "passenger-c-walk-3.png": [
+    192,
+    192
+  ],
+  "passenger-c-walk-4.png": [
+    192,
+    192
+  ],
+  "shelter.png": [
+    400,
+    273
+  ],
+  "sky.webp": [
+    1200,
+    442
+  ],
+  "tenement.png": [
+    328,
+    314
+  ],
+  "tree.png": [
+    210,
+    273
+  ],
+  "bus-back.png": [
+    600,
+    248
+  ]
+}

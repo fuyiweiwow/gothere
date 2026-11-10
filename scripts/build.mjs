@@ -50,6 +50,7 @@ export async function buildEditor() {
   const playBundle=await bundleEntry('src/shell/play-entry.js');
   const playHTML='<!doctype html>\n<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#ece3c9"><title>一定要到达那里 · 试玩</title></head><body><script id="standalone-play" type="application/json">{}</script><script type="module">\n'+playBundle.script+'\n</script></body></html>\n';
   await Promise.all([saveHTML('play.html',playHTML),saveHTML('gothere-play.html',playHTML)]);
+  await saveHTML('gothere-painted-bus.html',playHTML.replace('<script id="standalone-play" type="application/json">{}</script>','<script id="standalone-play" type="application/json">{"sample":"painted-bus-stop"}</script>'));
   return {path:resolve(ROOT,'dist/gothere-editor.html'),bytes:Buffer.byteLength(html),modules:bundle.modules};
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

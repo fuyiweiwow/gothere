@@ -15,12 +15,30 @@ const browser=await chromium.launch({headless:true,args:['--mute-audio'],...(!ex
 const errors=[],failure=createSimulation(createCommuteChapter()).start().step(1200).snapshot().tick;
 const tick=p=>p.locator('#play-canvas').evaluate(c=>Number(c.dataset.tick));
 async function until(p,target){for(let i=0;i<6;i++){const now=await tick(p),status=await p.locator('#play-canvas').getAttribute('data-status');if(now>=target||['won','lost'].includes(status))return;await p.clock.runFor(Math.ceil((target-now)*1000/60)+20);}assert.fail('play did not reach '+target);}
-async function drag(p,id,dx,dy=0){
+async function drag(p,id,dx,dy=0,{checkSnap=false,cancel=false,screenshot}={}){
   const b=await p.locator('#play-targets [data-source='+id+']').boundingBox(),v=await p.locator('#play-stage').boundingBox();
-  const x=b.x+b.width/2,y=b.y+b.height/2;await p.mouse.move(x,y);await p.mouse.down();await p.mouse.move(x+dx*v.width/1200,y+dy*v.height/640,{steps:8});await p.mouse.up();await p.clock.runFor(300);
+  const x=b.x+b.width/2,y=b.y+b.height/2,canvas=p.locator('#play-canvas'),overlay=p.locator('#play-targets');
+  const move=offset=>p.mouse.move(x+(dx+offset)*v.width/1200,y+dy*v.height/640,{steps:8});
+  await p.mouse.move(x,y);await p.mouse.down();await move(checkSnap?20:0);
+  if(checkSnap){
+    assert.equal(await overlay.getAttribute('data-dragging'),'true');
+    const snapped=await canvas.evaluate(c=>c.toDataURL());await move(-20);
+    assert.equal(await canvas.evaluate(c=>c.toDataURL()),snapped,'both sides of the receiver must preview the same committed position');
+    await move(80);assert.notEqual(await canvas.evaluate(c=>c.toDataURL()),snapped,'outside the receiver the item must follow the pointer');
+    await move(20);assert.equal(await canvas.evaluate(c=>c.toDataURL()),snapped,'re-entering the receiver restores the same preview');
+    if(screenshot)await canvas.screenshot({path:screenshot});
+  }
+  if(cancel)await p.keyboard.press('Escape');
+  await p.mouse.up();await p.clock.runFor(300);
+  assert.equal(await overlay.getAttribute('data-dragging'),null);
+  if(cancel){
+    assert.equal(await canvas.getAttribute('data-status'),'running','Escape cancels the gesture before the pause shortcut');
+    const after=await p.locator('#play-targets [data-source='+id+']').boundingBox();
+    assert.ok(Math.abs(after.x-b.x)<1&&Math.abs(after.y-b.y)<1,'cancelled item stays at its original position');
+  }
 }
 try{
-  const entries=[
+  const entries=process.env.PLAY_CHECK_URL?[['published',process.env.PLAY_CHECK_URL]]:[
     ['source','http://127.0.0.1:'+server.address().port+'/?play'],
     ['offline',pathToFileURL(process.cwd()+'/dist/gothere-play.html').href],
     ['editor-offline',pathToFileURL(process.cwd()+'/dist/gothere-editor.html').href+'?play'],
@@ -54,13 +72,14 @@ try{
     await until(p,830);await p.locator('#play-targets [data-source=officer]').click();
     await until(p,1380);await p.locator('#play-targets [data-source=caller]').click();
     await until(p,1700);await p.locator('#play-canvas').screenshot({path:'artifacts/play-'+name+'-tow.png'});
-    await until(p,2040);await drag(p,'barrier',-30,70);await drag(p,'barrier',-108);
-    await until(p,2740);await drag(p,'breakfast',295);
+    await until(p,2040);await drag(p,'barrier',-30,70);await drag(p,'barrier',-108,0,{checkSnap:true,cancel:true});
+    await drag(p,'barrier',-108,0,{checkSnap:true,screenshot:'artifacts/play-'+name+'-barrier-drop.png'});
+    await until(p,2740);await drag(p,'breakfast',295,0,{checkSnap:true,screenshot:'artifacts/play-'+name+'-breakfast-drop.png'});
     await until(p,3600);assert.equal(await p.locator('#play-canvas').getAttribute('data-status'),'won');await p.clock.runFor(1200);
     assert.equal(await p.locator('#play-message').innerText(),'到了。');await p.screenshot({path:'artifacts/play-'+name+'-won.png'});
     await p.locator('#play-restart').click();assert.ok(await tick(p)<5);await p.keyboard.press('Escape');assert.equal(await p.locator('#play-canvas').getAttribute('data-status'),'paused');
     if(name==='source')assert.equal(await p.evaluate(()=>localStorage.getItem('gothere.studio.layered.v1')),'deliberately invalid draft');
-    assert.deepEqual(requests,[]);await context.close();console.log('PASS formal play '+name+': no hint/editor, pause/blur/mute/retry, complete landing, invalid drop recovery, real mouse solution and draft isolation.');
+    assert.deepEqual(requests,[]);await context.close();console.log('PASS formal play '+name+': no hint/editor, pause/blur/mute/retry, complete landing, invalid drop recovery, snap/re-entry/Escape, real mouse solution and draft isolation.');
   }
   assert.deepEqual(errors,[]);
 }finally{await browser.close();await new Promise(r=>server.close(r));await new Promise(r=>publicServer.close(r));}

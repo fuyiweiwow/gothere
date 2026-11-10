@@ -2,7 +2,13 @@
 
 轻松诙谐的 2D 环境解谜与关卡编辑引擎，最终目标为 Steam。主角认准目的地持续前进，玩家通过物体、行为和事件改变环境，帮助他到达那里。
 
-当前分支 `codex/spatial-2-5d` 的本地开发版为 **0.39.0 二维分层编辑器与正式试玩**。默认展示完整街区 [上班路 · 还得去](http://localhost:4173/?sample=chapter)：近街公交站 → 右侧向里过街 → 中街清障与车主追车 → 左侧窄巷电瓶车 → 远街早餐与狗 → 公司外门。约一分钟，使用者无需编辑。方案与限制见 [整章记录](docs/commute-chapter-layout.md)。
+在线：[完整街区试玩](https://fuyiweiwow.github.io/gothere/play.html) · [公交站美术试玩](https://fuyiweiwow.github.io/gothere/gothere-painted-bus.html) · [关卡编辑器](https://fuyiweiwow.github.io/gothere/editor.html)。试玩入口无需安装或登录，不展示攻略和编辑面板。
+
+当前分支 `codex/spatial-2-5d` 的本地开发版为 **0.40.2 二维分层编辑器与试玩拖放反馈**。默认展示完整街区 [上班路 · 还得去](http://localhost:4173/?sample=chapter)：近街公交站 → 右侧向里过街 → 中街清障与车主追车 → 左侧窄巷电瓶车 → 远街早餐与狗 → 公司外门。约一分钟，使用者无需编辑。方案与限制见 [整章记录](docs/commute-chapter-layout.md)。
+
+拖动物品接近有效接收点时，提前预览实际落点，松手后的放置与预览一致。正式试玩仅在有效范围内显示局部反馈，编辑器预览保留接收范围辅助；Esc 取消当前拖动，错误放置仍归位。物品、路线与机关时机沿用原定义。
+
+独立的 [公交站构图试玩](http://localhost:4174/?play&sample=painted-bus-stop) 与 [同图编辑器](http://localhost:4174/?sample=painted-bus-stop) 已修正车道、轮胎落点和远侧上车遮挡。使用现有生成素材与本地衍生资源，无新增积分消耗；用户同意暂用这一版，人物步态与风格搭配留待后续打磨，当前继续玩法和关卡验证。离线试玩文件为 `dist/gothere-painted-bus.html`，整章继续沿用原有漫画素材。范围与限制见 [素材试作记录](docs/painted-bus-study.md)。
 
 顶部「正式游玩」或 [本机试玩入口](http://localhost:4173/play.html) 不显示 hint、攻略或编辑面板。构建后直接发送 **dist/gothere-play.html** 给朋友，双击即可离线试玩；页面支持保存完整离线副本。切换窗口自动暂停，空格/Esc 暂停继续，R 重来。整章其他人物、狗和车辆已统一为漫画资源，倒地帧修正贴地点和裁切。旧草稿保留，新示例槽为 `commute:chapter:08` / `commute:bus-stop:07`。见 [正式试玩说明](docs/play-release.md)。
 
@@ -38,7 +44,7 @@
 
 DSL v1 为原横版、v2 为三轴实验、v3 为二维分层。新编辑器读取三个版本，旧稿不自动转换为分层语义。主线旧编辑器不能运行 v2/v3。
 
-公开 Pages 仍由 **main 稳定版 0.19.0** 发布，默认「里程碑 02 · 屋顶到亮窗」。本空间分支尚未合入 main。以下首关功能说明用于稳定版回归与能力对照。
+公开 Pages 由 **main 版 0.40.2** 发布，编辑器默认完整街区；分享试玩使用上面的独立入口。原「里程碑 02 · 屋顶到亮窗」仍在示例列表中作为横版兼容关卡。以下首关功能说明用于兼容回归与能力对照。
 
 [打开编辑器](https://fuyiweiwow.github.io/gothere/editor.html) · [下载离线 HTML](https://fuyiweiwow.github.io/gothere/gothere-editor.html)
 
@@ -86,7 +92,7 @@ npm run test:e2e
 npm run build
 ```
 
-访问 http://localhost:4173/ 。构建只生成同一编辑器的三个单文件入口：dist/index.html、dist/editor.html、dist/gothere-editor.html。推送 main 后，GitHub Actions 运行测试、构建并发布到 GitHub Pages。
+访问 http://localhost:4173/ 。构建生成同一编辑器的三个单文件入口，以及 play.html、gothere-play.html 和 gothere-painted-bus.html 三个试玩入口。推送 main 后，GitHub Actions 运行测试、构建并发布到 GitHub Pages；version.json 标记线上版本和提交号。
 
 浏览器测试使用 Playwright，无头运行，不弹出窗口。可使用本机 Edge，或执行 npx playwright install chromium 安装测试浏览器。测试产物保存在不提交的 artifacts/。
 

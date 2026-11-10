@@ -42,16 +42,21 @@ export function createRuntimeDrag({overlay,viewport,session,paint,notify,click})
       if(!gesture)return state;
       if(state.status!=='running'||!canDrag(state,gesture.source)){cancel();return state;}
       if(!gesture.moved)return state;
-      const copy=structuredClone(state),e=copy.entities[gesture.source],p=gesture.point;
-      if(level.spatial){const q=unprojectSpace(level,p,e.space.height);e.x=q.x;e.space.depth=q.depth;}
+      const copy=structuredClone(state),e=copy.entities[gesture.source],p=gesture.point,receiver=placementReceiver(level,state,gesture.source,p);
+      if(receiver){
+        e.x=receiver.x;e.y=receiver.y;
+        if(level.spatial)e.space={...e.space,plane:receiver.space.plane,depth:receiver.space.depth,height:receiver.space.height};
+      }
+      else if(level.spatial){const q=unprojectSpace(level,p,e.space.height);e.x=q.x;e.space.depth=q.depth;}
       else{e.x=p.x;e.y=p.y;}
       return copy;
     },
-    drawTargets(ctx,level,state){
-      if(!gesture?.moved)return;
+    drawTargets(ctx,level,state,{nearOnly=false}={}){
+      if(!gesture?.moved||state.status!=='running'||!canDrag(state,gesture.source))return;
       const entity=state.entities[gesture.source],selected=placementReceiver(level,state,gesture.source,gesture.point);
+      if(nearOnly&&!selected)return;
       ctx.save();ctx.lineWidth=2;ctx.setLineDash([5,4]);
-      for(const id of entity.draggable.targets){const e=state.entities[id];if(!e?.dropTarget.enabled)continue;const p=placementAnchor(level,e);
+      for(const id of entity.draggable.targets){const e=state.entities[id];if(!e?.dropTarget?.enabled||nearOnly&&selected.id!==id)continue;const p=placementAnchor(level,e);
         ctx.strokeStyle=selected?.id===id?'#e5bf6c':'#b8d7c5';ctx.fillStyle=selected?.id===id?'#e5bf6c33':'#b8d7c514';
         ctx.beginPath();ctx.arc(p.x,p.y,e.dropTarget.radius,0,Math.PI*2);ctx.fill();ctx.stroke();}
       ctx.restore();

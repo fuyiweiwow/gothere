@@ -1,0 +1,78 @@
+{
+  "date": "2026-11-09",
+  "service": "SpriteCook MCP",
+  "model": "gpt-image-2",
+  "quality": "low",
+  "purpose": "Editable bus-stop style acceptance slice",
+  "baseStyleAssetId": "524c011a-eae9-4266-a07d-37025d1771fa",
+  "creditsUsed": 20,
+  "creditsRemainingAfterGeneration": 2,
+  "assets": [
+    {
+      "name": "hero-walk",
+      "assetId": "b71c487d-1a88-4d94-8385-3738df880060",
+      "jobId": "3d96d404-f53c-455c-b422-a660e5075e68",
+      "prompt": "Create ONE production-ready 2D side-view WALK CYCLE sprite sheet for the EXACT Chinese commuter character in the reference image. Preserve the same thick square glasses, oversized orange nose, tousled black hair, teal shirt, coral tie, blue-gray trousers, brown satchel and shoes; same inked painterly cartoon style and anatomical proportions.\nSHEET CONTRACT: exactly 8 frames in a 2-row by 4-column grid, read left to right then top to bottom. Each cell is identical size. NO borders, text, numbers, floor, shadows, effects or guides. Entire sheet background must be perfectly flat solid magenta #FF00FF. Use an opaque pink background, not transparency.\nACTION: one full continuous natural walk cycle toward screen right, in place, strict side view. Frames 1 and 5 are opposite foot forward contact poses, frames 2 and 6 down/recoil, frames 3 and 7 passing, frames 4 and 8 up/high passing. Alternate left and right leg consistently, real bent knees and raised heels. Hands grip satchel strap. Keep body centered in every cell and feet at the same baseline 84% down the cell. Constant standing-equivalent height at 70% of cell height, 15% headroom, generous horizontal margins; do not zoom each pose. Subtle head bob, satchel swing, tie lag. Feet visibly step, no skating. Full body including hair and shoes inside each cell. Return a real animation grid of the same character, not a character lineup or eight identical poses."
+    },
+    {
+      "name": "hero-fall",
+      "assetId": "3338e23e-b986-4400-9eb5-ca96f8eab251",
+      "jobId": "b127d242-8140-432c-ac8a-8a6677626ab9",
+      "prompt": "Create ONE continuous knockdown/fall animation for the EXACT Chinese commuter in the reference. Same thick square glasses, huge nose, tousled black hair, teal shirt, coral tie, grayblue trousers, brown satchel, round shoes, same inked painterly cartoon proportions. This is one action, not alternative characters.\nExactly SIX frames arranged THREE ROWS and TWO COLUMNS, row-major order, equal cells, no grid lines or captions, on solid pure #FF00FF magenta. Wide landscape-shaped cells. Entire character and all accessories inside each cell with generous padding.\nStrict side view facing RIGHT. Frame1 upright stumbling after being bumped; frame2 upper body tips backward and knees buckle; frame3 hips drop, legs extend forward; frame4 seated on pavement catching himself with rear hand; frame5 rolls sideways onto ground; frame6 sprawled flat on his BACK with glasses still on and bag beside him. Gentle slapstick, no injury or gore. His feet and hips stay on the same ground line near 82% of each cell. Camera never zooms; STANDING-equivalent anatomy scale identical across all frames. Character standing height roughly 65% of cell HEIGHT, final lying character roughly 70% of cell WIDTH. Do NOT shrink the lying figure. No floor, shadows, dust clouds, extra objects or text. Preserve full body and accessories."
+    },
+    {
+      "name": "passenger-a-walk",
+      "prompt": "ONE game animation sheet, exactly FOUR frames in a 2 by 2 grid, same person in all four, in place side view walking RIGHT. The person is a CHUBBY middle-aged Chinese uncle with a balding round head, tiny moustache, heavy eyebrows, white rolled sleeve shirt, rust brown trousers, blue work shoulder bag, big dark rounded shoes. Friendly exaggerated cartoon, match reference inked painterly style, teal/coral/ochre muted palette, large face.\nAll four equal cells, NO text lines labels or borders. Pure solid #FF00FF magenta background. Character occupies central 65% of each cell with generous margins, all limbs inside cell. Identical anatomy and scale. Feet baseline 86% down each cell. Frame1 left leg forward contact, Frame2 legs pass with right knee bent, Frame3 right leg forward contact, Frame4 legs pass with left knee bent. Hands rest on bag strap, small bag swing. Full body, no floor shadows. Distinct natural stepping poses. Do not repeat a static pose.",
+      "jobId": "600d61ca-06ce-45a6-856d-325bd5c71a7a",
+      "assetId": "8f9ffb5e-a91f-41ae-b6c5-76ffd684e715"
+    },
+    {
+      "name": "passenger-b-walk",
+      "prompt": "ONE game animation sheet, exactly FOUR frames in a 2 by 2 grid, same person in all four, in place side view walking RIGHT. A young Chinese woman with a BLACK HAIR BUN, round face, coral pink cardigan over cream blouse, navy blue skirt, ochre tote bag, flat dark shoes. Friendly exaggerated cartoon, same inked painterly linework and textured muted colors as style reference, big readable head and soft features. She is a background commuter, NOT the male reference protagonist.\nAll four equal square cells, NO text, captions, lines or borders. Pure solid #FF00FF magenta background. Full person occupies central 65% of each cell, generous margins, no cropped limbs. Identical anatomy and scale in all frames. Feet baseline 84% down each cell. Frame1 left leg forward contact, Frame2 passing legs with right knee bending, Frame3 right leg forward contact, Frame4 passing legs with left knee bending. Torso stays centered, small natural head bob. Carry bag at her side, little swing. No floor, shadows or loose effects. Distinct stepping poses making a loop.",
+      "jobId": "bf348b53-6637-41ea-be51-32e65565816d",
+      "assetId": "1a49a2c1-7ba9-441b-b8d1-3cc6828ac036"
+    },
+    {
+      "name": "passenger-c-walk",
+      "prompt": "ONE game animation sheet, exactly FOUR frames in a 2 by 2 grid, same person in all four, in-place side view walking RIGHT. A tall thin Chinese office worker with narrow sleepy face, messy dark hair, small round glasses, mustard yellow short sleeve shirt, loose bluegray trousers, coral red backpack, flat dark shoes. Lean slouching silhouette contrasts with the round older man and the woman. Match reference inked painterly cartoon style and warm muted teal/coral/ochre colors, exaggerated head and eyes. NOT a copy of the reference protagonist.\nAll four equal square cells, NO text captions lines borders. Pure solid #FF00FF magenta background. Full body occupies central 65% of each cell with generous margins. Identical anatomy and scale in all cells. Feet baseline 84% down each cell. Frame1 left leg forward contact, Frame2 passing with right knee bent, Frame3 right leg forward contact, Frame4 passing with left knee bent. Head small bob, natural walk loop, hands holding backpack straps. No floor shadows or effects. No limbs outside cells. Distinct stepping poses, do not repeat static pose.",
+      "jobId": "79fdc0af-c11b-4985-a4d6-36717e3de52f",
+      "assetId": "f5b95e36-8dee-4836-8998-0ef012161276"
+    },
+    {
+      "name": "background-clean",
+      "prompt": "Edit this 2D cartoon Chinese street illustration into a CLEAN EMPTY BACKGROUND PLATE for a layered 1200x640 side-view game. Preserve the beautiful existing warm cream, muted teal, coral and ochre inked painterly visual language, crooked friendly low-rise buildings, shopfronts, awnings, windows, morning sky, faint distant towers and continuous paving.\nREMOVE ALL bus shelters, benches, trees and planters, foreground poles, people, animals, vehicles, crates and bicycles. Reconstruct the missing facades and paving naturally so this plate has NO duplicate interactive objects. No lettering, logos or signs with readable words.\nCOMPOSITION: 16:9 wide view, fixed parallel camera. Sky to 15% of height; buildings and shops occupy 15% through 66% of height; generous continuous sidewalk band from 66% to 80%; road below 80% with subtle curb and lane dashes. Road and sidewalk are horizontal, not a road receding into the distance. Flat horizontal walking baseline at 76.5% image height. Buildings must not cover the sidewalk. Empty pleasant scene to place separately editable shelter, trees, passengers and bus onto. No white gaps, fog foreground or floating structures.",
+      "jobId": "d1f77094-86c7-4dc7-8b7e-59c97f388efc",
+      "assetId": "e356f07e-9264-47f0-b857-4ae19b017d37"
+    },
+    {
+      "name": "bus",
+      "prompt": "One isolated game prop: a friendly slightly battered TEAL AND CREAM city bus for a Chinese morning commute cartoon. Side view facing RIGHT with only a very thin hint of the front face; shallow parallel projection, no strong perspective. Match style reference with dark bluegray hand-inked outlines, gentle painted textures, warm cream, muted teal, small coral accents, rounded slightly exaggerated shape. Full bus body, exactly TWO large visible black tires, simple windows, empty seats visible, no driver gestures or people. NO writing, logos, route numerals, labels, exhaust or shadows.\nIMPORTANT: the passenger entrance is at 25% of the bus length from its LEFT end (the rear entrance). Draw a DARK EMPTY OPEN RECTANGULAR DOORWAY at that location, from bottom step up into windows. The doorway is roughly 10% of the bus length and 70% of its body height. Do NOT draw closed doors over it; door leaves will be a separate overlay.\nUse a WIDE isolated silhouette approximately 3:1 width:height. Fit full vehicle with both bumpers and tires within central 85% of a 16:9 image. Entire background perfectly flat pure #FF00FF magenta. No road floor or surroundings.",
+      "jobId": "5757b274-8296-4e81-a6e8-9616f7038831",
+      "assetId": "abf15a0f-6d3d-4bd3-9ef7-7703ae5e56a5"
+    },
+    {
+      "name": "shelter",
+      "prompt": "One isolated CHINESE CITY BUS SHELTER, front/side parallel view, teal rounded canopy with ochre cream edge, two bluegray posts, clear glass back panel, simple little wooden bench. Match reference inked painterly cartoon illustration, warm cream paper-light colors, soft teal, coral/ochre accents, dark bluegray hand drawn outlines. NO text, ads, people, vehicles, ground, shadows, street or surroundings.\nMake a thin open shelter with canopy spanning about 1.65 times total height. Full structure visible. It is a game prop that stands BEHIND waiting passengers. Both posts end on same horizontal ground line. The clear glass back should be VERY LIGHTLY tinted and mostly transparent magenta background visible through it; bench and roof opaque. Generous margins. Entire backdrop pure flat #FF00FF magenta for keying. Do not draw a magenta floor, just a blank backdrop. Camera shallow elevated parallel, no vanishing perspective or thick plinth.",
+      "jobId": "1668ba91-4d73-4e19-8f7c-52de02fca512",
+      "assetId": "786c2d89-095f-49bd-8c08-1aaa19758b00"
+    },
+    {
+      "name": "tree",
+      "prompt": "One isolated street TREE in a small square stone tree pit, full canopy and trunk. Match the reference inked painterly cartoon Chinese morning street: rounded irregular sage green canopy, loose warm texture, dark bluegray thin outlines, ochre brown branching trunk, few little patches of grass at base. Friendly slightly crooked form. Full tree visible, no crop, generous margins. Pure solid #FF00FF magenta background. No people, buildings, vehicles, shadows, scenery, ground outside the small tree pit, no text. Side elevation with very shallow parallel view of the planter. This is a separate editable background prop, not a landscape.",
+      "jobId": "f71d18e9-54c4-4a31-b9b3-d05c7d033817",
+      "assetId": "42ddaf25-253a-4a66-bfed-86b6d0e2f6c4"
+    },
+    {
+      "name": "idle-cast",
+      "prompt": "Create ONE character LINEUP reference sheet containing exactly FOUR separate full-body people standing STILL, arranged as a TWO BY TWO grid. Pure solid #FF00FF magenta backdrop; no text, lines, floor or shadows. All stand strict side view facing RIGHT with both feet naturally together on a shared baseline within each cell, full figures inside central 70% of cell. Same inked painterly cartoon style as references, same identities and outfits and same standing-equivalent anatomy scale as their own reference.\nTOP LEFT: exact main hero, oversized thick square glasses and orange nose, black spiky hair, teal shirt, coral tie, bluegray trousers, brown satchel, one hand on strap, distracted expression.\nTOP RIGHT: exact CHUBBY balding middle-aged uncle with small moustache, cream rolled sleeve shirt, rust trousers, blue shoulder bag, belly forward, relaxed.\nBOTTOM LEFT: exact young woman black bun, coral cardigan, navy skirt, ochre tote bag, flat shoes, patiently waiting.\nBOTTOM RIGHT: exact tall thin sleepy worker, small round glasses, mustard short sleeve shirt, grayblue trousers, coral backpack, slight slouch.\nThis sheet is for four neutral IDLE masters only; no walking, no action sequence. Match all supplied references, do not exchange faces or accessories. Feet at 86% of each square cell, head around 15%.",
+      "jobId": "f89907ea-0129-4df9-996e-56cc62588601",
+      "assetId": "a5266aa3-9e81-49b5-a38f-ec68ae0e2f0a"
+    }
+  ],
+  "notes": [
+    "Generated artwork is recorded separately from CC0 vector artwork. No claim of CC0 licensing or exclusive ownership.",
+    "Raw source sheets retained locally in output/imagegen/bus-integration-v1. Runtime images are deterministic crops, chroma cleanup and shared-scale alignment.",
+    "Contact sheet gutter positions are measured from disconnected silhouettes, because the first walking pose crosses the nominal grid boundary without being clipped.",
+    "Six fall frames use one anatomical scale. Grounded body frames have one 192x192 canvas and a (96,180) foot origin."
+  ]
+}

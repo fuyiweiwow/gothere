@@ -1,6 +1,6 @@
 # Artwork sources
 
-All artwork in this directory is available under **CC0 1.0**. The code's licensing is separate.
+The Kenney packs and project-authored artwork under `original/` are available under **CC0 1.0**. The generated study under `generated/painted-bus-v1/` has separate provenance below. The code's licensing is separate.
 
 | Source | Author | Original files / use |
 | --- | --- | --- |
@@ -14,6 +14,8 @@ Sources and licenses were checked on 2026-10-29 from the authors' own download p
 Palette adaptations wallLavender, wallTeal, wallIndigo, wallRose, wallStone and roofBlue are recolored Kenney images. The traveler poses have transparent margins trimmed. The original/ vector supplements were authored for this project to complement the night palette; they were not taken from Good Night Mr. Snoozleberg. No original-game image, video frame or animation is shipped.
 
 library.json records the source, license, size and relative file of every library entry. Run `node scripts/pack-assets.mjs` after changing artwork or the manifest to regenerate the embedded library used by both online and offline editors. The delivered HTML contains the artwork locally and needs no CDN or network requests.
+
+The 2026-11-09 painted bus-stop study contains 40 raster resources generated with SpriteCook / GPT Image 2, quality low, using a common commuter reference, plus one locally derived road-facing bus flank (`bus-back.png`). This reference did not establish approval of the final scene style. The additional flank reuses the neighboring painted window and body panel to remove the far-side passenger doorway; no additional generation was used. These are AI-generated study assets and their derivatives, **not part of the CC0 dedication of the original vectors**. `generated/painted-bus-v1/generation.json` records the prompts, service asset/job identifiers and generation settings; `processing.json` records measured source boxes, shared scales, foot origins and the bus derivative. Runtime PNG/WebP files are chroma-cleaned and cropped locally. No Snoozleberg artwork or frames are included. Provider terms apply to generated output; this prototype does not assert exclusive rights or certify production clearance.
 
 The v0.38.1 gait revision adds 36 original CC0 twelve-frame walking SVGs: `toonCommuterWalkCycle1–12`, `toonCommuterInCycle1–12`, and `toonCommuterOutCycle1–12`. Source: `scripts/draw-commuter-gait.mjs`, under LICENSE-original.txt. The earlier eight-frame resources remain unchanged. All new frames share a 112×96 canvas and the (56,90) binding origin.
 
