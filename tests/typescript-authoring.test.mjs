@@ -9,6 +9,7 @@ import {createTowStreetLevel} from '../src/editor/tow-street-level.js';
 import {createCrosswalkLevel} from '../src/editor/crosswalk-level.js';
 import {createScooterLevel} from '../src/editor/scooter-level.js';
 import {createCommuteChapter} from '../src/editor/commute-chapter.js';
+import {createOfficeArrival} from '../src/editor/office-arrival.js';
 import {createAuthoringAPI} from '../src/editor/authoring-api.js';
 import {createAuthoringLibrary} from '../src/editor/authoring-library.js';
 import {levelToProject,createProjectExample,renameProjectFile,projectModuleGraph} from '../src/editor/javascript-project.js';
@@ -19,7 +20,7 @@ import {placementAnchor} from '../src/core/placement.js';
 import {executeProject,typeService} from './helpers/project.mjs';
 
 test('typed semantic projects preserve all existing map schemas, artwork and action order exactly',async()=>{
-  for(const factory of [()=>createBlankLevel('blank',{layered:true}),createFirstLevel,createSpatialLevel,createLayeredLevel,createBusStopLevel,createTowStreetLevel,createCrosswalkLevel,createScooterLevel,createCommuteChapter]){
+  for(const factory of [()=>createBlankLevel('blank',{layered:true}),createFirstLevel,createSpatialLevel,createLayeredLevel,createBusStopLevel,createTowStreetLevel,createCrosswalkLevel,createScooterLevel,createCommuteChapter,createOfficeArrival]){
     const original=factory(),project=levelToProject(original,{typescript:true}),service=await typeService();
     assert.deepEqual(service.diagnostics(project),[],original.id);
     assert.equal(project.entry,'level.ts');

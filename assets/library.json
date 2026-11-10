@@ -5088,5 +5088,165 @@
     "height": 248,
     "source": "Local derivative of SpriteCook bus; processing.json",
     "license": "AI-generated derivative; see CREDITS.md"
+  },
+  {
+    "id": "officeLobby",
+    "label": "门厅 / 整体地面与建筑关系",
+    "category": "公司门厅",
+    "file": "original/office/officeLobby.svg",
+    "width": 1200,
+    "height": 640,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "officeDoorClosed",
+    "label": "门厅 / 合拢的玻璃门",
+    "category": "公司门厅",
+    "file": "original/office/officeDoorClosed.svg",
+    "width": 96,
+    "height": 150,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "officeDoorOpen",
+    "label": "门厅 / 被纸箱撑开的玻璃门",
+    "category": "公司门厅",
+    "file": "original/office/officeDoorOpen.svg",
+    "width": 96,
+    "height": 150,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "officeThreshold",
+    "label": "门厅 / 门缝与防撞胶条",
+    "category": "公司门厅",
+    "file": "original/office/officeThreshold.svg",
+    "width": 62,
+    "height": 12,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "officeParcel",
+    "label": "物品 / 能撑门的空纸箱",
+    "category": "公司门厅",
+    "file": "original/office/officeParcel.svg",
+    "width": 64,
+    "height": 54,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "officeCardboard",
+    "label": "物品 / 拆平吸水的纸板",
+    "category": "公司门厅",
+    "file": "original/office/officeCardboard.svg",
+    "width": 154,
+    "height": 22,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "officePuddle",
+    "label": "危险 / 漫过通道的积水",
+    "category": "公司门厅",
+    "file": "original/office/officePuddle.svg",
+    "width": 174,
+    "height": 36,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "officeWaterOn",
+    "label": "设备 / 未关紧的饮水机",
+    "category": "公司门厅",
+    "file": "original/office/officeWaterOn.svg",
+    "width": 80,
+    "height": 144,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "officeWaterOff",
+    "label": "设备 / 已关紧的饮水机",
+    "category": "公司门厅",
+    "file": "original/office/officeWaterOff.svg",
+    "width": 80,
+    "height": 144,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "officeReader",
+    "label": "考勤 / 等候识别的摄像头",
+    "category": "公司门厅",
+    "file": "original/office/officeReader.svg",
+    "width": 58,
+    "height": 98,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "officeReaderGreen",
+    "label": "考勤 / 盆栽识别成功",
+    "category": "公司门厅",
+    "file": "original/office/officeReaderGreen.svg",
+    "width": 58,
+    "height": 98,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "officeCourier",
+    "label": "送货 / 带盆栽的小推车",
+    "category": "公司门厅",
+    "file": "original/office/officeCourier.svg",
+    "width": 128,
+    "height": 114,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "officeCourierStep",
+    "label": "送货 / 推车步态",
+    "category": "公司门厅",
+    "file": "original/office/officeCourierStep.svg",
+    "width": 128,
+    "height": 114,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "officeGuardWelcome",
+    "label": "保安 / 起来欢迎盆栽",
+    "category": "公司门厅",
+    "file": "original/office/officeGuardWelcome.svg",
+    "width": 62,
+    "height": 94,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "officePlant",
+    "label": "布景 / 盆栽",
+    "category": "公司门厅",
+    "file": "original/office/officePlant.svg",
+    "width": 65,
+    "height": 72,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
+  },
+  {
+    "id": "officeMat",
+    "label": "布景 / 入门地垫",
+    "category": "公司门厅",
+    "file": "original/office/officeMat.svg",
+    "width": 136,
+    "height": 40,
+    "source": "gothere-original",
+    "license": "CC0-1.0"
   }
 ]

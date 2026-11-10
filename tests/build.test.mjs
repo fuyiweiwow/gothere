@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import {ASSETS} from '../src/content/library.js';
 import {createCommuteChapter} from '../src/editor/commute-chapter.js';
 import {createPaintedBusStopLevel} from '../src/editor/painted-bus-stop.js';
+import {createOfficeArrival} from '../src/editor/office-arrival.js';
 import {standaloneAssets} from '../scripts/standalone-assets.mjs';
 
 test('builds the editor and a self-contained hint-free play entry on the same engine', async () => {
@@ -29,4 +30,9 @@ test('builds the editor and a self-contained hint-free play entry on the same en
   const painted=await readFile(new URL('../dist/gothere-painted-bus.html',import.meta.url),'utf8');
   for(const asset of standaloneAssets(createPaintedBusStopLevel(),ASSETS))assert.ok(painted.includes(asset.src),'missing painted image '+asset.id);
   assert.ok(painted.includes('<script id="standalone-play" type="application/json">{"sample":"painted-bus-stop"}</script>'));
+  const office=await readFile(new URL('../dist/gothere-office.html',import.meta.url),'utf8');
+  assert.equal(await readFile(new URL('../dist/office.html',import.meta.url),'utf8'),office);
+  for(const asset of standaloneAssets(createOfficeArrival(),ASSETS))assert.ok(office.includes(asset.src),'missing office image '+asset.id);
+  assert.ok(office.includes('<script id="standalone-play" type="application/json">{"sample":"office-arrival"}</script>'));
+  assert.ok(!office.includes('CodeMirror'));assert.ok(!office.includes(ASSETS.find(a=>a.id==='paintedBusBack').src));
 });

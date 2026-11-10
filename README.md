@@ -2,9 +2,11 @@
 
 轻松诙谐的 2D 环境解谜与关卡编辑引擎，最终目标为 Steam。主角认准目的地持续前进，玩家通过物体、行为和事件改变环境，帮助他到达那里。
 
-在线：[完整街区试玩](https://fuyiweiwow.github.io/gothere/play.html) · [公交站美术试玩](https://fuyiweiwow.github.io/gothere/gothere-painted-bus.html) · [关卡编辑器](https://fuyiweiwow.github.io/gothere/editor.html)。试玩入口无需安装或登录，不展示攻略和编辑面板。
+在线：[完整街区试玩](https://fuyiweiwow.github.io/gothere/play.html) · [公司门厅小样](https://fuyiweiwow.github.io/gothere/office.html) · [公交站美术试玩](https://fuyiweiwow.github.io/gothere/gothere-painted-bus.html) · [关卡编辑器](https://fuyiweiwow.github.io/gothere/editor.html)。试玩入口无需安装或登录，不展示攻略和编辑面板。
 
-当前分支 `codex/spatial-2-5d` 的本地开发版为 **0.40.2 二维分层编辑器与试玩拖放反馈**。默认展示完整街区 [上班路 · 还得去](http://localhost:4173/?sample=chapter)：近街公交站 → 右侧向里过街 → 中街清障与车主追车 → 左侧窄巷电瓶车 → 远街早餐与狗 → 公司外门。约一分钟，使用者无需编辑。方案与限制见 [整章记录](docs/commute-chapter-layout.md)。
+当前分支 `codex/office-arrival` 的本地开发版为 **0.41.0 公司门厅玩法小样**。默认仍展示完整街区 [上班路 · 还得去](http://localhost:4173/?sample=chapter)：近街公交站 → 右侧向里过街 → 中街清障与车主追车 → 左侧窄巷电瓶车 → 远街早餐与狗 → 公司外门。约一分钟，使用者无需编辑。方案与限制见 [整章记录](docs/commute-chapter-layout.md)。
+
+新增独立 [公司门厅试玩](http://localhost:4173/office.html) 与 [同图编辑器](http://localhost:4173/?sample=office-arrival)：约41秒，同一个纸箱先撑门再吸水，饮水机未关会重新湿透；等主角走近，送货师傅会先把盆栽送去识别。全部使用已有 DSL、普通资源与同一模拟，无专属运行规则。构建输出 `dist/gothere-office.html`，首章与原有草稿保留。当前是配色灰盒，趣味与无字叙事仍待试玩，见 [门厅小样](docs/office-arrival.md)。
 
 拖动物品接近有效接收点时，提前预览实际落点，松手后的放置与预览一致。正式试玩仅在有效范围内显示局部反馈，编辑器预览保留接收范围辅助；Esc 取消当前拖动，错误放置仍归位。物品、路线与机关时机沿用原定义。
 
@@ -44,7 +46,7 @@
 
 DSL v1 为原横版、v2 为三轴实验、v3 为二维分层。新编辑器读取三个版本，旧稿不自动转换为分层语义。主线旧编辑器不能运行 v2/v3。
 
-公开 Pages 由 **main 版 0.40.2** 发布，编辑器默认完整街区；分享试玩使用上面的独立入口。原「里程碑 02 · 屋顶到亮窗」仍在示例列表中作为横版兼容关卡。以下首关功能说明用于兼容回归与能力对照。
+公开 Pages 由 **main 版 0.41.0** 发布，编辑器默认完整街区；门厅小样使用独立的 `office.html`，首章仍为 `play.html`。原「里程碑 02 · 屋顶到亮窗」仍在示例列表中作为横版兼容关卡。以下首关功能说明用于兼容回归与能力对照。
 
 [打开编辑器](https://fuyiweiwow.github.io/gothere/editor.html) · [下载离线 HTML](https://fuyiweiwow.github.io/gothere/gothere-editor.html)
 

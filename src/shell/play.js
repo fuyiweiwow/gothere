@@ -1,5 +1,6 @@
 import {createCommuteChapter} from '../editor/commute-chapter.js';
 import {createPaintedBusStopLevel} from '../editor/painted-bus-stop.js';
+import {createOfficeArrival} from '../editor/office-arrival.js';
 import {createPreview} from '../app/preview.js';
 import {drawSpatial} from '../render/spatial.js';
 import {loadResources,entityArtBounds} from '../render/resources.js';
@@ -16,14 +17,16 @@ export async function startPlay(){
   const settings=document.getElementById('standalone-play');
   // A standalone package contains this level's assets; editor/source entries use URL selection.
   const sample=settings?JSON.parse(settings.textContent||'{}').sample:new URLSearchParams(location.search).get('sample');
-  const paintedBus=sample==='painted-bus-stop';
-  if(settings)settings.textContent=JSON.stringify(paintedBus?{sample}:{});
+  const samples={chapter:{create:createCommuteChapter,file:'gothere-play.html'},'painted-bus-stop':{create:createPaintedBusStopLevel,file:'gothere-painted-bus.html'},'office-arrival':{create:createOfficeArrival,file:'gothere-office.html'}};
+  const selected=Object.hasOwn(samples,sample)?sample:'chapter',entry=samples[selected];
+  if(settings)settings.textContent=JSON.stringify(selected==='chapter'?{}:{sample:selected});
   const portable=settings?'<!doctype html>\n'+document.documentElement.outerHTML:null;
   document.title='一定要到达那里 · 试玩';document.body.className='';
   document.body.removeAttribute('data-display');document.body.innerHTML=PLAY_MARKUP;
   const style=document.createElement('style');style.textContent=PLAY_STYLE;document.head.append(style);
   const $=id=>document.getElementById(id),canvas=$('play-canvas'),ctx=canvas.getContext('2d'),overlay=$('play-targets');
-  const level=paintedBus?createPaintedBusStopLevel():createCommuteChapter(),preview=createPreview(level),sound=createSoundPlayer({notify:message=>{$('play-status').textContent=message;}});
+  const level=entry.create(),preview=createPreview(level),sound=createSoundPlayer({notify:message=>{$('play-status').textContent=message;}});
+  $('play-level-name').textContent=level.name;$('play-stage').setAttribute('aria-label',level.name);$('play-download').download=entry.file;
   let endingTicks=0,accumulator=0,previous=0,frame=0,loaded=false,muted=false,tailPaused=false;
   const feedback=createFeedbackPlayer(level,{onSound:event=>sound.play(event)});sound.setLevel(level);
   const drag=createRuntimeDrag({overlay,viewport:$('play-stage'),session:()=>({level,preview}),paint:draw,notify:()=>{},click});
@@ -79,7 +82,7 @@ export async function startPlay(){
   new ResizeObserver(()=>{const scale=Math.max(1,Math.min(3,canvas.clientWidth/1200*(devicePixelRatio||1)));canvas.width=Math.round(1200*scale);canvas.height=Math.round(640*scale);ctx.setTransform(canvas.width/1200,0,0,canvas.height/640,0,0);draw();}).observe(canvas);
   const download=$('play-download');let downloadURL;
   if(portable){downloadURL=URL.createObjectURL(new Blob([portable],{type:'text/html;charset=utf-8'}));download.href=downloadURL;}
-  else if(location.protocol!=='file:')download.href=paintedBus?'gothere-painted-bus.html':'gothere-play.html';else download.hidden=true;
+  else if(location.protocol!=='file:')download.href=entry.file;else download.hidden=true;
   window.addEventListener('pagehide',()=>{sound.stop();if(downloadURL)URL.revokeObjectURL(downloadURL);},{once:true});
   canvas.dataset.assets='loading';draw();
   try{await loadResources(level);loaded=true;canvas.dataset.assets='ready';draw();}

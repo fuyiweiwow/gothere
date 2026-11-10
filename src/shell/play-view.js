@@ -6,7 +6,7 @@ export const PLAY_STYLE=`
 `;
 
 export const PLAY_MARKUP=`<main class="play-app">
-  <header class="play-header"><div><h1>一定要到达那里</h1><span>上班路 · 还得去</span></div><nav class="play-controls" aria-label="游玩控制"><button id="play-pause" disabled>暂停</button><button id="play-restart" disabled>重来</button><button id="play-sound" aria-pressed="true">声音：开</button></nav></header>
+  <header class="play-header"><div><h1>一定要到达那里</h1><span id="play-level-name">上班路 · 还得去</span></div><nav class="play-controls" aria-label="游玩控制"><button id="play-pause" disabled>暂停</button><button id="play-restart" disabled>重来</button><button id="play-sound" aria-pressed="true">声音：开</button></nav></header>
   <section id="play-stage" class="play-stage" aria-label="上班路"><canvas id="play-canvas" width="1200" height="640" aria-label="游戏画面"></canvas><div id="play-targets" class="play-targets" aria-label="场景互动"></div><div id="play-cover" class="play-cover"><div class="play-card"><h2 id="play-message">一定要到达那里</h2><button id="play-start" class="play-primary" disabled>加载中…</button></div></div></section>
   <footer class="play-footer"><span>一定要到达那里 · 试玩版</span><a id="play-download" class="play-download" download="gothere-play.html">保存离线版</a></footer><span id="play-status" class="play-sr" role="status" aria-live="polite"></span>
 </main>`;

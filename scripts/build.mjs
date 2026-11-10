@@ -8,6 +8,7 @@ import {typeScriptLibraries} from './typescript-libraries.mjs';
 import {ASSETS} from '../src/content/library.js';
 import {createCommuteChapter} from '../src/editor/commute-chapter.js';
 import {createPaintedBusStopLevel} from '../src/editor/painted-bus-stop.js';
+import {createOfficeArrival} from '../src/editor/office-arrival.js';
 import {standaloneAssets} from './standalone-assets.mjs';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
@@ -61,6 +62,9 @@ export async function buildEditor() {
   const paintedBundle=await bundleEntry('src/shell/play-entry.js',standaloneAssets(createPaintedBusStopLevel(),ASSETS));
   const paintedHTML=playHTML.replace(playBundle.script,()=>paintedBundle.script).replace('<script id="standalone-play" type="application/json">{}</script>','<script id="standalone-play" type="application/json">{"sample":"painted-bus-stop"}</script>');
   await saveHTML('gothere-painted-bus.html',paintedHTML);
+  const officeBundle=await bundleEntry('src/shell/play-entry.js',standaloneAssets(createOfficeArrival(),ASSETS));
+  const officeHTML=playHTML.replace(playBundle.script,()=>officeBundle.script).replace('<script id="standalone-play" type="application/json">{}</script>','<script id="standalone-play" type="application/json">{"sample":"office-arrival"}</script>');
+  await Promise.all([saveHTML('office.html',officeHTML),saveHTML('gothere-office.html',officeHTML)]);
   return {path:resolve(ROOT,'dist/gothere-editor.html'),bytes:Buffer.byteLength(html),modules:bundle.modules};
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
